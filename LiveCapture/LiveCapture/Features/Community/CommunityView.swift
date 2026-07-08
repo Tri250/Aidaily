@@ -47,7 +47,15 @@ struct CommunityView: View {
 
                 switch selectedTab {
                 case .challenges:
-                    ChallengeListView(manager: challengeManager)
+                    ChallengeListView(manager: challengeManager, onNavigateToFilters: {
+                        withAnimation(DesignSystem.Animation.modeSlide) {
+                            selectedTab = .filters
+                        }
+                    }, onNavigateToLocations: {
+                        withAnimation(DesignSystem.Animation.modeSlide) {
+                            selectedTab = .locations
+                        }
+                    })
                         .transition(.asymmetric(
                             insertion: .move(edge: shouldSlideRight(old: .challenges, new: .challenges) ? .trailing : .leading).combined(with: .opacity),
                             removal: .move(edge: shouldSlideRight(old: .challenges, new: selectedTab) ? .leading : .trailing).combined(with: .opacity)
@@ -84,6 +92,8 @@ struct CommunityView: View {
 
 struct ChallengeListView: View {
     @ObservedObject var manager: PhotoChallengeManager
+    var onNavigateToFilters: (() -> Void)?
+    var onNavigateToLocations: (() -> Void)?
 
     var body: some View {
         ScrollView {
@@ -194,6 +204,47 @@ struct ChallengeListView: View {
             Text("新挑战即将到来，敬请期待")
                 .font(DesignSystem.Typography.subheadline)
                 .foregroundColor(DesignSystem.Colors.textTertiary)
+
+            // 操作按钮
+            VStack(spacing: DesignSystem.Spacing.xSmall) {
+                if let onNavigateToFilters = onNavigateToFilters {
+                    Button(action: onNavigateToFilters) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "camera.filters")
+                                .font(.system(size: 14))
+                            Text("浏览滤镜")
+                                .font(DesignSystem.Typography.subheadline)
+                        }
+                        .foregroundColor(DesignSystem.Colors.primary)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 10)
+                        .background(
+                            Capsule()
+                                .fill(DesignSystem.Colors.primary.opacity(0.12))
+                        )
+                    }
+                }
+
+                if let onNavigateToLocations = onNavigateToLocations {
+                    Button(action: onNavigateToLocations) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "mappin.and.ellipse")
+                                .font(.system(size: 14))
+                            Text("探索地点")
+                                .font(DesignSystem.Typography.subheadline)
+                        }
+                        .foregroundColor(DesignSystem.Colors.accent)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 10)
+                        .background(
+                            Capsule()
+                                .fill(DesignSystem.Colors.accent.opacity(0.12))
+                        )
+                    }
+                }
+            }
+            .padding(.top, DesignSystem.Spacing.xxSmall)
+
             Spacer()
         }
         .frame(maxWidth: .infinity)
@@ -828,6 +879,24 @@ struct MyFiltersView: View {
                         Text("浏览社区滤镜并下载你喜欢的")
                             .font(DesignSystem.Typography.subheadline)
                             .foregroundColor(DesignSystem.Colors.textTertiary)
+
+                        Button {
+                            dismiss()
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "square.grid.2x2")
+                                    .font(.system(size: 14))
+                                Text("浏览社区滤镜")
+                                    .font(DesignSystem.Typography.subheadline)
+                            }
+                            .foregroundColor(DesignSystem.Colors.primary)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 10)
+                            .background(
+                                Capsule()
+                                    .fill(DesignSystem.Colors.primary.opacity(0.12))
+                            )
+                        }
                     }
                     .frame(maxWidth: .infinity)
                 }

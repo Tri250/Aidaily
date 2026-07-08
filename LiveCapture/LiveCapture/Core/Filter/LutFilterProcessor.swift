@@ -2,15 +2,14 @@
 //  LutFilterProcessor.swift
 //  LiveCapture
 //
-//  LUT 滤镜处理器
+//  LUT 滤镜处理器 - 兼容层，委托给 FilterProcessor 实现
 //
 //  ## 文件作用
-//  使用 Core Image 的 CIFilter 链对图像和像素缓冲应用滤镜效果
-//  支持强度混合（intensity blending），在原始图像和滤镜效果之间平滑过渡
-//  支持 CVPixelBuffer 实时预览和 UIImage 输出
+//  保持与旧代码的兼容性，内部委托给 FilterProcessor 处理
+//  支持 CIFilter 链 + 色调曲线 + 颜色矩阵的完整滤镜处理
 //
 //  ## 主要类
-//  - LutFilterProcessor: 滤镜处理器，使用 CIFilter 链实现预设滤镜
+//  - LutFilterProcessor: 滤镜处理器（兼容层）
 //
 //  ## CIFilter 链顺序
 //  1. CITemperatureAndTint - 色温色调调整
@@ -19,42 +18,41 @@
 //  4. CIVibrance - 自然饱和度
 //  5. CIHighlightShadowAdjust - 高光阴影
 //  6. CIColorMonochrome（可选）- 黑白转换
+//  7. CIToneCurve（可选）- RGB 色调曲线
+//  8. CIColorMatrix（可选）- 颜色矩阵变换
 //
 //  ## 强度混合
-//  使用 CIBlendWithAlphaMask 或手动混合实现强度控制
-//  intensity = 1.0 时完全应用滤镜，intensity = 0.0 时返回原图
+//  使用 CIBlendWithAlphaMask 实现强度控制
 //
 //  ## 性能优化
-//  - 使用单个 CIContext 实例复用 GPU 资源
-//  - colorSpace 使用 sRGB 确保颜色一致性
-//  - 支持 Metal 加速（默认）
-//
-//  ## 线程安全
-//  - CIContext 是线程安全的
-//  - 每次调用创建新的 CIImage 链，无共享状态
+//  - 委托给 FilterProcessor.shared 复用 GPU 资源
+//  - 支持 Metal 加速
 //
 
 import Foundation
 import CoreImage
 import UIKit
 import CoreVideo
+import Metal
 
 #if os(iOS)
 
-/// LUT 滤镜处理器 - 使用 CIFilter 链实现滤镜效果
+/// LUT 滤镜处理器 - 兼容层，委托给 FilterProcessor
 final class LutFilterProcessor {
 
     // MARK: - 属性
 
-    /// Core Image 上下文，复用 GPU 资源
+    /// 委托的 FilterProcessor 实例
+    private let processor: FilterProcessor
+
+    /// Core Image 上下文（兼容旧代码）
     private let context: CIContext
-    /// 颜色空间
     private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
 
     // MARK: - 初始化
 
     init() {
-        // 使用 Metal 加速，回退到 CPU
+        processor = FilterProcessor.shared
         if let device = MTLCreateSystemDefaultDevice() {
             context = CIContext(mtlDevice: device, options: [
                 .workingColorSpace: colorSpace,
@@ -73,28 +71,17 @@ final class LutFilterProcessor {
     // MARK: - CIImage 处理
 
     /// 对 CIImage 应用滤镜
-    /// - Parameters:
-    ///   - image: 输入图像
-    ///   - preset: 滤镜预设
-    ///   - intensity: 滤镜强度（0-1），默认 1.0
-    /// - Returns: 处理后的 CIImage
     func applyFilter(to image: CIImage, preset: LutFilterPreset, intensity: Float = 1.0) -> CIImage {
         let clampedIntensity = max(0, min(1, intensity))
-
-        // 如果强度为 0，直接返回原图
         guard clampedIntensity > 0.001 else { return image }
 
-        // 构建滤镜链
         let filtered = applyFilterChain(to: image, parameters: preset.parameters)
-
-        // 如果完全强度，直接返回滤镜结果
         guard clampedIntensity < 0.999 else { return filtered }
 
-        // 强度混合：在原始图像和滤镜结果之间插值
         return blendImages(original: image, filtered: filtered, intensity: clampedIntensity)
     }
 
-    /// 对 CIImage 应用滤镜链
+    /// 对 CIImage 应用滤镜参数链
     private func applyFilterChain(to image: CIImage, parameters: FilterParameters) -> CIImage {
         var output = image
 
@@ -110,7 +97,7 @@ final class LutFilterProcessor {
             output = applyExposureAdjust(to: output, ev: parameters.exposure)
         }
 
-        // 3. 颜色控制（亮度、对比度、饱和度）
+        // 3. 颜色控制
         if parameters.brightness != 0 || parameters.contrast != 1.0 || parameters.saturation != 1.0 {
             output = applyColorControls(to: output,
                                         brightness: parameters.brightness,
@@ -142,26 +129,34 @@ final class LutFilterProcessor {
                                      intensity: parameters.monochromeIntensity)
         }
 
+        // 7. 色调曲线
+        if parameters.useToneCurve {
+            output = applyToneCurve(to: output,
+                                    rCurve: parameters.toneCurveR,
+                                    gCurve: parameters.toneCurveG,
+                                    bCurve: parameters.toneCurveB)
+        }
+
+        // 8. 颜色矩阵
+        if parameters.useColorMatrix {
+            output = applyColorMatrix(to: output, parameters: parameters)
+        }
+
         return output
     }
 
     // MARK: - 单个 CIFilter 应用
 
-    /// 色温色调调整
     private func applyTemperatureAndTint(to image: CIImage, temperature: Float, tint: Float) -> CIImage {
         guard let filter = CIFilter(name: "CITemperatureAndTint") else { return image }
-        // 中性色温 6500K，色调 0
         let neutralVector = CIVector(x: 6500, y: 0)
         let targetVector = CIVector(x: CGFloat(6500 + temperature), y: CGFloat(tint))
-
         filter.setValue(image, forKey: kCIInputImageKey)
         filter.setValue(neutralVector, forKey: "inputNeutral")
         filter.setValue(targetVector, forKey: "inputTargetNeutral")
-
         return filter.outputImage ?? image
     }
 
-    /// 曝光调整
     private func applyExposureAdjust(to image: CIImage, ev: Float) -> CIImage {
         guard let filter = CIFilter(name: "CIExposureAdjust") else { return image }
         filter.setValue(image, forKey: kCIInputImageKey)
@@ -169,7 +164,6 @@ final class LutFilterProcessor {
         return filter.outputImage ?? image
     }
 
-    /// 颜色控制（亮度、对比度、饱和度）
     private func applyColorControls(to image: CIImage, brightness: Float, contrast: Float, saturation: Float) -> CIImage {
         guard let filter = CIFilter(name: "CIColorControls") else { return image }
         filter.setValue(image, forKey: kCIInputImageKey)
@@ -179,7 +173,6 @@ final class LutFilterProcessor {
         return filter.outputImage ?? image
     }
 
-    /// 自然饱和度
     private func applyVibrance(to image: CIImage, amount: Float) -> CIImage {
         guard let filter = CIFilter(name: "CIVibrance") else { return image }
         filter.setValue(image, forKey: kCIInputImageKey)
@@ -187,7 +180,6 @@ final class LutFilterProcessor {
         return filter.outputImage ?? image
     }
 
-    /// 高光阴影调整
     private func applyHighlightShadow(to image: CIImage, highlightAmount: Float, shadowAmount: Float) -> CIImage {
         guard let filter = CIFilter(name: "CIHighlightShadowAdjust") else { return image }
         filter.setValue(image, forKey: kCIInputImageKey)
@@ -196,7 +188,6 @@ final class LutFilterProcessor {
         return filter.outputImage ?? image
     }
 
-    /// 黑白转换
     private func applyMonochrome(to image: CIImage, color: CIColor, intensity: Float) -> CIImage {
         guard let filter = CIFilter(name: "CIColorMonochrome") else { return image }
         filter.setValue(image, forKey: kCIInputImageKey)
@@ -205,24 +196,72 @@ final class LutFilterProcessor {
         return filter.outputImage ?? image
     }
 
+    /// 色调曲线（RGB 各通道独立曲线）
+    private func applyToneCurve(
+        to image: CIImage,
+        rCurve: [Float],
+        gCurve: [Float],
+        bCurve: [Float]
+    ) -> CIImage {
+        guard let filter = CIFilter(name: "CIToneCurve") else { return image }
+        let xPoints: [CGFloat] = [0.0, 0.25, 0.5, 0.75, 1.0]
+        let rValues = rCurve.map { CGFloat($0) }
+        let gValues = gCurve.map { CGFloat($0) }
+        let bValues = bCurve.map { CGFloat($0) }
+
+        filter.setValue(image, forKey: kCIInputImageKey)
+        filter.setValue(CIVector(values: xPoints, count: 5), forKey: "inputPoint0")
+        filter.setValue(CIVector(values: rValues, count: 5), forKey: "inputPoint1")
+        filter.setValue(CIVector(values: gValues, count: 5), forKey: "inputPoint2")
+        filter.setValue(CIVector(values: bValues, count: 5), forKey: "inputPoint3")
+        filter.setValue(CIVector(values: xPoints, count: 5), forKey: "inputPoint4")
+
+        return filter.outputImage ?? image
+    }
+
+    /// 颜色矩阵变换
+    private func applyColorMatrix(to image: CIImage, parameters: FilterParameters) -> CIImage {
+        guard let filter = CIFilter(name: "CIColorMatrix") else { return image }
+
+        filter.setValue(image, forKey: kCIInputImageKey)
+        filter.setValue(CIVector(
+            x: CGFloat(parameters.colorMatrixRR),
+            y: CGFloat(parameters.colorMatrixRG),
+            z: CGFloat(parameters.colorMatrixRB),
+            w: CGFloat(parameters.colorMatrixRA)
+        ), forKey: "inputRVector")
+        filter.setValue(CIVector(
+            x: CGFloat(parameters.colorMatrixGR),
+            y: CGFloat(parameters.colorMatrixGG),
+            z: CGFloat(parameters.colorMatrixGB),
+            w: CGFloat(parameters.colorMatrixGA)
+        ), forKey: "inputGVector")
+        filter.setValue(CIVector(
+            x: CGFloat(parameters.colorMatrixBR),
+            y: CGFloat(parameters.colorMatrixBG),
+            z: CGFloat(parameters.colorMatrixBB),
+            w: CGFloat(parameters.colorMatrixBA)
+        ), forKey: "inputBVector")
+        filter.setValue(CIVector(
+            x: CGFloat(parameters.colorMatrixRBias),
+            y: CGFloat(parameters.colorMatrixGBias),
+            z: CGFloat(parameters.colorMatrixBBias),
+            w: 0
+        ), forKey: "inputBiasVector")
+
+        return filter.outputImage ?? image
+    }
+
     // MARK: - 强度混合
 
-    /// 在原始图像和滤镜结果之间按强度混合
-    /// - 使用 CIMix 不够精确，改用逐像素线性插值
     private func blendImages(original: CIImage, filtered: CIImage, intensity: Float) -> CIImage {
-        // 方法：使用 CIBlendWithAlphaMask 进行混合
-        // 创建强度遮罩（纯色图，alpha = intensity）
         let extent = filtered.extent
-        guard let constantColor = CIFilter(name: "CIConstantColorGenerator") else {
-            return filtered
-        }
+        guard let constantColor = CIFilter(name: "CIConstantColorGenerator") else { return filtered }
         let maskColor = CIColor(red: 1, green: 1, blue: 1, alpha: CGFloat(intensity))
         constantColor.setValue(maskColor, forKey: kCIInputColorKey)
         guard let maskImage = constantColor.outputImage else { return filtered }
         let mask = maskImage.cropped(to: extent)
 
-        // 使用 CIBlendWithMask 混合：原图作为背景，滤镜图作为前景
-        // 遮罩为白色(intensity)时显示滤镜图，黑色(1-intensity)时显示原图
         guard let blend = CIFilter(name: "CIBlendWithMask") else { return filtered }
         blend.setValue(filtered, forKey: kCIInputImageKey)
         blend.setValue(original, forKey: kCIInputBackgroundImageKey)
@@ -233,105 +272,25 @@ final class LutFilterProcessor {
 
     // MARK: - CVPixelBuffer 处理
 
-    /// 对 CVPixelBuffer 应用滤镜
-    /// - Parameters:
-    ///   - pixelBuffer: 输入像素缓冲
-    ///   - preset: 滤镜预设
-    ///   - intensity: 滤镜强度（0-1），默认 1.0
-    /// - Returns: 处理后的 CVPixelBuffer，失败返回 nil
     func applyFilter(to pixelBuffer: CVPixelBuffer, preset: LutFilterPreset, intensity: Float = 1.0) -> CVPixelBuffer? {
-        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-
-        let filtered = applyFilter(to: ciImage, preset: preset, intensity: intensity)
-
-        // 创建输出像素缓冲
-        let width = CVPixelBufferGetWidth(pixelBuffer)
-        let height = CVPixelBufferGetHeight(pixelBuffer)
-
-        var outputBuffer: CVPixelBuffer?
-        let status = CVPixelBufferCreate(
-            kCFAllocatorDefault,
-            width,
-            height,
-            CVPixelBufferGetPixelFormatType(pixelBuffer),
-            nil,
-            &outputBuffer
-        )
-
-        guard status == kCVReturnSuccess, let output = outputBuffer else {
-            return nil
-        }
-
-        // 渲染到输出像素缓冲
-        context.render(filtered, to: output)
-
-        return output
+        return processor.applyFilter(to: pixelBuffer, preset: preset, intensity: intensity)
     }
 
     // MARK: - 快速预览
 
-    /// 快速预览：从 CVPixelBuffer 生成 UIImage（带滤镜效果）
-    /// - Parameters:
-    ///   - pixelBuffer: 输入像素缓冲
-    ///   - preset: 滤镜预设
-    /// - Returns: 应用滤镜后的 UIImage，失败返回 nil
     func quickPreview(pixelBuffer: CVPixelBuffer, preset: LutFilterPreset) -> UIImage? {
-        guard let filtered = applyFilter(to: pixelBuffer, preset: preset, intensity: preset.defaultIntensity) else {
-            return nil
-        }
-
-        let ciImage = CIImage(cvPixelBuffer: filtered)
-
-        // 从 CIImage 创建 CGImage
-        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
-            return nil
-        }
-
-        return UIImage(cgImage: cgImage)
+        return processor.quickPreview(pixelBuffer: pixelBuffer, preset: preset)
     }
 
-    /// 快速预览：从 CIImage 生成 UIImage（带滤镜效果）
     func quickPreview(ciImage: CIImage, preset: LutFilterPreset) -> UIImage? {
-        let filtered = applyFilter(to: ciImage, preset: preset, intensity: preset.defaultIntensity)
-
-        guard let cgImage = context.createCGImage(filtered, from: filtered.extent) else {
-            return nil
-        }
-
-        return UIImage(cgImage: cgImage)
+        return processor.quickPreview(ciImage: ciImage, preset: preset)
     }
 
     // MARK: - 缩略图预览
 
-    /// 生成缩略图预览（用于滤镜选择器中的小图）
-    /// - Parameters:
-    ///   - image: 输入图像
-    ///   - preset: 滤镜预设
-    ///   - targetSize: 目标缩略图尺寸
-    /// - Returns: 缩略图 UIImage
     func thumbnailPreview(image: UIImage, preset: LutFilterPreset, targetSize: CGSize) -> UIImage? {
-        guard let cgImage = image.cgImage else { return nil }
-        let ciImage = CIImage(cgImage: cgImage)
-
-        // 先缩放到目标尺寸以提高性能
-        let scaleX = targetSize.width / ciImage.extent.width
-        let scaleY = targetSize.height / ciImage.extent.height
-        let scale = min(scaleX, scaleY)
-
-        let scaled = ciImage.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
-
-        let filtered = applyFilter(to: scaled, preset: preset, intensity: preset.defaultIntensity)
-
-        guard let resultCG = context.createCGImage(filtered, from: filtered.extent) else {
-            return nil
-        }
-
-        return UIImage(cgImage: resultCG)
+        return processor.thumbnailPreview(image: image, preset: preset, targetSize: targetSize)
     }
 }
-
-// MARK: - Metal 导入
-
-import Metal
 
 #endif

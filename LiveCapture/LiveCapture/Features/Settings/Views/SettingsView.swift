@@ -32,6 +32,8 @@ struct SettingsView: View {
     @State private var showAccountDeletion = false
     @State private var showYouthMode = false
     @State private var showPersonalInfo = false
+    @State private var showWatermarkSettings = false
+    @State private var showShootingGuide = false
 
     var body: some View {
         NavigationStack {
@@ -40,6 +42,8 @@ struct SettingsView: View {
                     headerSection
 
                     themeSection
+
+                    watermarkSection
 
                     captureSection
 
@@ -50,6 +54,8 @@ struct SettingsView: View {
                     editingSection
 
                     complianceSection
+
+                    tutorialSection
 
                     aboutSection
                 }
@@ -73,6 +79,12 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showPersonalInfo) {
             PersonalInfoCollectionView()
+        }
+        .sheet(isPresented: $showWatermarkSettings) {
+            WatermarkEditView()
+        }
+        .sheet(isPresented: $showShootingGuide) {
+            ShootingGuideView()
         }
     }
 
@@ -106,6 +118,44 @@ struct SettingsView: View {
             }
             .pickerStyle(.segmented)
             .accessibilityLabel("主题模式选择")
+        }
+    }
+
+    // MARK: - Watermark
+
+    private var watermarkSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
+            Text("水印")
+                .font(DesignSystem.Typography.title3)
+                .foregroundColor(DesignSystem.Colors.textPrimary)
+
+            VStack(spacing: 0) {
+                Button {
+                    showWatermarkSettings = true
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "text.below.photo")
+                            .font(.system(size: 15))
+                            .foregroundColor(DesignSystem.Colors.primary)
+                            .frame(width: 24)
+                        Text("水印设置")
+                            .font(DesignSystem.Typography.headline)
+                            .foregroundColor(DesignSystem.Colors.textPrimary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(DesignSystem.Colors.textTertiary)
+                    }
+                    .padding(.vertical, 14)
+                    .padding(.horizontal, DesignSystem.Spacing.medium)
+                }
+                .accessibilityLabel("水印设置")
+                .accessibilityHint("点击配置照片水印")
+            }
+            .background(
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                    .fill(DesignSystem.Colors.backgroundSecondary)
+            )
         }
     }
 
@@ -511,6 +561,44 @@ struct SettingsView: View {
                 complianceRow(icon: "lock.shield", title: "青少年模式") {
                     showYouthMode = true
                 }
+            }
+            .background(
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                    .fill(DesignSystem.Colors.backgroundSecondary)
+            )
+        }
+    }
+
+    // MARK: - Tutorial
+
+    private var tutorialSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
+            Text("学习")
+                .font(DesignSystem.Typography.title3)
+                .foregroundColor(DesignSystem.Colors.textPrimary)
+
+            VStack(spacing: 0) {
+                Button {
+                    showShootingGuide = true
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "book")
+                            .font(.system(size: 15))
+                            .foregroundColor(DesignSystem.Colors.primary)
+                            .frame(width: 24)
+                        Text("拍摄教程")
+                            .font(DesignSystem.Typography.headline)
+                            .foregroundColor(DesignSystem.Colors.textPrimary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(DesignSystem.Colors.textTertiary)
+                    }
+                    .padding(.vertical, 14)
+                    .padding(.horizontal, DesignSystem.Spacing.medium)
+                }
+                .accessibilityLabel("拍摄教程")
+                .accessibilityHint("点击查看拍摄技巧指南")
             }
             .background(
                 RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)

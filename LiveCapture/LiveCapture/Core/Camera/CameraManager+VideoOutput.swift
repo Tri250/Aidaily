@@ -50,17 +50,31 @@
 
 import Foundation
 import AVFoundation
+import CoreImage
+import CoreVideo
 
 #if os(iOS)
 
 extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
-    /// 视频帧输出回调，将稳定后的画面传递给上层管线。
+
+    /// 视频帧输出回调，将稳定后的画面传递给上层管线，同时进行滤镜处理。
     func captureOutput(_ output: AVCaptureOutput,
                        didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
         guard output === videoOutput else { return }
         if let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
             lastPixelBuffer = pixelBuffer
+
+            // 如果有激活的滤镜，处理帧
+            if let preset = activeFilterPreset, let handler = onFilteredFrame {
+                let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+                let filtered = filterPreviewProcessor.applyFilter(
+                    to: ciImage,
+                    preset: preset,
+                    intensity: activeFilterIntensity
+                )
+                handler(filtered)
+            }
         }
         onSampleBuffer?(sampleBuffer)
     }

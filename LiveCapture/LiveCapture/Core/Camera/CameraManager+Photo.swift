@@ -6,9 +6,25 @@ import ImageIO
 #if os(iOS)
 
 extension CameraManager: AVCapturePhotoCaptureDelegate {
+
+    // MARK: - Flash Mode
+
+    /// 设置闪光灯模式。
+    func setFlashMode(_ mode: AVCaptureDevice.FlashMode) {
+        currentFlashMode = mode
+        objectWillChange.send()
+    }
+
+    /// 检查当前设备是否支持指定的闪光灯模式。
+    func isFlashModeSupported(_ mode: AVCaptureDevice.FlashMode) -> Bool {
+        return photoOutput.supportedFlashModes.contains(mode)
+    }
+
     func capturePhoto() {
         let settings: AVCapturePhotoSettings = AVCapturePhotoSettings()
-        if self.photoOutput.supportedFlashModes.contains(.auto) {
+        if photoOutput.supportedFlashModes.contains(currentFlashMode) {
+            settings.flashMode = currentFlashMode
+        } else if photoOutput.supportedFlashModes.contains(.auto) {
             settings.flashMode = .auto
         }
         settings.isHighResolutionPhotoEnabled = true

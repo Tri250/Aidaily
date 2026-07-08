@@ -97,6 +97,23 @@ final class CameraManager: NSObject, ObservableObject {
     /// 最新的像素缓冲，仅用于调试预览。
     var lastPixelBuffer: CVPixelBuffer? = nil
 
+    /// 当前闪光灯模式，通过 setFlashMode 更新。
+    @Published var currentFlashMode: AVCaptureDevice.FlashMode = .auto
+
+    // MARK: - Filter Preview
+
+    /// 滤镜预览处理器（复用 CIContext）。
+    let filterPreviewProcessor = LutFilterProcessor()
+
+    /// 当前激活的滤镜预设（nil 表示无滤镜）。
+    var activeFilterPreset: LutFilterPreset? = nil
+
+    /// 当前滤镜强度（0-1）。
+    var activeFilterIntensity: Float = 1.0
+
+    /// 滤镜处理后的帧回调（CIImage）。
+    var onFilteredFrame: ((CIImage) -> Void)?
+
     /// 初始化会话预设与视频输出 delegate。
     override init() {
         super.init()

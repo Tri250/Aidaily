@@ -65,6 +65,9 @@ enum FilterCategory: String, CaseIterable, Identifiable, Codable {
     case food = "美食"
     case bw = "黑白"
     case creative = "创意"
+    case japanese = "日系"
+    case hkStyle = "港风"
+    case landscape = "风光"
 
     var id: String { rawValue }
 
@@ -78,6 +81,9 @@ enum FilterCategory: String, CaseIterable, Identifiable, Codable {
         case .food: return "fork.knife"
         case .bw: return "circle.lefthalf.filled"
         case .creative: return "paintpalette"
+        case .japanese: return "torii"
+        case .hkStyle: return "building.2"
+        case .landscape: return "mountain.2"
         }
     }
 }
@@ -113,6 +119,38 @@ struct FilterParameters: Codable, Equatable {
     var monochromeColorG: Float = 1.0
     var monochromeColorB: Float = 1.0
 
+    // MARK: - 色调曲线（CIToneCurve）
+    /// 色调曲线控制点（R 通道），5 个点的 y 值，(0,0) 到 (1,1) 的正规化值
+    var toneCurveR: [Float] = [0.0, 0.25, 0.5, 0.75, 1.0]
+    /// 色调曲线控制点（G 通道）
+    var toneCurveG: [Float] = [0.0, 0.25, 0.5, 0.75, 1.0]
+    /// 色调曲线控制点（B 通道）
+    var toneCurveB: [Float] = [0.0, 0.25, 0.5, 0.75, 1.0]
+    /// 是否启用色调曲线
+    var useToneCurve: Bool = false
+
+    // MARK: - 颜色矩阵（CIColorMatrix）
+    /// 颜色矩阵 R 行 (R', G', B', A', bias)
+    var colorMatrixRR: Float = 1.0
+    var colorMatrixRG: Float = 0.0
+    var colorMatrixRB: Float = 0.0
+    var colorMatrixRA: Float = 0.0
+    var colorMatrixRBias: Float = 0.0
+    /// 颜色矩阵 G 行
+    var colorMatrixGR: Float = 0.0
+    var colorMatrixGG: Float = 1.0
+    var colorMatrixGB: Float = 0.0
+    var colorMatrixGA: Float = 0.0
+    var colorMatrixGBias: Float = 0.0
+    /// 颜色矩阵 B 行
+    var colorMatrixBR: Float = 0.0
+    var colorMatrixBG: Float = 0.0
+    var colorMatrixBB: Float = 1.0
+    var colorMatrixBA: Float = 0.0
+    var colorMatrixBBias: Float = 0.0
+    /// 是否启用颜色矩阵
+    var useColorMatrix: Bool = false
+
     /// 默认参数（无滤镜效果）
     static let neutral = FilterParameters()
 }
@@ -134,6 +172,8 @@ struct LutFilterPreset: Identifiable, Codable, Equatable {
     let previewImageName: String?
     /// 默认强度
     let defaultIntensity: Float
+    /// 滤镜描述
+    let description: String
 
     init(
         id: UUID = UUID(),
@@ -142,7 +182,8 @@ struct LutFilterPreset: Identifiable, Codable, Equatable {
         category: FilterCategory,
         parameters: FilterParameters = .neutral,
         previewImageName: String? = nil,
-        defaultIntensity: Float = 1.0
+        defaultIntensity: Float = 1.0,
+        description: String = ""
     ) {
         self.id = id
         self.name = name
@@ -151,28 +192,16 @@ struct LutFilterPreset: Identifiable, Codable, Equatable {
         self.parameters = parameters
         self.previewImageName = previewImageName
         self.defaultIntensity = defaultIntensity
+        self.description = description
     }
 }
 
-// MARK: - 12 款经典滤镜预设定义
+// MARK: - 12 款经典滤镜预设定义（兼容旧 API）
 
 extension LutFilterPreset {
 
-    /// 所有内置预设
-    static let builtInPresets: [LutFilterPreset] = [
-        .dokaPortrait,
-        .kodakPortra160,
-        .agfaVista400,
-        .fujiPro400H,
-        .ilfordHP5,
-        .cinestill800T,
-        .leicaClassic,
-        .hasselbladNatural,
-        .ricohPositive,
-        .polaroid,
-        .fadedMemory,
-        .japaneseAiry
-    ]
+    /// 兼容旧 API：返回所有内置预设（已移至 LUTData.swift）
+    /// 单独引用这些预设（如 .dokaPortrait）仍然有效
 
     // MARK: 1. Doka 人像 - 暖色人像，轻微肤色柔化
 

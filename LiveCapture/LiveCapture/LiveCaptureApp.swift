@@ -21,6 +21,8 @@ struct LiveCaptureApp: App {
     @State private var privacyConsentGiven = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @StateObject private var youthModeManager = YouthModeManager.shared
+    @StateObject private var launchManager = FirstLaunchManager.shared
+    @State private var showWhatsNew = false
 
     var body: some Scene {
         WindowGroup {
@@ -32,6 +34,13 @@ struct LiveCaptureApp: App {
                 } else {
                     OnboardingView()
                         .zIndex(0)
+                }
+
+                // What's New 弹窗 - 版本更新时显示
+                if showWhatsNew {
+                    WhatsNewView(items: launchManager.getWhatsNewItems())
+                        .zIndex(15)
+                        .transition(.opacity)
                 }
 
                 // 启动画面 - 淡出过渡
@@ -57,6 +66,9 @@ struct LiveCaptureApp: App {
                 // 初始化崩溃上报
                 BuglyCrashReporter.shared.start()
 
+                // 跟踪启动状态
+                launchManager.handleAppLaunch()
+
                 // 检查上次崩溃
                 if let crashInfo = BuglyCrashReporter.shared.checkLastCrash() {
                     LiveCaptureLogger.shared.warning("上次启动发生崩溃: \(crashInfo)")
@@ -73,6 +85,13 @@ struct LiveCaptureApp: App {
                 }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                     showSplash = false
+
+                    // 版本更新时显示 What's New
+                    if launchManager.isVersionUpdate && !launchManager.hasSeenWhatsNew {
+                        withAnimation(DesignSystem.Animation.easeInOut) {
+                            showWhatsNew = true
+                        }
+                    }
                 }
             }
         }
