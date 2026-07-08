@@ -1,0 +1,131 @@
+package com.livecompose.livecapture.core.storage
+
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import java.io.File
+
+/**
+ * 照片存储服务
+ * 对应 iOS 的 PhotoStorageService
+ */
+class PhotoStorageService(context: Context) {
+
+    private val baseDir = File(context.filesDir, "LiveCapture").also { it.mkdirs() }
+    private val photosDir = File(baseDir, "photos").also { it.mkdirs() }
+    private val thumbnailsDir = File(baseDir, "thumbnails").also { it.mkdirs() }
+    private val recordsFile = File(baseDir, "records.json")
+    private val gson = Gson()
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    private val _records = MutableStateFlow<List<PhotoRecord>>(emptyList())
+    val records: StateFlow<List<PhotoRecord>> = _records.asStateFlow()
+
+    private var isLoaded = false
+
+    init {
+        loadRecords()
+    }
+
+    fun loadRecords() {
+        if (isLoaded) return
+        try {
+            if (recordsFile.exists()) {
+                val json = recordsFile.readText()
+                val type = object : TypeToken<List<PhotoRecord>>() {}.type
+                val loaded: List<PhotoRecord> = gson.fromJson(json, type)
+                _records.value = loaded
+            }
+        } catch (e: Exception) {
+            _records.value = emptyList()
+        }
+        isLoaded = true
+    }
+
+    fun savePhoto(data: ByteArray, detectionMethod: String? = null) {
+        val id = java.util.UUID.randomUUID().toString()
+        val photoFile = File(photosDir, PhotoRecord.photoFilename(id))
+        val thumbFile = File(thumbnailsDir, PhotoRecord.thumbnailFilename(id))
+
+        scope.launch {
+            try {
+                photoFile.writeBytes(data)
+
+                // 生成缩略图
+                val options = BitmapFactory.Options().apply { inSampleSize = 4 }
+                val bitmap = BitmapFactory.decodeByteArray(data, 0, data.size, options)
+                if (bitmap != null) {
+                    val thumb = ThumbnailGenerator.generate(bitmap)
+                    thumbFile.outputStream().use { out ->
+                        thumb.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                    }
+                    thumb.recycle()
+                    bitmap.recycle()
+                }
+
+                val record = PhotoRecord(
+                    id = id,
+                    creationDate = System.currentTimeMillis(),
+                    detectionMethod = detectionMethod,
+                    imageWidth = bitmap?.width,
+                    imageHeight = bitmap?.height
+                )
+                val updated = listOf(record) + _records.value
+                _records.value = updated
+                persist(updated)
+            } catch (e: Exception) {
+                // Handle error
+            }
+        }
+    }
+
+    fun deleteRecord(id: String) {
+        scope.launch {
+            val photoFile = File(photosDir, PhotoRecord.photoFilename(id))
+            val thumbFile = File(thumbnailsDir, PhotoRecord.thumbnailFilename(id))
+            photoFile.delete()
+            thumbFile.delete()
+            val updated = _records.value.filter { it.id != id }
+            _records.value = updated
+            persist(updated)
+        }
+    }
+
+    fun getThumbnail(id: String): Bitmap? {
+        val thumbFile = File(thumbnailsDir, PhotoRecord.thumbnailFilename(id))
+        return if (thumbFile.exists()) BitmapFactory.decodeFile(thumbFile.absolutePath) else null
+    }
+
+    fun getPhotoFile(id: String): File {
+        return File(photosDir, PhotoRecord.photoFilename(id))
+    }
+
+    private fun persist(records: List<PhotoRecord>) {
+        try {
+            val json = gson.toJson(records)
+            recordsFile.writeText(json)
+        } catch (e: Exception) {
+            // Handle error
+        }
+    }
+}
+
+/**
+ * 缩略图生成器
+ */
+object ThumbnailGenerator {
+    fun generate(bitmap: Bitmap, maxDimension: Int = 300): Bitmap {
+        val width = bitmap.width
+        val height = bitmap.height
+        val scale = maxDimension.toFloat() / maxOf(width, height)
+        val newWidth = (width * scale).toInt()
+        val newHeight = (height * scale).toInt()
+        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+    }
+}

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">构妙 LiveCapture</string>
+    <string name="tab_livecompose">构妙</string>
+    <string name="tab_gallery">图库</string>
+    <string name="tab_capture">拍摄</string>
+    <string name="tab_settings">设置</string>
+</resources>
