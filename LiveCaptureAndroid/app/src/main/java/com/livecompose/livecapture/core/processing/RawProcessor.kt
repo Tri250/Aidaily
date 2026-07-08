@@ -82,7 +82,9 @@ object RawProcessor {
         if (rotation != 0) {
             val matrix = Matrix()
             matrix.postRotate(rotation.toFloat())
-            Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+            val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+            bitmap.recycle()
+            rotated
         } else {
             bitmap
         }

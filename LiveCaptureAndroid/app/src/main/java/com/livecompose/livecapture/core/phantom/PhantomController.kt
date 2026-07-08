@@ -1,11 +1,11 @@
 package com.livecompose.livecapture.core.phantom
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import android.content.pm.PackageManager
 import android.os.Build
-import android.provider.Settings
-import android.os.Environment
+import androidx.core.content.ContextCompat
 
 /**
  * 幻影模式控制器
@@ -14,51 +14,33 @@ import android.os.Environment
 object PhantomController {
 
     /**
-     * 检查是否有悬浮窗权限
+     * 检查是否有读取媒体图片权限（幻影模式必需）
      */
-    fun hasOverlayPermission(context: Context): Boolean =
-        Settings.canDrawOverlays(context)
-
-    /**
-     * 请求悬浮窗权限
-     */
-    fun requestOverlayPermission(context: Context) {
-        val intent = Intent(
-            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-            Uri.parse("package:${context.packageName}")
-        )
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(intent)
-    }
-
-    /**
-     * 检查是否有所有文件访问权限 (Android 11+)
-     */
-    fun hasStoragePermission(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            Environment.isExternalStorageManager()
+    fun hasMediaPermission(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) ==
+                    PackageManager.PERMISSION_GRANTED
         } else {
-            true // Android 10 及以下使用传统存储权限
+            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) ==
+                    PackageManager.PERMISSION_GRANTED
         }
     }
 
     /**
-     * 请求所有文件访问权限
+     * 获取需要请求的权限列表
      */
-    fun requestStoragePermission(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-            intent.data = Uri.parse("package:${context.packageName}")
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
+    fun getRequiredPermissions(): Array<String> {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
     }
 
     /**
      * 检查所有必要权限
      */
-    fun hasAllPermissions(context: Context): Boolean =
-        hasOverlayPermission(context) && hasStoragePermission(context)
+    fun hasAllPermissions(context: Context): Boolean = hasMediaPermission(context)
 
     /**
      * 启动幻影模式

@@ -22,14 +22,12 @@ import android.os.HandlerThread
 import android.util.Size
 import android.view.Surface
 import androidx.core.content.ContextCompat
+import android.util.Log
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.FileOutputStream
-import java.nio.ByteBuffer
 
 /**
  * Android 相机管理器 - 基于 Camera2 API
@@ -37,16 +35,27 @@ import java.nio.ByteBuffer
  */
 class CameraManager(private val context: Context) {
 
+    companion object {
+        private const val TAG = "CameraManager"
+    }
+
     private val systemCameraManager =
         context.getSystemService(Context.CAMERA_SERVICE) as SystemCameraManager
 
     private var cameraDevice: CameraDevice? = null
+        @Synchronized set
+        @Synchronized get
     private var captureSession: CameraCaptureSession? = null
+        @Synchronized set
+        @Synchronized get
     private var imageReader: ImageReader? = null
+        @Synchronized set
+        @Synchronized get
     private var previewSurface: Surface? = null
 
     private val backgroundThread = HandlerThread("CameraBackground").apply { start() }
     private val backgroundHandler = Handler(backgroundThread.looper)
+    private var isDestroyed = false
 
     private var cameraId: String = "0" // 0=back, 1=front
     private var cameraCharacteristics: CameraCharacteristics? = null
@@ -90,29 +99,40 @@ class CameraManager(private val context: Context) {
     @SuppressLint("MissingPermission")
     fun openCamera(cameraId: String = "0") {
         if (!hasCameraPermission()) return
+        if (isDestroyed) return
         this.cameraId = cameraId
         this.isFrontCamera = cameraId == "1"
         try {
+            closeCamera()
             systemCameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
                 override fun onOpened(device: CameraDevice) {
                     cameraDevice = device
-                    cameraCharacteristics = systemCameraManager.getCameraCharacteristics(cameraId)
+                    cameraCharacteristics = try {
+                        systemCameraManager.getCameraCharacteristics(cameraId)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "获取相机特性失败", e)
+                        null
+                    }
                     configureZoomCapabilities()
                     createCameraPreviewSession()
                 }
 
                 override fun onDisconnected(device: CameraDevice) {
+                    Log.w(TAG, "相机断开连接")
                     device.close()
                     cameraDevice = null
                 }
 
                 override fun onError(device: CameraDevice, error: Int) {
+                    Log.e(TAG, "相机打开失败, 错误码: $error")
                     device.close()
                     cameraDevice = null
                 }
             }, backgroundHandler)
         } catch (e: SecurityException) {
-            // Permission denied
+            Log.e(TAG, "相机权限不足", e)
+        } catch (e: Exception) {
+            Log.e(TAG, "相机打开异常", e)
         }
     }
 
@@ -142,17 +162,37 @@ class CameraManager(private val context: Context) {
         val device = cameraDevice ?: return
         val surface = previewSurface ?: return
 
+        // 关闭旧的 ImageReader 和 Session
+        try {
+            captureSession?.close()
+            captureSession = null
+            imageReader?.close()
+            imageReader = null
+        } catch (e: Exception) {
+            Log.w(TAG, "关闭旧会话失败", e)
+        }
+
         // 设置 ImageReader 用于帧分析
         val characteristics = cameraCharacteristics ?: return
-        val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP) as StreamConfigurationMap
+        val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP) as? StreamConfigurationMap ?: return
         val previewSize = map.getOutputSizes(SurfaceTexture::class.java).firstOrNull() ?: Size(1920, 1080)
 
-        imageReader = ImageReader.newInstance(previewSize.width, previewSize.height, ImageFormat.YUV_420_888, 2)
+        try {
+            imageReader = ImageReader.newInstance(previewSize.width, previewSize.height, ImageFormat.YUV_420_888, 2)
+        } catch (e: Exception) {
+            Log.e(TAG, "创建 ImageReader 失败", e)
+            return
+        }
         imageReader?.setOnImageAvailableListener({ reader ->
             val image = reader.acquireLatestImage()
             if (image != null) {
-                onSampleBuffer?.invoke(image)
-                image.close()
+                try {
+                    onSampleBuffer?.invoke(image)
+                } catch (e: Exception) {
+                    Log.w(TAG, "帧处理异常", e)
+                } finally {
+                    image.close()
+                }
             }
         }, backgroundHandler)
 
@@ -164,19 +204,26 @@ class CameraManager(private val context: Context) {
             device.createCaptureSession(targets, object : CameraCaptureSession.StateCallback() {
                 override fun onConfigured(session: CameraCaptureSession) {
                     captureSession = session
-                    val requestBuilder = device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
-                    requestBuilder.addTarget(surface)
-                    imageReader?.surface?.let { requestBuilder.addTarget(it) }
-                    requestBuilder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
-                    captureRequestBuilder = requestBuilder
-                    session.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
-                    _isSessionRunning.value = true
+                    try {
+                        val requestBuilder = device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+                        requestBuilder.addTarget(surface)
+                        imageReader?.surface?.let { requestBuilder.addTarget(it) }
+                        requestBuilder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
+                        captureRequestBuilder = requestBuilder
+                        session.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
+                        _isSessionRunning.value = true
+                    } catch (e: Exception) {
+                        Log.e(TAG, "预览请求创建失败", e)
+                    }
                 }
 
-                override fun onConfigureFailed(session: CameraCaptureSession) {}
+                override fun onConfigureFailed(session: CameraCaptureSession) {
+                    Log.e(TAG, "相机会话配置失败")
+                    _isSessionRunning.value = false
+                }
             }, backgroundHandler)
         } catch (e: Exception) {
-            // Handle error
+            Log.e(TAG, "创建相机会话异常", e)
         }
     }
 
@@ -186,22 +233,32 @@ class CameraManager(private val context: Context) {
     fun capturePhoto() {
         val device = cameraDevice ?: return
         val characteristics = cameraCharacteristics ?: return
-        val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP) as StreamConfigurationMap
+        val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP) as? StreamConfigurationMap ?: return
         val largestSize = map.getOutputSizes(ImageFormat.JPEG).maxByOrNull { it.width * it.height } ?: Size(1920, 1080)
 
         val photoReader = ImageReader.newInstance(largestSize.width, largestSize.height, ImageFormat.JPEG, 1)
         photoReader.setOnImageAvailableListener({ reader ->
             val image = reader.acquireNextImage()
-            val buffer = image.planes[0].buffer
-            val bytes = ByteArray(buffer.remaining())
-            buffer.get(bytes)
-            image.close()
+            if (image == null) {
+                reader.close()
+                return@setOnImageAvailableListener
+            }
+            try {
+                val buffer = image.planes[0].buffer
+                val bytes = ByteArray(buffer.remaining())
+                buffer.get(bytes)
 
-            // 裁剪为 3:4
-            val cropped = cropToThreeByFour(bytes)
-            onPhotoDataReady?.invoke(cropped ?: bytes)
-            _lastPhotoSaved.value = true
-            reader.close()
+                // 裁剪为 3:4
+                val cropped = cropToThreeByFour(bytes)
+                onPhotoDataReady?.invoke(cropped ?: bytes)
+                _lastPhotoSaved.value = true
+            } catch (e: Exception) {
+                Log.e(TAG, "照片数据处理失败", e)
+                _lastPhotoSaved.value = false
+            } finally {
+                image.close()
+                reader.close()
+            }
         }, backgroundHandler)
 
         try {
@@ -211,7 +268,9 @@ class CameraManager(private val context: Context) {
             requestBuilder.set(CaptureRequest.JPEG_ORIENTATION, 90)
             captureSession?.capture(requestBuilder.build(), null, backgroundHandler)
         } catch (e: Exception) {
+            Log.e(TAG, "拍照请求失败", e)
             _lastPhotoSaved.value = false
+            photoReader.close()
         }
     }
 
@@ -220,30 +279,37 @@ class CameraManager(private val context: Context) {
      */
     private fun cropToThreeByFour(jpegData: ByteArray): ByteArray? {
         val bitmap = BitmapFactory.decodeByteArray(jpegData, 0, jpegData.size) ?: return null
-        val width = bitmap.width
-        val height = bitmap.height
-        val desiredAspect = 3.0f / 4.0f
-        val currentAspect = width.toFloat() / height.toFloat()
+        try {
+            val width = bitmap.width
+            val height = bitmap.height
+            val desiredAspect = 3.0f / 4.0f
+            val currentAspect = width.toFloat() / height.toFloat()
 
-        var cropWidth = width
-        var cropHeight = height
-        var startX = 0
-        var startY = 0
+            var cropWidth = width
+            var cropHeight = height
+            var startX = 0
+            var startY = 0
 
-        if (currentAspect > desiredAspect) {
-            cropWidth = (height * desiredAspect).toInt()
-            startX = (width - cropWidth) / 2
-        } else if (currentAspect < desiredAspect) {
-            cropHeight = (width / desiredAspect).toInt()
-            startY = (height - cropHeight) / 2
+            if (currentAspect > desiredAspect) {
+                cropWidth = (height * desiredAspect).toInt()
+                startX = (width - cropWidth) / 2
+            } else if (currentAspect < desiredAspect) {
+                cropHeight = (width / desiredAspect).toInt()
+                startY = (height - cropHeight) / 2
+            }
+
+            // 安全边界检查
+            cropWidth = cropWidth.coerceAtMost(width - startX)
+            cropHeight = cropHeight.coerceAtMost(height - startY)
+
+            val cropped = Bitmap.createBitmap(bitmap, startX, startY, cropWidth, cropHeight)
+            val output = ByteArrayOutputStream()
+            cropped.compress(Bitmap.CompressFormat.JPEG, 95, output)
+            cropped.recycle()
+            return output.toByteArray()
+        } finally {
+            bitmap.recycle()
         }
-
-        val cropped = Bitmap.createBitmap(bitmap, startX, startY, cropWidth, cropHeight)
-        val output = ByteArrayOutputStream()
-        cropped.compress(Bitmap.CompressFormat.JPEG, 95, output)
-        bitmap.recycle()
-        cropped.recycle()
-        return output.toByteArray()
     }
 
     /**
@@ -317,7 +383,7 @@ class CameraManager(private val context: Context) {
         try {
             captureSession?.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
         } catch (e: Exception) {
-            // Ignore
+            Log.w(TAG, "应用变焦失败", e)
         }
         val lens = when {
             isFrontCamera -> LensKind.FRONT
@@ -346,7 +412,13 @@ class CameraManager(private val context: Context) {
     }
 
     fun destroy() {
+        isDestroyed = true
         closeCamera()
-        backgroundThread.quitSafely()
+        try {
+            backgroundThread.quitSafely()
+            backgroundThread.join(3000)
+        } catch (e: Exception) {
+            Log.w(TAG, "后台线程关闭异常", e)
+        }
     }
 }

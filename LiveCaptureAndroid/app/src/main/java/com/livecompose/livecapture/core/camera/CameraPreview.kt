@@ -1,6 +1,7 @@
 package com.livecompose.livecapture.core.camera
 
 import android.graphics.SurfaceTexture
+import android.util.Log
 import android.view.Surface
 import android.view.TextureView
 import androidx.compose.runtime.*
@@ -18,18 +19,18 @@ fun CameraPreview(
     modifier: Modifier = Modifier,
     isFrontCamera: Boolean = false
 ) {
-    val context = LocalContext.current
-    var textureView by remember { mutableStateOf<TextureView?>(null) }
-
     AndroidView(
         modifier = modifier,
         factory = { ctx ->
             TextureView(ctx).also { tv ->
-                textureView = tv
                 tv.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
                     override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
-                        val surface = Surface(surface)
-                        cameraManager.setPreviewSurface(surface)
+                        try {
+                            val surface = Surface(surface)
+                            cameraManager.setPreviewSurface(surface)
+                        } catch (e: Exception) {
+                            Log.e("CameraPreview", "设置预览 Surface 失败", e)
+                        }
                     }
 
                     override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {}
@@ -49,10 +50,4 @@ fun CameraPreview(
             }
         }
     )
-
-    DisposableEffect(Unit) {
-        onDispose {
-            // Cleanup handled by CameraManager
-        }
-    }
 }

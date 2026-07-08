@@ -62,24 +62,32 @@ class PhotoStorageService(context: Context) {
             try {
                 photoFile.writeBytes(data)
 
-                // 生成缩略图
+                // 生成缩略图并获取尺寸
                 val options = BitmapFactory.Options().apply { inSampleSize = 4 }
+                var imageWidth: Int? = null
+                var imageHeight: Int? = null
+
                 val bitmap = BitmapFactory.decodeByteArray(data, 0, data.size, options)
                 if (bitmap != null) {
-                    val thumb = ThumbnailGenerator.generate(bitmap)
-                    thumbFile.outputStream().use { out ->
-                        thumb.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                    imageWidth = bitmap.width * options.inSampleSize
+                    imageHeight = bitmap.height * options.inSampleSize
+                    try {
+                        val thumb = ThumbnailGenerator.generate(bitmap)
+                        thumbFile.outputStream().use { out ->
+                            thumb.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                        }
+                        thumb.recycle()
+                    } finally {
+                        bitmap.recycle()
                     }
-                    thumb.recycle()
-                    bitmap.recycle()
                 }
 
                 val record = PhotoRecord(
                     id = id,
                     creationDate = System.currentTimeMillis(),
                     detectionMethod = detectionMethod,
-                    imageWidth = bitmap?.width,
-                    imageHeight = bitmap?.height
+                    imageWidth = imageWidth,
+                    imageHeight = imageHeight
                 )
                 val updated = listOf(record) + _records.value
                 _records.value = updated
