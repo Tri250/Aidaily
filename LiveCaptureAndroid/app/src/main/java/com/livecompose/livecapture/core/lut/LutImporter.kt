@@ -13,6 +13,7 @@ import com.livecompose.livecapture.core.logger.AppLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -80,6 +81,11 @@ class LutImporter(private val context: Context) {
         scope.launch {
             loadSavedPresets()
         }
+    }
+
+    /** 释放协程作用域，应在 DI 容器销毁时调用 */
+    fun dispose() {
+        scope.cancel()
     }
 
     // MARK: - 导入 .cube 文件

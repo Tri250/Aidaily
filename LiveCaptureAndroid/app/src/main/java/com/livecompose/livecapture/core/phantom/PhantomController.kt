@@ -38,9 +38,18 @@ object PhantomController {
     }
 
     /**
-     * 检查所有必要权限
+     * 检查所有必要权限（包括媒体权限和通知权限）
      */
-    fun hasAllPermissions(context: Context): Boolean = hasMediaPermission(context)
+    fun hasAllPermissions(context: Context): Boolean {
+        if (!hasMediaPermission(context)) return false
+        // Android 13+ 还需要通知权限（幻影模式前台服务需要通知）
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return ContextCompat.checkSelfPermission(
+                context, Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+        return true
+    }
 
     /**
      * 启动幻影模式

@@ -7,10 +7,12 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.livecompose.livecapture.core.logger.AppLogger
+import com.livecompose.livecapture.core.security.CryptoHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.isActive
@@ -149,6 +151,12 @@ class YouthModeManager(private val context: Context) {
         scope.launch { loadAll() }
     }
 
+    /** 释放协程作用域，应在 DI 容器销毁时调用 */
+    fun dispose() {
+        trackingJob?.cancel()
+        scope.cancel()
+    }
+
     // MARK: - 加载与持久化
 
     private suspend fun loadAll() {
@@ -161,7 +169,7 @@ class YouthModeManager(private val context: Context) {
             nightBanEndHour = prefs[NIGHT_END_KEY] ?: DEFAULT_NIGHT_BAN_END,
             isCommunityDisabled = prefs[COMMUNITY_DISABLED_KEY] ?: true,
             isSharingDisabled = prefs[SHARING_DISABLED_KEY] ?: true,
-            password = prefs[PASSWORD_KEY] ?: "",
+            password = (prefs[PASSWORD_KEY]?.let { CryptoHelper.decrypt(it) }) ?: "",
             todayUsageSeconds = todayUsage
         )
         if (_state.value.isYouthModeEnabled) startUsageTracking()
@@ -242,7 +250,9 @@ class YouthModeManager(private val context: Context) {
     fun setPassword(password: String) {
         _state.update { it.copy(password = password) }
         scope.launch {
-            store.edit { it[PASSWORD_KEY] = password }
+            // 使用 Android Keystore 加密存储密码，避免明文落盘
+            val encrypted = CryptoHelper.encrypt(password) ?: password
+            store.edit { it[PASSWORD_KEY] = encrypted }
             AppLogger.i(TAG, "青少年模式密码已设置")
         }
     }

@@ -20,6 +20,7 @@ object PushManager {
 
     private var pushService: PushServiceProvider? = null
     private var isInitialized = false
+    private var appContext: Context? = null
 
     /**
      * 初始化推送服务
@@ -27,6 +28,8 @@ object PushManager {
      */
     fun init(context: Context) {
         if (isInitialized) return
+
+        appContext = context.applicationContext
 
         val channel = try {
             BuildConfig.CHANNEL
@@ -56,10 +59,14 @@ object PushManager {
      * 注册推送
      */
     fun registerPush() {
+        val context = appContext ?: run {
+            AppLogger.w(TAG, "推送未初始化，请先调用 init(context)")
+            return
+        }
         pushService?.register { token ->
             if (token.isNotEmpty()) {
                 AppLogger.i(TAG, "推送注册成功: ${token.take(10)}...")
-                PushTokenManager.saveToken(token)
+                PushTokenManager.saveToken(context, token)
             } else {
                 AppLogger.w(TAG, "推送注册失败，token为空")
             }
@@ -115,9 +122,22 @@ object PushTokenManager {
     private const val KEY_TOKEN = "push_token"
     private const val KEY_PROVIDER = "push_provider"
 
-    fun saveToken(token: String) {
-        // 在生产环境中，这里应上报 Token 到后端服务器
-        // 当前版本仅本地存储
+    /**
+     * 保存推送 Token 到本地持久化存储
+     * 注意：生产环境应同时上报到后端服务器
+     */
+    fun saveToken(context: Context, token: String) {
+        val channel = try {
+            BuildConfig.CHANNEL
+        } catch (_: Exception) {
+            "official"
+        }
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_TOKEN, token)
+            .putString(KEY_PROVIDER, channel)
+            .apply()
+        AppLogger.i("PushTokenManager", "推送Token已保存到本地（渠道: $channel）")
     }
 
     fun getToken(context: Context): String {
@@ -132,7 +152,7 @@ object PushTokenManager {
  * 华为推送（HMS Push Kit）
  * 集成方式：implementation("com.huawei.hms:push:6.x.x")
  */
-class HuaweiPushProvider(private val context: Context) : PushServiceProvider {
+class HuaweiPushProvider(private val context: Context?) : PushServiceProvider {
     private val tag = "HuaweiPush"
 
     override fun initialize() {
@@ -159,7 +179,7 @@ class HuaweiPushProvider(private val context: Context) : PushServiceProvider {
  * 小米推送（MiPush）
  * 集成方式：implementation("com.xiaomi:mipush-sdk:5.x.x")
  */
-class XiaomiPushProvider(private val context: Context) : PushServiceProvider {
+class XiaomiPushProvider(private val context: Context?) : PushServiceProvider {
     private val tag = "XiaomiPush"
 
     override fun initialize() {
@@ -184,7 +204,7 @@ class XiaomiPushProvider(private val context: Context) : PushServiceProvider {
  * OPPO 推送（OPush）
  * 集成方式：implementation("com.heytap.msp:push:x.x.x")
  */
-class OppoPushProvider(private val context: Context) : PushServiceProvider {
+class OppoPushProvider(private val context: Context?) : PushServiceProvider {
     private val tag = "OppoPush"
 
     override fun initialize() {
@@ -208,7 +228,7 @@ class OppoPushProvider(private val context: Context) : PushServiceProvider {
  * vivo 推送（Vpush）
  * 集成方式：implementation("com.vivo.push:vivo-push-sdk:x.x.x")
  */
-class VivoPushProvider(private val context: Context) : PushServiceProvider {
+class VivoPushProvider(private val context: Context?) : PushServiceProvider {
     private val tag = "VivoPush"
 
     override fun initialize() {
@@ -232,7 +252,7 @@ class VivoPushProvider(private val context: Context) : PushServiceProvider {
  * 应用宝推送（腾讯信鸽 TPNS）
  * 集成方式：implementation("com.tencent.tpns:tpns:x.x.x")
  */
-class TencentPushProvider(private val context: Context) : PushServiceProvider {
+class TencentPushProvider(private val context: Context?) : PushServiceProvider {
     private val tag = "TencentPush"
 
     override fun initialize() {
@@ -256,7 +276,7 @@ class TencentPushProvider(private val context: Context) : PushServiceProvider {
  * 官方渠道推送（使用系统通知 + 自建长连接）
  * 不依赖厂商SDK，适用于官方APK下载渠道
  */
-class OfficialPushProvider(private val context: Context) : PushServiceProvider {
+class OfficialPushProvider(private val context: Context?) : PushServiceProvider {
     private val tag = "OfficialPush"
 
     override fun initialize() {

@@ -94,6 +94,57 @@ class SkinBeautifier {
             result = applyFaceSlimming(result, params.faceSlimming, faces, width, height)
         }
 
+        // 8. 红润（基于皮肤掩码提升 R 通道）
+        if (params.ruddy > 0f) {
+            result = applyRuddy(result, params.ruddy, skinMask, width, height)
+        }
+
+        return result
+    }
+
+    // MARK: - 红润
+
+    /**
+     * 红润效果：在皮肤区域提升红色通道，使肤色更显红润健康
+     * @param amount 红润强度 0-1
+     */
+    private fun applyRuddy(
+        image: Bitmap,
+        amount: Float,
+        skinMask: Bitmap,
+        width: Int,
+        height: Int
+    ): Bitmap {
+        val pixels = IntArray(width * height)
+        image.getPixels(pixels, 0, width, 0, 0, width, height)
+        val maskPixels = IntArray(width * height)
+        skinMask.getPixels(maskPixels, 0, width, 0, 0, width, height)
+
+        // R 通道提升量：0-40
+        val rBoost = (amount * 40f).toInt()
+
+        for (i in pixels.indices) {
+            val maskAlpha = (maskPixels[i] ushr 24) and 0xFF
+            if (maskAlpha == 0) continue
+
+            val pixel = pixels[i]
+            val r = ((pixel shr 16) and 0xFF)
+            val g = ((pixel shr 8) and 0xFF)
+            val b = (pixel and 0xFF)
+
+            // 按掩码强度混合
+            val blend = maskAlpha / 255f
+            val newR = (r + rBoost * blend).toInt().coerceIn(0, 255)
+            // 轻微降低绿色和蓝色以增强红润感
+            val reduce = (rBoost * 0.15f * blend)
+            val newG = (g - reduce).toInt().coerceIn(0, 255)
+            val newB = (b - reduce).toInt().coerceIn(0, 255)
+
+            pixels[i] = (0xFF shl 24) or (newR shl 16) or (newG shl 8) or newB
+        }
+
+        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        result.setPixels(pixels, 0, width, 0, 0, width, height)
         return result
     }
 

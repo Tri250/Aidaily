@@ -54,6 +54,10 @@ class LevelMonitor(context: Context) : SensorEventListener {
     /** 偏离水平的度数（roll、pitch 绝对值的最大值） */
     val levelDeviation: StateFlow<Float> = _levelDeviation.asStateFlow()
 
+    private val _isSensorAvailable = MutableStateFlow(false)
+    /** 旋转矢量传感器是否可用（不可用时 UI 应提示用户） */
+    val isSensorAvailable: StateFlow<Boolean> = _isSensorAvailable.asStateFlow()
+
     // MARK: - 私有状态
 
     private val sensorManager: SensorManager =
@@ -96,7 +100,9 @@ class LevelMonitor(context: Context) : SensorEventListener {
      * 启动水平仪监控
      */
     fun startMonitoring() {
-        val sensor = rotationSensor ?: return
+        val sensor = rotationSensor
+        _isSensorAvailable.value = sensor != null
+        if (sensor == null) return
         // 重置状态
         smoothedRoll = 0f
         smoothedPitch = 0f

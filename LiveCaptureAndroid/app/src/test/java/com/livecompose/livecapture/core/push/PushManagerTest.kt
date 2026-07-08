@@ -1,7 +1,10 @@
 package com.livecompose.livecapture.core.push
 
+import android.content.Context
+import android.content.SharedPreferences
 import org.junit.Assert.*
 import org.junit.Test
+import org.mockito.kotlin.*
 
 /**
  * PushManager 单元测试
@@ -225,8 +228,17 @@ class PushManagerTest {
     @Test
     fun `pushTokenManager saveToken does not crash`() {
         // 测试 PushTokenManager.saveToken 不崩溃
-        PushTokenManager.saveToken("test_token_12345")
-        assertTrue(true)
+        val mockContext = mock<Context>()
+        val mockPrefs = mock<SharedPreferences>()
+        val mockEditor = mock<SharedPreferences.Editor>()
+        whenever(mockContext.getSharedPreferences(any(), any())).thenReturn(mockPrefs)
+        whenever(mockPrefs.edit()).thenReturn(mockEditor)
+        whenever(mockEditor.putString(any(), any())).thenReturn(mockEditor)
+
+        PushTokenManager.saveToken(mockContext, "test_token_12345")
+
+        verify(mockEditor).putString(eq("push_token"), eq("test_token_12345"))
+        verify(mockEditor).apply()
     }
 
     @Test

@@ -1,6 +1,7 @@
 package com.livecompose.livecapture.features.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -785,6 +786,35 @@ fun SettingsScreen() {
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // ====== 社区 ======
+        Text("社区", style = DesignSystem.Typography.title3, color = DesignSystem.Colors.textPrimary())
+        Spacer(modifier = Modifier.height(8.dp))
+        Card(
+            shape = DesignSystem.mediumRoundedShape,
+            colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.backgroundSecondary()),
+            onClick = {
+                val intent = android.content.Intent(context, com.livecompose.livecapture.features.compliance.ComplianceHostActivity::class.java).apply {
+                    putExtra("compliance_page", "community")
+                }
+                context.startActivity(intent)
+            }
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Groups, contentDescription = "社区", tint = DesignSystem.Colors.primary)
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("发现社区", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
+                    Text("挑战 / 滤镜 / 地点探索", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
+                }
+                Icon(Icons.Default.ChevronRight, contentDescription = "查看", tint = DesignSystem.Colors.textTertiary())
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         // ====== 关于 ======
         Text("关于", style = DesignSystem.Typography.title3, color = DesignSystem.Colors.textPrimary())
         Spacer(modifier = Modifier.height(8.dp))
@@ -804,13 +834,22 @@ fun SettingsScreen() {
                 }
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
                 // ICP备案号
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable {
+                        val intent = android.content.Intent(context, com.livecompose.livecapture.features.compliance.ComplianceHostActivity::class.java).apply {
+                            putExtra("compliance_page", "icp_filing")
+                        }
+                        context.startActivity(intent)
+                    }
+                ) {
                     Icon(Icons.Default.VerifiedUser, contentDescription = "ICP备案号", tint = DesignSystem.Colors.primary)
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("ICP备案号", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
                         Text("待备案（请前往工信部ICP备案系统完成备案）", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
                     }
+                    Icon(Icons.Default.ChevronRight, contentDescription = "查看", tint = DesignSystem.Colors.textTertiary())
                 }
             }
         }

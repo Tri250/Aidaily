@@ -12,6 +12,7 @@ import com.livecompose.livecapture.core.logger.AppLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -97,6 +98,11 @@ class CommunityManager(private val context: Context) {
         scope.launch {
             loadAll()
         }
+    }
+
+    /** 释放协程作用域，应在 DI 容器销毁时调用 */
+    fun dispose() {
+        scope.cancel()
     }
 
     /**

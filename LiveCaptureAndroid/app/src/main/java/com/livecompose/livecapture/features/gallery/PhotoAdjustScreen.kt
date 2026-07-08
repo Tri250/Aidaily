@@ -3,14 +3,19 @@ package com.livecompose.livecapture.features.gallery
 import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Vignette
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,6 +45,9 @@ import java.io.ByteArrayOutputStream
 fun PhotoAdjustScreen(
     photoId: String,
     onBack: () -> Unit,
+    onNavigateToCurve: (String) -> Unit = {},
+    onNavigateToHsl: (String) -> Unit = {},
+    onNavigateToVignette: (String) -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -264,8 +272,89 @@ fun PhotoAdjustScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 更多编辑工具
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "更多编辑工具",
+                        color = Color.White,
+                        style = DesignSystem.Typography.title3
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    EditorToolItem(
+                        icon = Icons.Default.ShowChart,
+                        title = "曲线编辑",
+                        subtitle = "RGB/红/绿/蓝四通道曲线",
+                        onClick = { onNavigateToCurve(photoId) }
+                    )
+                    Divider(color = Color.White.copy(alpha = 0.1f))
+                    EditorToolItem(
+                        icon = Icons.Default.Palette,
+                        title = "HSL 调整",
+                        subtitle = "按色相/饱和度/明度分通道调整",
+                        onClick = { onNavigateToHsl(photoId) }
+                    )
+                    Divider(color = Color.White.copy(alpha = 0.1f))
+                    EditorToolItem(
+                        icon = Icons.Default.Vignette,
+                        title = "暗角效果",
+                        subtitle = "径向暗角与光照叠加",
+                        onClick = { onNavigateToVignette(photoId) }
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+}
+
+/**
+ * 编辑工具条目
+ */
+@Composable
+private fun EditorToolItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = DesignSystem.Colors.primary,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, color = Color.White, style = DesignSystem.Typography.headline)
+            Text(
+                subtitle,
+                color = Color.White.copy(alpha = 0.5f),
+                style = DesignSystem.Typography.caption1
+            )
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.4f)
+        )
     }
 }
 

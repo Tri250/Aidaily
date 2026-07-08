@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -178,6 +179,18 @@ class MemoryMonitor(private val context: Context) {
             memoryCallbackRegistered = false
         }
         AppLogger.d(TAG, "内存监控已停止")
+    }
+
+    /**
+     * 销毁监控器，释放所有资源
+     *
+     * 取消所有协程（包括采样任务和压力状态恢复延迟协程），反注册系统回调。
+     * 应在 Application.onTerminate 或 AppContainer.destroy 中调用。
+     */
+    fun dispose() {
+        stopMonitoring()
+        cleanupCallbacks.clear()
+        scope.cancel()
     }
 
     // MARK: - 内存采样
@@ -357,15 +370,17 @@ class MemoryMonitor(private val context: Context) {
 
     /**
      * 执行通用内存清理
+     *
+     * 清理应用级缓存。Bitmap 缓存等由各自模块通过 [registerCleanupCallback] 自行清理。
      */
     private fun performMemoryCleanup() {
-        // 清除 URLCache（对应 iOS URLCache.shared.removeAllCachedResponses）
+        // 提示 GC 回收不可达对象（非强制，仅作为内存压力时的辅助）
         try {
-            android.net.http.HttpURLConnection.clearCache()
+            System.gc()
         } catch (e: Exception) {
-            // 部分设备不支持，忽略
+            // 忽略
         }
-        // 建议 Bitmap 缓存等由各自模块自行清理（通过 cleanupCallback 注册）
+        // 各模块的缓存（Bitmap LRU、Coil 图片缓存等）由 registerCleanupCallback 注册的回调清理
     }
 
     // MARK: - 告警等级更新

@@ -269,27 +269,28 @@ class LutProcessor {
         val cy = height / 2f
         val maxDist = kotlin.math.sqrt(cx * cx + cy * cy)
 
-        for (y in 0 until height step 2) {
-            for (x in 0 until width step 2) {
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        for (y in 0 until height) {
+            for (x in 0 until width) {
                 val dx = x - cx
                 val dy = y - cy
                 val dist = kotlin.math.sqrt((dx * dx + dy * dy).toFloat())
                 val vignette = 1f - (dist / maxDist).pow(2f) * strength * 1.5f
 
                 if (vignette < 0.99f) {
-                    val pixel = bitmap.getPixel(x, y)
+                    val idx = y * width + x
+                    val pixel = pixels[idx]
                     val r = (((pixel shr 16) and 0xFF) * vignette).toInt().coerceIn(0, 255)
                     val g = (((pixel shr 8) and 0xFF) * vignette).toInt().coerceIn(0, 255)
                     val b = ((pixel and 0xFF) * vignette).toInt().coerceIn(0, 255)
-                    val newPixel = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
-                    bitmap.setPixel(x, y, newPixel)
-                    // 也填充相邻像素 (step=2 优化)
-                    if (x + 1 < width) bitmap.setPixel(x + 1, y, newPixel)
-                    if (y + 1 < height) bitmap.setPixel(x, y + 1, newPixel)
-                    if (x + 1 < width && y + 1 < height) bitmap.setPixel(x + 1, y + 1, newPixel)
+                    pixels[idx] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
                 }
             }
         }
+
+        bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
     }
 
     private fun applyGrain(bitmap: Bitmap, strength: Float) {
@@ -329,23 +330,15 @@ class LutProcessor {
                 val left = pixels[y * width + (x - 1)]
                 val right = pixels[y * width + (x + 1)]
 
-                for (ch in intArrayOf(16, 8, 0)) {
-                    val c = ((center shr ch) and 0xFF).toFloat()
-                    val avg = ((top shr ch) and 0xFF + (bottom shr ch) and 0xFF +
-                            (left shr ch) and 0xFF + (right shr ch) and 0xFF) / 4f
-                    val sharpened = c + (c - avg) * amount
-                    // 写回
-                }
-
-                // 简化处理：直接计算 RGB
+                // Unsharp Mask：中心像素与四邻均值差，按 amount 增强
                 val cr = ((center shr 16) and 0xFF).toFloat()
                 val cg = ((center shr 8) and 0xFF).toFloat()
                 val cb = (center and 0xFF).toFloat()
 
-                val avgR = ((top shr 16) and 0xFF + (bottom shr 16) and 0xFF +
-                        (left shr 16) and 0xFF + (right shr 16) and 0xFF) / 4f
-                val avgG = ((top shr 8) and 0xFF + (bottom shr 8) and 0xFF +
-                        (left shr 8) and 0xFF + (right shr 8) and 0xFF) / 4f
+                val avgR = (((top shr 16) and 0xFF) + ((bottom shr 16) and 0xFF) +
+                        ((left shr 16) and 0xFF) + ((right shr 16) and 0xFF)) / 4f
+                val avgG = (((top shr 8) and 0xFF) + ((bottom shr 8) and 0xFF) +
+                        ((left shr 8) and 0xFF) + ((right shr 8) and 0xFF)) / 4f
                 val avgB = ((top and 0xFF) + (bottom and 0xFF) +
                         (left and 0xFF) + (right and 0xFF)) / 4f
 

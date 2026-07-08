@@ -187,7 +187,10 @@ fun CurveEditorScreen(
             adjustedBitmap = src
         } else {
             processing = true
-            adjustedBitmap = processor.process(src, params)
+            // 切换到 Default 调度器执行全像素遍历，避免阻塞主线程
+            adjustedBitmap = withContext(Dispatchers.Default) {
+                processor.process(src, params)
+            }
             processing = false
         }
     }
