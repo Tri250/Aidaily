@@ -9,8 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.livecompose.livecapture.core.detection.DetectionMode
+import com.livecompose.livecapture.core.frame.WatermarkInfo
+import com.livecompose.livecapture.ui.components.WatermarkEditSheet
 import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
@@ -37,6 +40,8 @@ fun SettingsScreen() {
     var hyperfocalDisplayEnabled by remember { mutableStateOf(false) }
     var saveLocationIndex by remember { mutableIntStateOf(0) }
     var heicExportEnabled by remember { mutableStateOf(false) }
+    var showWatermarkSheet by remember { mutableStateOf(false) }
+    var currentWatermark = remember { WatermarkInfo() }
 
     Column(
         modifier = Modifier
@@ -436,7 +441,7 @@ fun SettingsScreen() {
         Card(
             shape = DesignSystem.mediumRoundedShape,
             colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.backgroundSecondary()),
-            onClick = { /* TODO: Navigate to watermark settings */ }
+            onClick = { showWatermarkSheet = true }
         ) {
             Row(
                 modifier = Modifier.padding(16.dp),
@@ -453,5 +458,20 @@ fun SettingsScreen() {
         }
 
         Spacer(modifier = Modifier.height(32.dp))
+    }
+
+    // 水印编辑底部弹窗
+    if (showWatermarkSheet) {
+        androidx.compose.material3.ModalBottomSheet(
+            onDismissRequest = { showWatermarkSheet = false },
+            containerColor = Color(0xFF1A1A1A)
+        ) {
+            WatermarkEditSheet(
+                watermark = currentWatermark,
+                onWatermarkChanged = { currentWatermark = it },
+                onApply = { showWatermarkSheet = false },
+                onDismiss = { showWatermarkSheet = false }
+            )
+        }
     }
 }

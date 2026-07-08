@@ -76,12 +76,12 @@ fun HistogramView(
  * 从 Bitmap 计算亮度直方图数据
  * 将图像转换为灰度后统计 256 个亮度等级的像素数量
  */
-fun computeHistogramFromBitmap(android.graphics.Bitmap): IntArray {
+fun computeHistogramFromBitmap(bitmap: android.graphics.Bitmap): IntArray {
     val histogram = IntArray(256)
-    val width = it.width
-    val height = it.height
+    val width = bitmap.width
+    val height = bitmap.height
     val pixels = IntArray(width * height)
-    it.getPixels(pixels, 0, width, 0, 0, width, height)
+    bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
 
     for (pixel in pixels) {
         val r = (pixel shr 16) and 0xFF

@@ -159,7 +159,7 @@ object FrameRenderer {
         canvas.drawText(timeText, 16f * bitmap.density, bitmap.height - 8f * bitmap.density, textPaint)
 
         // 设备标识
-        deviceText = "LiveCompose"
+        val deviceText = "LiveCompose"
         canvas.drawText(deviceText, bitmap.width - 90f * bitmap.density, bitmap.height - 8f * bitmap.density, textPaint)
 
         return output
