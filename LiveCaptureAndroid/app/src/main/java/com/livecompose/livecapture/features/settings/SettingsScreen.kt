@@ -10,9 +10,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.livecompose.livecapture.core.detection.DetectionMode
 import com.livecompose.livecapture.core.frame.WatermarkInfo
+import com.livecompose.livecapture.core.lut.LchColorAdjustment
+import com.livecompose.livecapture.core.phantom.PhantomController
+import com.livecompose.livecapture.core.phantom.PhantomService
+import com.livecompose.livecapture.ui.components.LchMixerPanel
 import com.livecompose.livecapture.ui.components.WatermarkEditSheet
 import com.livecompose.livecapture.ui.design.DesignSystem
 
@@ -42,6 +47,15 @@ fun SettingsScreen() {
     var heicExportEnabled by remember { mutableStateOf(false) }
     var showWatermarkSheet by remember { mutableStateOf(false) }
     var currentWatermark = remember { WatermarkInfo() }
+
+    // 低优先级功能状态
+    val context = LocalContext.current
+    var phantomModeEnabled by remember { mutableStateOf(PhantomService.isEnabled(context)) }
+    var rawCaptureEnabled by remember { mutableStateOf(false) }
+    var aiColorMatchEnabled by remember { mutableStateOf(false) }
+    var lchMixerEnabled by remember { mutableStateOf(false) }
+    var lchAdjustment by remember { mutableStateOf(LchColorAdjustment()) }
+    var showLchMixerSheet by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -458,6 +472,120 @@ fun SettingsScreen() {
         }
 
         Spacer(modifier = Modifier.height(32.dp))
+
+        // ====== 低优先级功能：AI 仿色 ======
+        Text("AI 仿色", style = DesignSystem.Typography.title3, color = DesignSystem.Colors.textPrimary())
+        Spacer(modifier = Modifier.height(8.dp))
+        Card(
+            shape = DesignSystem.mediumRoundedShape,
+            colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.backgroundSecondary())
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = DesignSystem.Colors.primary)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("AI 色彩匹配", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
+                        Text("分析参考照片色彩风格，自动生成 LUT", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
+                    }
+                    Switch(checked = aiColorMatchEnabled, onCheckedChange = { aiColorMatchEnabled = it })
+                }
+                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Colorize, contentDescription = null, tint = DesignSystem.Colors.primary)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("OKLCH 混色器", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
+                        Text("感知均匀色彩空间，9 通道精准调色", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
+                    }
+                    Switch(checked = lchMixerEnabled, onCheckedChange = {
+                        lchMixerEnabled = it
+                        if (it) showLchMixerSheet = true
+                    })
+                }
+                if (lchMixerEnabled) {
+                    Spacer(Modifier.height(8.dp))
+                    TextButton(onClick = { showLchMixerSheet = true }) {
+                        Text("打开混色器面板", color = DesignSystem.Colors.primary)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ====== 低优先级功能：RAW 管线 ======
+        Text("RAW 处理", style = DesignSystem.Typography.title3, color = DesignSystem.Colors.textPrimary())
+        Spacer(modifier = Modifier.height(8.dp))
+        Card(
+            shape = DesignSystem.mediumRoundedShape,
+            colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.backgroundSecondary())
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Camera, contentDescription = null, tint = DesignSystem.Colors.primary)
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("RAW 拍摄", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
+                    Text("全链路 RAW 处理：去马赛克→色彩校正→色调映射", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
+                }
+                Switch(checked = rawCaptureEnabled, onCheckedChange = { rawCaptureEnabled = it })
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ====== 低优先级功能：幻影模式 ======
+        Text("幻影模式", style = DesignSystem.Typography.title3, color = DesignSystem.Colors.textPrimary())
+        Spacer(modifier = Modifier.height(8.dp))
+        Card(
+            shape = DesignSystem.mediumRoundedShape,
+            colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.backgroundSecondary())
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Visibility, contentDescription = null, tint = DesignSystem.Colors.primary)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("幻影模式", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
+                        Text("监听系统相机输出，自动应用 LUT 色彩处理", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
+                    }
+                    Switch(checked = phantomModeEnabled, onCheckedChange = { enabled ->
+                        if (enabled) {
+                            if (PhantomController.hasAllPermissions(context)) {
+                                PhantomController.start(context)
+                                phantomModeEnabled = true
+                            }
+                            // 无权限时不切换，用户需先授权
+                        } else {
+                            PhantomController.stop(context)
+                            phantomModeEnabled = false
+                        }
+                    })
+                }
+                if (!PhantomController.hasAllPermissions(context)) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "需要悬浮窗和文件访问权限",
+                        style = DesignSystem.Typography.caption1,
+                        color = DesignSystem.Colors.primary
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Row {
+                        TextButton(onClick = { PhantomController.requestOverlayPermission(context) }) {
+                            Text("授权悬浮窗")
+                        }
+                        TextButton(onClick = { PhantomController.requestStoragePermission(context) }) {
+                            Text("授权文件访问")
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
     }
 
     // 水印编辑底部弹窗
@@ -471,6 +599,20 @@ fun SettingsScreen() {
                 onWatermarkChanged = { currentWatermark = it },
                 onApply = { showWatermarkSheet = false },
                 onDismiss = { showWatermarkSheet = false }
+            )
+        }
+    }
+
+    // OKLCH 混色器底部弹窗
+    if (showLchMixerSheet) {
+        androidx.compose.material3.ModalBottomSheet(
+            onDismissRequest = { showLchMixerSheet = false },
+            containerColor = Color(0xFF1A1A1A)
+        ) {
+            LchMixerPanel(
+                adjustment = lchAdjustment,
+                onAdjustmentChanged = { lchAdjustment = it },
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
         }
     }
