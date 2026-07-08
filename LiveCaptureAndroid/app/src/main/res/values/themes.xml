@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--
+        基础主题
+        使用 Material NoActionBar 作为基础，Compose 自行管理 UI
+        支持 Android 8.0+ (API 26+)
+    -->
     <style name="Theme.LiveCapture" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/black</item>
         <item name="android:navigationBarColor">@android:color/black</item>
         <item name="android:windowBackground">@android:color/black</item>
+        <!-- 支持边到边显示 -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <!-- 透明导航栏 -->
+        <item name="android:navigationBarDividerColor">@android:color/transparent</item>
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
 </resources>

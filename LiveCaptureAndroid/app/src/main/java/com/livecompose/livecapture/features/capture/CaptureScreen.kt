@@ -98,6 +98,10 @@ fun CaptureScreen(
             captureFlashOpacity = 0.8f
             captureAnimationScale = 2.0f
         }
+        // 检测相机权限状态
+        if (!viewModel.camera.hasCameraPermission()) {
+            cameraError = CameraErrorType.PERMISSION_DENIED
+        }
     }
 
     DisposableEffect(Unit) {
@@ -215,7 +219,8 @@ fun CaptureScreen(
                 onToggleCamera = {
                     cameraFlipRotation += 180f
                     viewModel.toggleCameraPosition()
-                }
+                },
+                onNavigateToGallery = { onBack() }
             )
         }
     }

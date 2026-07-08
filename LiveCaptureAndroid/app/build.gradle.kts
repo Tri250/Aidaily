@@ -127,6 +127,7 @@ dependencies {
     // ML Kit
     implementation("com.google.mlkit:face-detection:16.1.6")
     implementation("com.google.mlkit:object-detection:17.0.1")
+    implementation("com.google.mlkit:image-labeling:17.0.7")
 
     // TensorFlow Lite
     implementation("org.tensorflow:tensorflow-lite:2.16.1")

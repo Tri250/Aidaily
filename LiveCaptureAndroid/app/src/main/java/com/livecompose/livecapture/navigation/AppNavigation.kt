@@ -73,6 +73,7 @@ fun AppNavigation() {
                         navController.navigate("photo_detail/$photoId")
                     }
                 )
+                2 -> CaptureScreen(onBack = { selectedTab = 0 })
                 3 -> SettingsScreen()
             }
 

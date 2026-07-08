@@ -36,8 +36,12 @@ class LiveCaptureApp : Application() {
             BuglyManager.init(this)
             // 设置渠道信息（配合多渠道包）
             try {
-                val channel = BuildConfig.CHANNEL ?: "official"
-                BuglyManager.setChannel(channel)
+                val channel = try {
+                    BuildConfig.CHANNEL
+                } catch (_: Exception) {
+                    "official"
+                }
+                BuglyManager.setChannel(channel ?: "official")
                 BuglyManager.putCustomData("versionName", BuildConfig.VERSION_NAME)
                 BuglyManager.putCustomData("versionCode", BuildConfig.VERSION_CODE.toString())
             } catch (_: Exception) {}

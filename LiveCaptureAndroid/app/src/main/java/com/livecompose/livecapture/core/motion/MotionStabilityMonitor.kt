@@ -5,9 +5,16 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlin.math.sqrt
 import kotlin.math.pow
 
@@ -32,6 +39,10 @@ class MotionStabilityMonitor(context: Context) : SensorEventListener {
 
     private val _largeMotionDetected = MutableStateFlow(false)
     val largeMotionDetected: StateFlow<Boolean> = _largeMotionDetected.asStateFlow()
+
+    // 大量运动检测的去抖动任务
+    private var largeMotionResetJob: kotlinx.coroutines.Job? = null
+    private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main + kotlinx.coroutines.SupervisorJob())
 
     // 可配置参数
     var windowSeconds: Double = 0.8
@@ -59,17 +70,19 @@ class MotionStabilityMonitor(context: Context) : SensorEventListener {
 
     fun start() {
         accelerometer?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
         gyroscope?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
         rotationVector?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
     }
 
     fun stop() {
+        largeMotionResetJob?.cancel()
+        scope.cancel()
         sensorManager.unregisterListener(this)
         accSamples.clear()
         gyroSamples.clear()
@@ -156,9 +169,11 @@ class MotionStabilityMonitor(context: Context) : SensorEventListener {
         val hasLargeMotion = accMax > largeMotionAccThreshold || gyroMax > largeMotionGyroThreshold
         if (hasLargeMotion) {
             _largeMotionDetected.value = true
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            largeMotionResetJob?.cancel()
+            largeMotionResetJob = scope.launch {
+                delay(500)
                 _largeMotionDetected.value = false
-            }, 500)
+            }
         }
 
         val currentFrameStable = accStd < accelerationStdThreshold && gyroStd < gyroStdThreshold

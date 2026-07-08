@@ -1,6 +1,7 @@
 package com.livecompose.livecapture.core.logger
 
 import android.util.Log
+import com.livecompose.livecapture.BuildConfig
 
 /**
  * 统一日志管理器

@@ -8,6 +8,8 @@ struct GalleryView: View {
     @State private var showFilterSheet = false
     @State private var showBatchActions = false
     @State private var isLoading = false
+    @State private var selectedPhotoForEdit: PhotoRecord?
+    @State private var editingPhotoImage: UIImage?
 
     var body: some View {
         NavigationStack {
@@ -71,6 +73,21 @@ struct GalleryView: View {
                         viewModel?.fullPhoto(for: id)
                     }
                 )
+            }
+            .navigationDestination(item: $selectedPhotoForEdit) { record in
+                if let image = editingPhotoImage ?? viewModel.fullPhoto(for: record.id) {
+                    PhotoEditView(
+                        photoImage: image,
+                        photoRecord: record,
+                        onSave: { savedImage in
+                            viewModel.updatePhoto(record.id, with: savedImage)
+                        },
+                        onDismiss: {
+                            selectedPhotoForEdit = nil
+                            editingPhotoImage = nil
+                        }
+                    )
+                }
             }
             .sheet(isPresented: $showFilterSheet) {
                 filterSheetView
@@ -409,6 +426,25 @@ struct GalleryView: View {
 
     @ViewBuilder
     private func contextMenu(for record: PhotoRecord) -> some View {
+        Button {
+            editingPhotoImage = viewModel.fullPhoto(for: record.id)
+            selectedPhotoForEdit = record
+        } label: {
+            Label("编辑", systemImage: "paintpalette")
+        }
+
+        Button {
+            if let image = viewModel.fullPhoto(for: record.id) {
+                let activityVC = UIActivityViewController(activityItems: [image], applicationActivities: nil)
+                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                   let rootVC = windowScene.windows.first?.rootViewController {
+                    rootVC.present(activityVC, animated: true)
+                }
+            }
+        } label: {
+            Label("分享", systemImage: "square.and.arrow.up")
+        }
+
         Button(role: .destructive) {
             viewModel.deleteRecord(record.id)
         } label: {

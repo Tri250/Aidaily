@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <cache-path name="cache" path="/" />
-    <external-cache-path name="external_cache" path="/" />
-    <files-path name="files" path="/" />
-    <external-files-path name="external_files" path="/" />
-    <external-path name="external" path="/" />
+    <!-- 缓存目录：用于分享临时文件 -->
+    <cache-path name="cache" path="." />
+    <external-cache-path name="external_cache" path="." />
+    <!-- 应用私有文件目录：用于分享保存的照片 -->
+    <files-path name="files" path="LiveCapture/" />
+    <external-files-path name="external_files" path="LiveCapture/" />
 </paths>

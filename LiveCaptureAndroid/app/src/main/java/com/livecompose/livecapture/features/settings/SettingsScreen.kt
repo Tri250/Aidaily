@@ -20,6 +20,7 @@ import com.livecompose.livecapture.core.phantom.PhantomService
 import com.livecompose.livecapture.ui.components.LchMixerPanel
 import com.livecompose.livecapture.ui.components.WatermarkEditSheet
 import com.livecompose.livecapture.ui.design.DesignSystem
+import com.livecompose.livecapture.BuildConfig
 
 /**
  * 设置界面

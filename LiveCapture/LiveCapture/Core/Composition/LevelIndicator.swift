@@ -1,8 +1,8 @@
 //
-//  LevelIndicator.swift
+//  LevelMonitor.swift
 //  LiveCapture
 //
-//  实时水平仪/地平线指示器
+//  实时水平仪/地平线指示器（运动数据监控器）
 //
 //  ## 文件作用
 //  使用 CMMotionManager 的陀螺仪和加速度计数据
@@ -11,7 +11,7 @@
 //
 //  ## 主要类
 //
-//  ### LevelIndicator
+//  ### LevelMonitor
 //  水平仪监控器（ObservableObject）
 //
 //  ## Published 属性
@@ -42,8 +42,8 @@ import CoreGraphics
 #if os(iOS)
 import UIKit
 
-/// 实时水平仪/地平线指示器
-final class LevelIndicator: ObservableObject {
+/// 实时水平仪/地平线指示器（运动数据监控）
+final class LevelMonitor: ObservableObject {
 
 	// MARK: - Published State
 

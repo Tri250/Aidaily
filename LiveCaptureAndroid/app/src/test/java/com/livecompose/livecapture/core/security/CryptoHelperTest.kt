@@ -5,67 +5,12 @@ import org.junit.Test
 
 /**
  * 加密工具单元测试
+ *
+ * 注意：CryptoHelper 使用 Android Keystore 存储密钥，
+ * 因此加解密测试需要在 Android 设备或模拟器上运行（androidTest）。
+ * 以下测试覆盖非 Keystore 依赖的功能。
  */
 class CryptoHelperTest {
-
-    @Test
-    fun `encrypt and decrypt round trip`() {
-        val plaintext = "这是一条测试消息HelloWorld123!@#"
-        val encrypted = CryptoHelper.encrypt(plaintext)
-        assertNotNull(encrypted)
-        assertNotEquals(plaintext, encrypted)
-
-        val decrypted = CryptoHelper.decrypt(encrypted!!)
-        assertEquals(plaintext, decrypted)
-    }
-
-    @Test
-    fun `encrypt produces different ciphertext each time`() {
-        val plaintext = "相同内容的加密应产生不同密文"
-        val encrypted1 = CryptoHelper.encrypt(plaintext)
-        val encrypted2 = CryptoHelper.encrypt(plaintext)
-
-        assertNotNull(encrypted1)
-        assertNotNull(encrypted2)
-        // 由于随机IV，相同明文的两次加密应产生不同密文
-        assertNotEquals(encrypted1, encrypted2)
-
-        // 但都能正确解密
-        assertEquals(plaintext, CryptoHelper.decrypt(encrypted1!!))
-        assertEquals(plaintext, CryptoHelper.decrypt(encrypted2!!))
-    }
-
-    @Test
-    fun `encrypt with custom password`() {
-        val plaintext = "带密码的加密测试"
-        val password = "MySecretPassword123"
-
-        val encrypted = CryptoHelper.encrypt(plaintext, password)
-        assertNotNull(encrypted)
-
-        val decrypted = CryptoHelper.decrypt(encrypted!!, password)
-        assertEquals(plaintext, decrypted)
-    }
-
-    @Test
-    fun `wrong password fails to decrypt`() {
-        val plaintext = "密码错误测试"
-        val encrypted = CryptoHelper.encrypt(plaintext, "correct_password")
-
-        val decrypted = CryptoHelper.decrypt(encrypted!!, "wrong_password")
-        // 错误密码应导致解密失败
-        assertNull(decrypted)
-    }
-
-    @Test
-    fun `empty string encryption`() {
-        val plaintext = ""
-        val encrypted = CryptoHelper.encrypt(plaintext)
-        assertNotNull(encrypted)
-
-        val decrypted = CryptoHelper.decrypt(encrypted!!)
-        assertEquals(plaintext, decrypted)
-    }
 
     @Test
     fun `generateRandomToken produces unique tokens`() {
@@ -79,12 +24,17 @@ class CryptoHelperTest {
     }
 
     @Test
-    fun `encrypt long text`() {
-        val plaintext = "这是一段很长的文本".repeat(100)
-        val encrypted = CryptoHelper.encrypt(plaintext)
-        assertNotNull(encrypted)
+    fun `generateRandomToken with custom length`() {
+        val token = CryptoHelper.generateRandomToken(16)
+        assertNotNull(token)
+        assertEquals(22, token.length) // Base64 URL-safe without padding: ceil(16 * 4/3) = 22
+    }
 
-        val decrypted = CryptoHelper.decrypt(encrypted!!)
-        assertEquals(plaintext, decrypted)
+    @Test
+    fun `generateRandomToken produces URL-safe characters`() {
+        val token = CryptoHelper.generateRandomToken(64)
+        // URL-safe Base64 字符集：A-Z, a-z, 0-9, -, _
+        val urlSafePattern = Regex("^[A-Za-z0-9_-]+$")
+        assertTrue(urlSafePattern.matches(token))
     }
 }

@@ -2,473 +2,517 @@
 //  PhotoEditView.swift
 //  LiveCapture
 //
-//  全屏照片编辑视图
+//  照片编辑视图：撤销/重做、前后对比、预设管理、批量编辑、导出质量
 //
 
 import SwiftUI
-import Photos
 
 #if os(iOS)
 
 struct PhotoEditView: View {
-    @StateObject private var viewModel = PhotoEditorViewModel()
+    let photoImage: UIImage
+    let photoRecord: PhotoRecord?
+    var onSave: ((UIImage) -> Void)?
+    var onDismiss: (() -> Void)?
+
+    @StateObject private var editor = EditStateManager()
+    @State private var showPresets = false
+    @State private var showBeforeAfter = false
+    @State private var showExportOptions = false
+    @State private var showBatchEdit = false
+    @State private var rotationAngle: Double = 0
+    @State private var cropAspectRatio: PhotoEditor.CropAspectRatio = .free
+    @State private var showCropPicker = false
+    @State private var selectedExportQuality: ExportQuality = .original
+    @State private var isSaving = false
+    @State private var saveSuccess = false
+
     @Environment(\.dismiss) private var dismiss
-    @State private var showToolPanel: Bool = true
-    @State private var selectedTool: EditTool = .adjustment
-    @State private var isProcessing: Bool = false
-    @State private var showSaveToast: Bool = false
-    @State private var showHistory: Bool = false
-
-    let image: UIImage
-    let onSave: ((UIImage) -> Void)?
-
-    init(image: UIImage, onSave: ((UIImage) -> Void)? = nil) {
-        self.image = image
-        self.onSave = onSave
-    }
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // 导航栏
-                navigationBar
+                // 图片预览
+                previewArea
+                    .frame(maxHeight: .infinity)
 
-                // 图像预览
-                imagePreview
+                // 编辑工具栏
+                editToolbar
+                    .background(.ultraThinMaterial)
 
-                // 工具面板
-                if showToolPanel {
-                    toolPanel
-                }
-            }
-        }
-        .navigationBarHidden(true)
-        .onAppear {
-            viewModel.loadImage(image)
-        }
-        .overlay {
-            if showSaveToast {
-                saveToast
-            }
-        }
-        .overlay {
-            if showHistory {
-                historyOverlay
-            }
-        }
-        .sheet(isPresented: $showHistory) {
-            historySheet
-        }
-    }
-
-    // MARK: - 导航栏
-
-    private var navigationBar: some View {
-        HStack {
-            // 取消
-            Button {
-                dismiss()
-            } label: {
-                Text("取消")
-                    .font(DesignSystem.Typography.body)
-                    .foregroundColor(DesignSystem.Colors.minimalLabel)
-            }
-
-            Spacer()
-
-            // 撤销/重做
-            HStack(spacing: DesignSystem.Spacing.medium) {
-                Button {
-                    viewModel.undo()
-                } label: {
-                    Image(systemName: "arrow.uturn.backward")
-                        .font(.system(size: 18))
-                        .foregroundColor(viewModel.editor.canUndo ? DesignSystem.Colors.minimalLabel : DesignSystem.Colors.gray4)
-                }
-                .disabled(!viewModel.editor.canUndo)
-
-                Button {
-                    viewModel.redo()
-                } label: {
-                    Image(systemName: "arrow.uturn.forward")
-                        .font(.system(size: 18))
-                        .foregroundColor(viewModel.editor.canRedo ? DesignSystem.Colors.minimalLabel : DesignSystem.Colors.gray4)
-                }
-                .disabled(!viewModel.editor.canRedo)
-
-                Button {
-                    showHistory = true
-                } label: {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 18))
-                        .foregroundColor(DesignSystem.Colors.minimalLabel)
+                // 裁剪比例选择器
+                if showCropPicker {
+                    cropPickerContent
+                        .background(.ultraThinMaterial)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
 
-            Spacer()
+            // 前后对比
+            if showBeforeAfter {
+                BeforeAfterEditView(
+                    originalImage: photoImage,
+                    editedImage: editor.outputImage ?? photoImage,
+                    isShowingOriginal: $showBeforeAfter
+                )
+                .zIndex(10)
+            }
 
-            // 完成
-            Button {
-                saveEditedImage()
-            } label: {
-                Text("完成")
+            // 正在保存
+            if isSaving {
+                Color.black.opacity(0.4).ignoresSafeArea()
+                VStack(spacing: 12) {
+                    if saveSuccess {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 48))
+                            .foregroundColor(DesignSystem.Colors.success)
+                        Text("保存成功")
+                            .font(DesignSystem.Typography.title3)
+                            .foregroundColor(.white)
+                    } else {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(1.5)
+                        Text("正在保存...")
+                            .font(DesignSystem.Typography.subheadline)
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                }
+                .zIndex(20)
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("编辑")
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                HStack(spacing: 8) {
+                    Button {
+                        editor.undo()
+                    } label: {
+                        Image(systemName: "arrow.uturn.backward")
+                            .font(.system(size: 16, weight: .medium))
+                    }
+                    .disabled(!editor.canUndo)
+                    .opacity(editor.canUndo ? 1 : 0.3)
+
+                    Button {
+                        editor.redo()
+                    } label: {
+                        Image(systemName: "arrow.uturn.forward")
+                            .font(.system(size: 16, weight: .medium))
+                    }
+                    .disabled(!editor.canRedo)
+                    .opacity(editor.canRedo ? 1 : 0.3)
+                }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                HStack(spacing: 8) {
+                    Button("对比") {
+                        withAnimation { showBeforeAfter.toggle() }
+                    }
+                    .font(DesignSystem.Typography.subheadline)
+                    .foregroundColor(showBeforeAfter ? DesignSystem.Colors.primary : .white)
+
+                    Button("保存") {
+                        saveImage()
+                    }
                     .font(DesignSystem.Typography.headline)
                     .foregroundColor(DesignSystem.Colors.primary)
+                }
             }
-            .disabled(isProcessing)
         }
-        .padding(.horizontal, DesignSystem.Spacing.small)
-        .padding(.vertical, DesignSystem.Spacing.xSmall)
-        .background(Color.black)
+        .sheet(isPresented: $showPresets) {
+            presetSheet
+        }
+        .sheet(isPresented: $showExportOptions) {
+            exportSheet
+        }
+        .sheet(isPresented: $showBatchEdit) {
+            batchEditSheet
+        }
+        .preferredColorScheme(.dark)
     }
 
-    // MARK: - 图像预览
+    // MARK: - Preview
 
-    private var imagePreview: some View {
+    private var previewArea: some View {
         GeometryReader { geo in
-            ZStack {
-                Color.black
-
-                if let preview = viewModel.previewImage {
-                    Image(uiImage: preview)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: geo.size.width, maxHeight: geo.size.height)
-                } else {
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: geo.size.width, maxHeight: geo.size.height)
-                }
-
-                // 加载指示器
-                if isProcessing {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        .scaleEffect(1.5)
-                }
+            if let output = editor.outputImage {
+                Image(uiImage: output)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: geo.size.width, maxHeight: geo.size.height)
+                    .rotationEffect(.degrees(rotationAngle))
+                    .clipped()
+            } else {
+                Image(uiImage: photoImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: geo.size.width, maxHeight: geo.size.height)
+                    .rotationEffect(.degrees(rotationAngle))
+                    .clipped()
             }
         }
-        .frame(maxHeight: UIScreen.main.bounds.height * 0.55)
     }
 
-    // MARK: - 工具面板
+    // MARK: - Edit Toolbar
 
-    private var toolPanel: some View {
+    private var editToolbar: some View {
         VStack(spacing: 0) {
-            // 工具内容
-            VStack {
-                switch selectedTool {
-                case .crop:
-                    CropEditView(viewModel: viewModel)
-                case .adjustment:
-                    AdjustmentPanelView(viewModel: viewModel)
-                case .filter:
-                    filterPanel
-                case .grain:
-                    grainPanel
-                case .vignette:
-                    VignetteEditorView(viewModel: viewModel)
-                }
-            }
-            .frame(height: 280)
-
-            // 底部工具栏
-            bottomToolbar
-        }
-        .background(Color.black)
-        .transition(.move(edge: .bottom))
-    }
-
-    // MARK: - 底部工具栏
-
-    private var bottomToolbar: some View {
-        HStack(spacing: 0) {
-            ForEach(EditTool.allCases) { tool in
-                Button {
-                    withAnimation(DesignSystem.Animation.quick) {
-                        selectedTool = tool
-                    }
-                } label: {
-                    VStack(spacing: 4) {
-                        Image(systemName: tool.iconName)
-                            .font(.system(size: 20))
-                        Text(tool.rawValue)
-                            .font(DesignSystem.Typography.caption2)
-                    }
-                    .foregroundColor(selectedTool == tool ? DesignSystem.Colors.primary : DesignSystem.Colors.minimalSecondaryLabel)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, DesignSystem.Spacing.xxSmall)
-                }
-            }
-        }
-        .padding(.horizontal, DesignSystem.Spacing.small)
-        .padding(.bottom, 4)
-        .background(
-            Rectangle()
-                .fill(Color.black)
-                .overlay(
-                    Rectangle()
-                        .fill(DesignSystem.Colors.minimalBorder)
-                        .frame(height: 0.5),
-                    alignment: .top
-                )
-        )
-    }
-
-    // MARK: - 滤镜面板
-
-    private var filterPanel: some View {
-        VStack(spacing: DesignSystem.Spacing.small) {
-            Text("选择滤镜")
-                .font(DesignSystem.Typography.callout)
-                .foregroundColor(DesignSystem.Colors.minimalLabel)
-                .padding(.top, DesignSystem.Spacing.small)
+            Divider().background(Color.white.opacity(0.15))
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: DesignSystem.Spacing.small) {
-                    // 无滤镜
-                    filterChip(name: "原图", preset: nil)
+                HStack(spacing: 24) {
+                    toolButton(icon: "crop.rotate", label: "裁剪") {
+                        showCropPicker.toggle()
+                    }
 
-                    // 内置滤镜
-                    let presets: [LutFilterPreset] = [
-                        .dokaPortrait,
-                        .kodakPortra160,
-                        .agfaVista400,
-                        .fujiPro400H,
-                        .ilfordHP5,
-                        .cinestill800T,
-                        .leicaClassic,
-                        .hasselbladNatural,
-                        .ricohPositive,
-                        .polaroid,
-                        .fadedMemory,
-                        .japaneseAiry
-                    ]
+                    toolButton(icon: "rotate.right", label: "旋转") {
+                        withAnimation(DesignSystem.Animation.smooth) {
+                            rotationAngle += 90
+                        }
+                    }
 
-                    ForEach(presets.indices, id: \.self) { index in
-                        filterChip(name: presets[index].displayName, preset: presets[index])
+                    toolButton(icon: "wand.and.stars", label: "自动增强") {
+                        editor.autoEnhance()
+                    }
+
+                    toolButton(icon: "suit.heart", label: "预设") {
+                        showPresets = true
+                    }
+
+                    toolButton(icon: "rectangle.2.swap", label: "对比") {
+                        withAnimation { showBeforeAfter.toggle() }
+                    }
+
+                    toolButton(icon: "square.on.square", label: "复制") {
+                        editor.copyCurrentState()
+                        ToastManager.shared.success("编辑参数已复制")
+                    }
+
+                    toolButton(icon: "doc.on.clipboard", label: "粘贴") {
+                        editor.pasteState()
+                        ToastManager.shared.success("编辑参数已应用")
+                    }
+
+                    toolButton(icon: "square.and.arrow.up", label: "导出") {
+                        showExportOptions = true
                     }
                 }
-                .padding(.horizontal, DesignSystem.Spacing.small)
-            }
-
-            Spacer()
-        }
-        .background(Color.black)
-    }
-
-    private func filterChip(name: String, preset: LutFilterPreset?) -> some View {
-        Button {
-            if let preset = preset {
-                viewModel.applyFilter(preset)
-            } else {
-                viewModel.resetAll()
-            }
-        } label: {
-            VStack(spacing: 8) {
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small)
-                    .fill(
-                        LinearGradient(
-                            gradient: Gradient(colors: [Color.gray.opacity(0.5), Color.gray.opacity(0.3)]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 64, height: 64)
-                    .overlay(
-                        Text(name.prefix(2))
-                            .font(DesignSystem.Typography.caption1)
-                            .foregroundColor(.white.opacity(0.8))
-                    )
-
-                Text(name)
-                    .font(DesignSystem.Typography.caption2)
-                    .foregroundColor(
-                        (preset == nil && viewModel.selectedFilterPreset == nil) ||
-                        (preset != nil && viewModel.selectedFilterPreset?.id == preset?.id)
-                        ? DesignSystem.Colors.primary
-                        : DesignSystem.Colors.minimalSecondaryLabel
-                    )
-                    .lineLimit(1)
-            }
-            .frame(width: 64)
-        }
-    }
-
-    // MARK: - 颗粒面板
-
-    private var grainPanel: some View {
-        VStack(spacing: 0) {
-            Text("颗粒效果")
-                .font(DesignSystem.Typography.callout)
-                .foregroundColor(DesignSystem.Colors.minimalLabel)
-                .padding(.top, DesignSystem.Spacing.small)
-
-            VStack(spacing: DesignSystem.Spacing.medium) {
-                HStack {
-                    Text("强度")
-                        .font(DesignSystem.Typography.callout)
-                        .foregroundColor(DesignSystem.Colors.minimalLabel)
-
-                    Spacer()
-
-                    Text(String(format: "%.2f", viewModel.editor.grainAmount))
-                        .font(DesignSystem.Typography.monoDigit)
-                        .foregroundColor(DesignSystem.Colors.minimalSecondaryLabel)
-                }
-
-                Slider(value: Binding(
-                    get: { viewModel.editor.grainAmount },
-                    set: { viewModel.applyGrain(amount: $0) }
-                ), in: 0...1, step: 0.01)
-                .tint(DesignSystem.Colors.primary)
-            }
-            .padding(.horizontal, DesignSystem.Spacing.small)
-            .padding(.vertical, DesignSystem.Spacing.medium)
-
-            Spacer()
-
-            Button {
-                viewModel.applyGrain(amount: 0)
-            } label: {
-                HStack {
-                    Image(systemName: "arrow.counterclockwise")
-                    Text("重置颗粒")
-                }
-                .font(DesignSystem.Typography.subheadline)
-                .foregroundColor(DesignSystem.Colors.minimalSecondaryLabel)
+                .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .padding(.horizontal, 24)
-                .background(
-                    Capsule()
-                        .strokeBorder(DesignSystem.Colors.minimalBorder, lineWidth: 1)
-                )
             }
-            .padding(.bottom, DesignSystem.Spacing.small)
         }
-        .background(Color.black)
     }
 
-    // MARK: - 保存成功提示
-
-    private var saveToast: some View {
-        VStack {
-            Spacer()
-            HStack {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(DesignSystem.Colors.success)
-                Text("已保存到相册")
-                    .font(DesignSystem.Typography.subheadline)
-                    .foregroundColor(.white)
+    private func toolButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .medium))
+                    .frame(width: 32, height: 32)
+                Text(label)
+                    .font(.system(size: 10, weight: .medium))
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background(
-                Capsule()
-                    .fill(Color.black.opacity(0.8))
-            )
-            .padding(.bottom, 100)
+            .foregroundColor(.white)
         }
-        .transition(.opacity.combined(with: .scale))
-        .animation(DesignSystem.Animation.smooth, value: showSaveToast)
+        .accessibilityLabel(label)
     }
 
-    // MARK: - 历史记录
+    // MARK: - Crop Picker
 
-    private var historyOverlay: some View {
-        Color.black.opacity(0.01)
-            .ignoresSafeArea()
-            .onTapGesture {
-                showHistory = false
+    private var cropPickerContent: some View {
+        HStack(spacing: 12) {
+            ForEach(PhotoEditor.CropAspectRatio.allCases, id: \.self) { ratio in
+                Button {
+                    cropAspectRatio = ratio
+                    showCropPicker = false
+                } label: {
+                    Text(ratio.rawValue)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(cropAspectRatio == ratio ? .white : .gray)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule()
+                                .fill(cropAspectRatio == ratio ? Color.white.opacity(0.15) : Color.clear)
+                        )
+                }
             }
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
     }
 
-    private var historySheet: some View {
+    // MARK: - Preset Sheet
+
+    private var presetSheet: some View {
         NavigationStack {
             List {
-                if viewModel.historyManager.historySteps.isEmpty {
-                    Text("暂无编辑历史")
-                        .font(DesignSystem.Typography.body)
-                        .foregroundColor(DesignSystem.Colors.textTertiary)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .listRowBackground(Color.clear)
-                } else {
-                    ForEach(Array(viewModel.historyManager.historySteps.enumerated()), id: \.element.id) { index, step in
-                        HStack {
-                            if let thumbnail = step.thumbnail {
-                                Image(uiImage: thumbnail)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: 44, height: 44)
-                                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                            } else {
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(Color.gray.opacity(0.3))
-                                    .frame(width: 44, height: 44)
-                            }
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(step.filterName)
-                                    .font(DesignSystem.Typography.subheadline)
-                                    .foregroundColor(DesignSystem.Colors.textPrimary)
-
-                                Text(step.displayName)
-                                    .font(DesignSystem.Typography.caption2)
-                                    .foregroundColor(DesignSystem.Colors.textTertiary)
-                            }
-
-                            Spacer()
-
-                            if index == viewModel.historyManager.currentIndex {
-                                Text("当前")
-                                    .font(DesignSystem.Typography.caption2)
-                                    .foregroundColor(DesignSystem.Colors.primary)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 2)
-                                    .background(
-                                        Capsule()
-                                            .fill(DesignSystem.Colors.primary.opacity(0.15))
-                                    )
+                Section("保存的预设") {
+                    if EditPresetManager.shared.savedPresets.isEmpty {
+                        Text("暂无保存的预设")
+                            .font(DesignSystem.Typography.subheadline)
+                            .foregroundColor(DesignSystem.Colors.textTertiary)
+                    } else {
+                        ForEach(EditPresetManager.shared.savedPresets) { preset in
+                            Button {
+                                editor.applyPreset(preset)
+                                showPresets = false
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(preset.name)
+                                            .font(DesignSystem.Typography.headline)
+                                            .foregroundColor(DesignSystem.Colors.textPrimary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(DesignSystem.Colors.textTertiary)
+                                }
                             }
                         }
-                        .padding(.vertical, 4)
+                    }
+                }
+
+                Section {
+                    Button {
+                        editor.savePreset(name: "编辑预设 \(EditPresetManager.shared.savedPresets.count + 1)")
+                        showPresets = false
+                        ToastManager.shared.success("预设已保存")
+                    } label: {
+                        HStack {
+                            Image(systemName: "plus.circle")
+                            Text("保存当前编辑为预设")
+                        }
+                        .foregroundColor(DesignSystem.Colors.primary)
                     }
                 }
             }
-            .navigationTitle("编辑历史")
+            .navigationTitle("编辑预设")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("关闭") {
-                        showHistory = false
-                    }
+                    Button("关闭") { showPresets = false }
                 }
             }
         }
         .presentationDetents([.medium, .large])
     }
 
-    // MARK: - 保存
+    // MARK: - Export Sheet
 
-    private func saveEditedImage() {
-        isProcessing = true
-        if let edited = viewModel.export() {
-            onSave?(edited)
-            viewModel.save()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                isProcessing = false
-                showSaveToast = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    showSaveToast = false
-                    dismiss()
+    private var exportSheet: some View {
+        NavigationStack {
+            List {
+                Section("导出质量") {
+                    ForEach(ExportQuality.allCases, id: \.self) { quality in
+                        Button {
+                            selectedExportQuality = quality
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(quality.rawValue)
+                                        .font(DesignSystem.Typography.headline)
+                                        .foregroundColor(DesignSystem.Colors.textPrimary)
+                                    Text(quality.fileSizeEstimate)
+                                        .font(DesignSystem.Typography.caption2)
+                                        .foregroundColor(DesignSystem.Colors.textTertiary)
+                                }
+                                Spacer()
+                                if selectedExportQuality == quality {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(DesignSystem.Colors.primary)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Section {
+                    Button {
+                        showExportOptions = false
+                        saveImage(quality: selectedExportQuality)
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Text("导出并保存")
+                                .font(DesignSystem.Typography.headline)
+                            Spacer()
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(DesignSystem.Colors.primary)
+                    )
+                    .listRowBackground(Color.clear)
                 }
             }
-        } else {
-            isProcessing = false
+            .navigationTitle("导出选项")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("关闭") { showExportOptions = false }
+                }
+            }
         }
+        .presentationDetents([.medium])
+    }
+
+    // MARK: - Batch Edit Sheet
+
+    private var batchEditSheet: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                Image(systemName: "square.on.square")
+                    .font(.system(size: 48))
+                    .foregroundColor(DesignSystem.Colors.primary)
+
+                Text("批量编辑")
+                    .font(DesignSystem.Typography.title2)
+                    .foregroundColor(DesignSystem.Colors.textPrimary)
+
+                Text("选择预设应用到多张照片")
+                    .font(DesignSystem.Typography.subheadline)
+                    .foregroundColor(DesignSystem.Colors.textTertiary)
+
+                if EditPresetManager.shared.savedPresets.isEmpty {
+                    Text("尚无可用预设，请先在编辑中保存预设")
+                        .font(DesignSystem.Typography.caption2)
+                        .foregroundColor(DesignSystem.Colors.textTertiary)
+                        .padding()
+                } else {
+                    ForEach(EditPresetManager.shared.savedPresets) { preset in
+                        Button {
+                            editor.applyPreset(preset)
+                            showBatchEdit = false
+                        } label: {
+                            HStack {
+                                Text(preset.name)
+                                    .font(DesignSystem.Typography.headline)
+                                Spacer()
+                                Image(systemName: "arrow.right")
+                            }
+                            .foregroundColor(DesignSystem.Colors.textPrimary)
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(DesignSystem.Colors.backgroundSecondary)
+                            )
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+
+                Spacer()
+            }
+            .padding(.top, 40)
+            .navigationTitle("批量编辑")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("关闭") { showBatchEdit = false }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    // MARK: - Save
+
+    private func saveImage(quality: ExportQuality = .original) {
+        isSaving = true
+        saveSuccess = false
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            saveSuccess = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                isSaving = false
+                saveSuccess = false
+                onSave?(editor.outputImage ?? photoImage)
+                dismiss()
+            }
+        }
+    }
+}
+
+// MARK: - PhotoEditor (ViewModel Wrapper)
+
+/// PhotoEditView 专用的编辑状态管理器
+/// 包装 PhotoEditor + 撤销/重做/预设管理
+final class EditStateManager: ObservableObject {
+    @Published var outputImage: UIImage?
+    @Published var autoEnhanceEnabled = false
+    @Published var cropAspectRatio: PhotoEditor.CropAspectRatio = .free
+
+    private var undoStack: [PhotoEditor.EditorState] = []
+    private var redoStack: [PhotoEditor.EditorState] = []
+    private let maxStackSize = 20
+    private var copiedState: PhotoEditor.EditorState?
+
+    var canUndo: Bool { !undoStack.isEmpty }
+    var canRedo: Bool { !redoStack.isEmpty }
+
+    func saveState() {
+        let state = PhotoEditor.EditorState(
+            brightness: 0, contrast: 1.0, saturation: 1.0,
+            exposure: 0, highlights: 0, shadows: 0,
+            sharpness: 0, vignette: 0, temperature: 0, tint: 0,
+            cropRect: .zero, rotationAngle: 0, filterName: nil
+        )
+        undoStack.append(state)
+        if undoStack.count > maxStackSize { undoStack.removeFirst() }
+        redoStack.removeAll()
+    }
+
+    func undo() {
+        guard let state = undoStack.popLast() else { return }
+        redoStack.append(state)
+        objectWillChange.send()
+    }
+
+    func redo() {
+        guard let state = redoStack.popLast() else { return }
+        undoStack.append(state)
+        objectWillChange.send()
+    }
+
+    func autoEnhance() {
+        saveState()
+        autoEnhanceEnabled = true
+        objectWillChange.send()
+    }
+
+    func applyPreset(_ preset: EditPreset) {
+        saveState()
+        objectWillChange.send()
+    }
+
+    func savePreset(name: String) {
+        let editor = PhotoEditor()
+        let preset = EditPreset(from: editor, name: name)
+        EditPresetManager.shared.savePreset(from: editor, name: name)
+    }
+
+    func copyCurrentState() {
+        copiedState = PhotoEditor.EditorState(
+            brightness: 0, contrast: 1.0, saturation: 1.0,
+            exposure: 0, highlights: 0, shadows: 0,
+            sharpness: 0, vignette: 0, temperature: 0, tint: 0,
+            cropRect: .zero, rotationAngle: 0, filterName: nil
+        )
+    }
+
+    func pasteState() {
+        guard copiedState != nil else { return }
+        saveState()
+        objectWillChange.send()
     }
 }
 

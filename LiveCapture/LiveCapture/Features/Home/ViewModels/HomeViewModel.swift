@@ -165,6 +165,15 @@ final class HomeViewModel: ObservableObject {
         return UIImage(data: data)
     }
 
+    /// 更新照片（编辑后保存）
+    func updatePhoto(_ id: UUID, with image: UIImage) {
+        guard let url = PhotoStorageService.shared.photoURL(for: id),
+              let data = image.jpegData(compressionQuality: 0.95) else { return }
+        try? data.write(to: url)
+        // 刷新列表
+        loadRecords()
+    }
+
     // MARK: - 批量选择
 
     func toggleSelection(_ id: UUID) {
