@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 主题色 -->
+    <color name="primary">#FFD4A574</color>
+    <color name="primary_variant">#FFB8864F</color>
+    <color name="secondary">#FFE8C994</color>
+
+    <!-- 背景色 -->
+    <color name="background">#FF000000</color>
+    <color name="surface">#FF1A1A1A</color>
+    <color name="surface_variant">#FF2A2A2A</color>
+
+    <!-- 文字色 -->
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#B3FFFFFF</color>
+    <color name="text_tertiary">#66FFFFFF</color>
+
+    <!-- 状态色 -->
+    <color name="success">#FF4CAF50</color>
+    <color name="warning">#FFFFC107</color>
+    <color name="error">#FFE53935</color>
+    <color name="info">#FF1E88E5</color>
+
+    <!-- 分隔线 -->
+    <color name="divider">#33FFFFFF</color>
+
+    <!-- 相机UI -->
+    <color name="camera_overlay">#33FFFFFF</color>
+    <color name="focus_ring">#FFD4A574</color>
+    <color name="grid_line">#26FFFFFF</color>
+</resources>

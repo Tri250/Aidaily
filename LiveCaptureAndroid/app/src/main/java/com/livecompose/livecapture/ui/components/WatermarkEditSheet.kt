@@ -1,14 +1,23 @@
 package com.livecompose.livecapture.ui.components
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,6 +39,43 @@ fun WatermarkEditSheet(
     var text by remember(watermark.text) { mutableStateOf(watermark.text) }
     var position by remember(watermark.positionX) { mutableStateOf(watermark.positionX) }
     var alpha by remember(watermark.alpha) { mutableFloatStateOf(watermark.alpha) }
+    var logoBitmapPath by remember(watermark.logoBitmapPath) { mutableStateOf(watermark.logoBitmapPath) }
+    var logoScale by remember(watermark.logoScale) { mutableFloatStateOf(watermark.logoScale) }
+    var logoAlpha by remember(watermark.logoAlpha) { mutableFloatStateOf(watermark.logoAlpha) }
+    val context = LocalContext.current
+
+    // 图片选择器
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            // 将 content URI 转换为实际文件路径
+            val path = try {
+                val cursor = context.contentResolver.query(it, null, null, null, null)
+                cursor?.use { c ->
+                    if (c.moveToFirst()) {
+                        val idx = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                        if (idx >= 0) {
+                            // 复制到应用缓存目录
+                            val inputStream = context.contentResolver.openInputStream(it)
+                            val cacheFile = java.io.File(context.cacheDir, "watermark_logo_${System.currentTimeMillis()}.png")
+                            inputStream?.use { input ->
+                                java.io.FileOutputStream(cacheFile).use { output ->
+                                    input.copyTo(output)
+                                }
+                            }
+                            cacheFile.absolutePath
+                        } else null
+                    } else null
+                }
+            } catch (e: Exception) {
+                null
+            }
+            if (path != null) {
+                logoBitmapPath = path
+            }
+        }
+    }
 
     Column(
         modifier = modifier
@@ -43,7 +89,16 @@ fun WatermarkEditSheet(
             Spacer(Modifier.weight(1f))
             TextButton(onClick = onDismiss) { Text("取消", color = Color.White.copy(alpha = 0.7f)) }
             TextButton(onClick = {
-                onWatermarkChanged(watermark.copy(text = text, positionX = position, alpha = alpha))
+                onWatermarkChanged(
+                    watermark.copy(
+                        text = text,
+                        positionX = position,
+                        alpha = alpha,
+                        logoBitmapPath = logoBitmapPath,
+                        logoScale = logoScale,
+                        logoAlpha = logoAlpha
+                    )
+                )
                 onApply()
             }) { Text("确定", color = DesignSystem.Colors.primary) }
         }
@@ -65,6 +120,82 @@ fun WatermarkEditSheet(
                 unfocusedLabelColor = Color.White.copy(alpha = 0.5f)
             )
         )
+
+        Spacer(Modifier.height(12.dp))
+
+        // 图片水印选择
+        Text("图片水印", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
+        Spacer(Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedButton(
+                onClick = { imagePickerLauncher.launch("image/*") },
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = DesignSystem.Colors.primary
+                )
+            ) {
+                Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("选择图片", fontSize = 13.sp)
+            }
+
+            if (logoBitmapPath != null) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "已选择图片",
+                    color = Color(0xFF4CAF50),
+                    fontSize = 12.sp
+                )
+                Spacer(Modifier.width(8.dp))
+                IconButton(
+                    onClick = { logoBitmapPath = null },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "清除",
+                        tint = Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+
+        // 图片水印缩放
+        if (logoBitmapPath != null) {
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("图片缩放", color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp, modifier = Modifier.width(52.dp))
+                Slider(
+                    value = logoScale,
+                    onValueChange = { logoScale = it },
+                    valueRange = 0.05f..0.5f,
+                    modifier = Modifier.weight(1f),
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color.White,
+                        activeTrackColor = DesignSystem.Colors.primary,
+                        inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                    )
+                )
+                Text("%.0f%%".format(logoScale * 100), color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, modifier = Modifier.width(40.dp))
+            }
+
+            Spacer(Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("图片透明度", color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp, modifier = Modifier.width(52.dp))
+                Slider(
+                    value = logoAlpha,
+                    onValueChange = { logoAlpha = it },
+                    valueRange = 0.1f..1f,
+                    modifier = Modifier.weight(1f),
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color.White,
+                        activeTrackColor = DesignSystem.Colors.primary,
+                        inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                    )
+                )
+                Text("%.0f%%".format(logoAlpha * 100), color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, modifier = Modifier.width(40.dp))
+            }
+        }
 
         Spacer(Modifier.height(12.dp))
 
@@ -136,7 +267,10 @@ fun WatermarkEditSheet(
                         isEnabled = it,
                         text = text,
                         positionX = position,
-                        alpha = alpha
+                        alpha = alpha,
+                        logoBitmapPath = logoBitmapPath,
+                        logoScale = logoScale,
+                        logoAlpha = logoAlpha
                     ))
                 },
                 colors = SwitchDefaults.colors(checkedTrackColor = DesignSystem.Colors.primary)

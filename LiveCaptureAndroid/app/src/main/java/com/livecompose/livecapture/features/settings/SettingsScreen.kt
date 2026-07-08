@@ -79,7 +79,7 @@ fun SettingsScreen() {
                 modifier = Modifier.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Palette, contentDescription = null, tint = DesignSystem.Colors.primary)
+                Icon(Icons.Default.Palette, contentDescription = "主题模式", tint = DesignSystem.Colors.primary)
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text("主题模式", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -110,7 +110,7 @@ fun SettingsScreen() {
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Bolt, contentDescription = null, tint = DesignSystem.Colors.primary)
+                    Icon(Icons.Default.Bolt, contentDescription = "自动拍照开关", tint = DesignSystem.Colors.primary)
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("自动拍照", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -120,7 +120,7 @@ fun SettingsScreen() {
                 }
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Timer, contentDescription = null, tint = DesignSystem.Colors.primary)
+                    Icon(Icons.Default.Timer, contentDescription = "拍照延迟", tint = DesignSystem.Colors.primary)
                     Spacer(modifier = Modifier.width(10.dp))
                     Text("拍照延迟", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
                     Spacer(modifier = Modifier.weight(1f))
@@ -179,7 +179,7 @@ fun SettingsScreen() {
                 modifier = Modifier.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.GridOn, contentDescription = null, tint = DesignSystem.Colors.primary)
+                Icon(Icons.Default.GridOn, contentDescription = "网格模式", tint = DesignSystem.Colors.primary)
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text("网格线", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -213,7 +213,7 @@ fun SettingsScreen() {
                 modifier = Modifier.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Radar, contentDescription = null, tint = DesignSystem.Colors.primary)
+                Icon(Icons.Default.Radar, contentDescription = "检测模式选择", tint = DesignSystem.Colors.primary)
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text("检测算法", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -247,7 +247,7 @@ fun SettingsScreen() {
                 modifier = Modifier.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.PhotoFrame, contentDescription = null, tint = DesignSystem.Colors.primary)
+                Icon(Icons.Default.PhotoFrame, contentDescription = "相框样式", tint = DesignSystem.Colors.primary)
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text("边框样式", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -280,7 +280,7 @@ fun SettingsScreen() {
             Column(modifier = Modifier.padding(16.dp)) {
                 // 自然光开关
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LightMode, contentDescription = null, tint = DesignSystem.Colors.primary)
+                    Icon(Icons.Default.LightMode, contentDescription = "自然光模拟", tint = DesignSystem.Colors.primary)
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("自然光模拟", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -291,7 +291,7 @@ fun SettingsScreen() {
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
                 // Bloom/柔光选项
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.FlashOn, contentDescription = null, tint = DesignSystem.Colors.primary)
+                    Icon(Icons.Default.FlashOn, contentDescription = "Bloom效果", tint = DesignSystem.Colors.primary)
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Bloom 效果", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -301,7 +301,7 @@ fun SettingsScreen() {
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.WbSunny, contentDescription = null, tint = DesignSystem.Colors.primary)
+                    Icon(Icons.Default.WbSunny, contentDescription = "柔光滤镜", tint = DesignSystem.Colors.primary)
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("柔光滤镜", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -325,7 +325,7 @@ fun SettingsScreen() {
                 modifier = Modifier.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.CameraEnhance, contentDescription = null, tint = DesignSystem.Colors.primary)
+                Icon(Icons.Default.CameraEnhance, contentDescription = "快速拍摄", tint = DesignSystem.Colors.primary)
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Quick Shot", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -347,7 +347,7 @@ fun SettingsScreen() {
             Column(modifier = Modifier.padding(16.dp)) {
                 // 多帧降噪开关
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.AutoFixHigh, contentDescription = null, tint = DesignSystem.Colors.primary)
+                    Icon(Icons.Default.AutoFixHigh, contentDescription = "多帧降噪", tint = DesignSystem.Colors.primary)
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("多帧降噪", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -358,7 +358,7 @@ fun SettingsScreen() {
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
                 // HDR 融合开关
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.HdrStrong, contentDescription = null, tint = DesignSystem.Colors.primary)
+                    Icon(Icons.Default.HdrStrong, contentDescription = "HDR融合", tint = DesignSystem.Colors.primary)
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("HDR 融合", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -369,7 +369,7 @@ fun SettingsScreen() {
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
                 // 多重曝光选项
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Layers, contentDescription = null, tint = DesignSystem.Colors.primary)
+                    Icon(Icons.Default.Layers, contentDescription = "多重曝光", tint = DesignSystem.Colors.primary)
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("多重曝光", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -403,7 +403,7 @@ fun SettingsScreen() {
             Column(modifier = Modifier.padding(16.dp)) {
                 // 超焦距显示开关
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.CenterFocusStrong, contentDescription = null, tint = DesignSystem.Colors.primary)
+                    Icon(Icons.Default.CenterFocusStrong, contentDescription = "超焦距显示", tint = DesignSystem.Colors.primary)
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("超焦距显示", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -414,7 +414,7 @@ fun SettingsScreen() {
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
                 // 保存位置选择
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Folder, contentDescription = null, tint = DesignSystem.Colors.primary)
+                    Icon(Icons.Default.Folder, contentDescription = "保存位置", tint = DesignSystem.Colors.primary)
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("保存位置", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -436,7 +436,7 @@ fun SettingsScreen() {
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
                 // HEIC 导出选项
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Image, contentDescription = null, tint = DesignSystem.Colors.primary)
+                    Icon(Icons.Default.Image, contentDescription = "HEIC格式", tint = DesignSystem.Colors.primary)
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("HEIC 格式", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -461,13 +461,13 @@ fun SettingsScreen() {
                 modifier = Modifier.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Water, contentDescription = null, tint = DesignSystem.Colors.primary)
+                Icon(Icons.Default.Water, contentDescription = "水印设置", tint = DesignSystem.Colors.primary)
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text("水印设置", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
                     Text("自定义文字、日期、Logo 水印", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
                 }
-                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DesignSystem.Colors.textTertiary())
+                Icon(Icons.Default.ChevronRight, contentDescription = "展开", tint = DesignSystem.Colors.textTertiary())
             }
         }
 
@@ -482,7 +482,7 @@ fun SettingsScreen() {
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = DesignSystem.Colors.primary)
+                    Icon(Icons.Default.AutoAwesome, contentDescription = "AI色彩匹配", tint = DesignSystem.Colors.primary)
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("AI 色彩匹配", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -492,7 +492,7 @@ fun SettingsScreen() {
                 }
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Colorize, contentDescription = null, tint = DesignSystem.Colors.primary)
+                    Icon(Icons.Default.Colorize, contentDescription = "OKLCH混色器", tint = DesignSystem.Colors.primary)
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("OKLCH 混色器", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -525,7 +525,7 @@ fun SettingsScreen() {
                 modifier = Modifier.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Camera, contentDescription = null, tint = DesignSystem.Colors.primary)
+                Icon(Icons.Default.Camera, contentDescription = "RAW拍摄", tint = DesignSystem.Colors.primary)
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text("RAW 拍摄", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
@@ -546,7 +546,7 @@ fun SettingsScreen() {
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Visibility, contentDescription = null, tint = DesignSystem.Colors.primary)
+                    Icon(Icons.Default.Visibility, contentDescription = "幻影模式", tint = DesignSystem.Colors.primary)
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("幻影模式", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())

@@ -17,6 +17,8 @@ import android.os.IBinder
 import android.os.Looper
 import android.provider.MediaStore
 import android.util.Log
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import com.livecompose.livecapture.core.lut.BuiltInPresets
 import com.livecompose.livecapture.core.lut.LutProcessor
 
@@ -212,35 +214,40 @@ class PhantomService : Service() {
             val lutId = getSelectedLutId(this)
             val intensity = getIntensity(this)
 
-            // 应用 LUT 处理
-            val processedBitmap = if (lutId.isNotEmpty()) {
-                val preset = BuiltInPresets.presets.find { it.id == lutId }
-                if (preset != null) {
-                    val lutProcessor = LutProcessor()
-                    kotlinx.coroutines.runBlocking {
-                        lutProcessor.applyPreset(originalBitmap, preset) {}
+            if (lutId.isEmpty()) {
+                originalBitmap.recycle()
+                return
+            }
+
+            val preset = BuiltInPresets.presets.find { it.id == lutId }
+            if (preset == null) {
+                originalBitmap.recycle()
+                return
+            }
+
+            val lutProcessor = LutProcessor()
+            GlobalScope.launch {
+                try {
+                    val processedBitmap = lutProcessor.applyPreset(originalBitmap, preset) {}
+
+                    // 保存处理后的照片
+                    val saveAsNew = isSaveAsNew(this@PhantomService)
+                    if (saveAsNew) {
+                        saveAsNewPhoto(processedBitmap, name, lutId)
+                    } else {
+                        overwriteOriginal(processedBitmap, uri)
                     }
-                } else {
-                    originalBitmap
+
+                    originalBitmap.recycle()
+                    processedBitmap.recycle()
+
+                    Log.d(TAG, "幻影模式处理完成: $name")
+                } catch (e: Exception) {
+                    Log.e(TAG, "色彩处理失败: $name", e)
                 }
-            } else {
-                originalBitmap
             }
-
-            // 保存处理后的照片
-            val saveAsNew = isSaveAsNew(this)
-            if (saveAsNew) {
-                saveAsNewPhoto(processedBitmap, name, lutId)
-            } else {
-                overwriteOriginal(processedBitmap, uri)
-            }
-
-            originalBitmap.recycle()
-            if (processedBitmap !== originalBitmap) processedBitmap.recycle()
-
-            Log.d(TAG, "幻影模式处理完成: $name")
         } catch (e: Exception) {
-            Log.e(TAG, "色彩处理失败: $name", e)
+            Log.e(TAG, "处理新照片失败: $name", e)
         }
     }
 

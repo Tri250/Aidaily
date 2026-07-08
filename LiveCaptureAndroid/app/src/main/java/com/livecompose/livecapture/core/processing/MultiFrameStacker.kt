@@ -109,65 +109,71 @@ class MultiFrameStacker {
         frames: List<Bitmap>,
         onProgress: (Float) -> Unit = {}
     ): Bitmap = withContext(Dispatchers.Default) {
-        if (frames.isEmpty()) return@withContext reference
+        var output: Bitmap? = null
+        try {
+            if (frames.isEmpty()) return@withContext reference
 
-        val width = reference.width
-        val height = reference.height
-        val output = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val width = reference.width
+            val height = reference.height
+            output = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
 
-        val totalFrames = frames.size + 1 // reference + 其他帧
-        val refPixels = IntArray(width * height)
-        reference.getPixels(refPixels, 0, width, 0, 0, width, height)
+            val totalFrames = frames.size + 1 // reference + 其他帧
+            val refPixels = IntArray(width * height)
+            reference.getPixels(refPixels, 0, width, 0, 0, width, height)
 
-        // 对齐所有帧
-        val alignedFrames = frames.mapIndexed { index, frame ->
-            val alignment = alignFrames(reference, frame)
-            onProgress((index + 1).toFloat() / frames.size * 0.5f)
-            Triple(frame, alignment.offsetX, alignment.offsetY)
-        }
+            // 对齐所有帧
+            val alignedFrames = frames.mapIndexed { index, frame ->
+                val alignment = alignFrames(reference, frame)
+                onProgress((index + 1).toFloat() / frames.size * 0.5f)
+                Triple(frame, alignment.offsetX, alignment.offsetY)
+            }
 
-        // 逐像素平均
-        val outputPixels = IntArray(width * height)
-        for (y in 0 until height) {
-            for (x in 0 until width) {
-                var sumR = 0L
-                var sumG = 0L
-                var sumB = 0L
-                var count = 0
+            // 逐像素平均
+            val outputPixels = IntArray(width * height)
+            for (y in 0 until height) {
+                for (x in 0 until width) {
+                    var sumR = 0L
+                    var sumG = 0L
+                    var sumB = 0L
+                    var count = 0
 
-                // 参考帧
-                val refPixel = refPixels[y * width + x]
-                sumR += (refPixel shr 16) and 0xFF
-                sumG += (refPixel shr 8) and 0xFF
-                sumB += refPixel and 0xFF
-                count++
+                    // 参考帧
+                    val refPixel = refPixels[y * width + x]
+                    sumR += (refPixel shr 16) and 0xFF
+                    sumG += (refPixel shr 8) and 0xFF
+                    sumB += refPixel and 0xFF
+                    count++
 
-                // 其他帧
-                for ((frame, dx, dy) in alignedFrames) {
-                    val fx = x + dx
-                    val fy = y + dy
-                    if (fx in 0 until frame.width && fy in 0 until frame.height) {
-                        val pixel = frame.getPixel(fx, fy)
-                        sumR += (pixel shr 16) and 0xFF
-                        sumG += (pixel shr 8) and 0xFF
-                        sumB += pixel and 0xFF
-                        count++
+                    // 其他帧
+                    for ((frame, dx, dy) in alignedFrames) {
+                        val fx = x + dx
+                        val fy = y + dy
+                        if (fx in 0 until frame.width && fy in 0 until frame.height) {
+                            val pixel = frame.getPixel(fx, fy)
+                            sumR += (pixel shr 16) and 0xFF
+                            sumG += (pixel shr 8) and 0xFF
+                            sumB += pixel and 0xFF
+                            count++
+                        }
                     }
+
+                    val r = (sumR / count).coerceIn(0, 255)
+                    val g = (sumG / count).coerceIn(0, 255)
+                    val b = (sumB / count).coerceIn(0, 255)
+                    outputPixels[y * width + x] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
                 }
 
-                val r = (sumR / count).coerceIn(0, 255)
-                val g = (sumG / count).coerceIn(0, 255)
-                val b = (sumB / count).coerceIn(0, 255)
-                outputPixels[y * width + x] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
+                if (y % 50 == 0) {
+                    onProgress(0.5f + 0.5f * y / height)
+                }
             }
 
-            if (y % 50 == 0) {
-                onProgress(0.5f + 0.5f * y / height)
-            }
+            output.setPixels(outputPixels, 0, width, 0, 0, width, height)
+            onProgress(1f)
+            output
+        } catch (e: OutOfMemoryError) {
+            output?.recycle()
+            throw RuntimeException("多帧堆栈内存不足，请尝试降低图像分辨率", e)
         }
-
-        output.setPixels(outputPixels, 0, width, 0, 0, width, height)
-        onProgress(1f)
-        output
     }
 }

@@ -45,4 +45,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val file = storage.getPhotoFile(id)
         return if (file.exists()) BitmapFactory.decodeFile(file.absolutePath) else null
     }
+
+    fun updateRating(id: String, rating: Int) {
+        storage.updateRecord(id) { it.copy(rating = rating.coerceIn(0, 5)) }
+    }
+
+    fun toggleFlag(id: String) {
+        storage.updateRecord(id) { it.copy(flag = !it.flag) }
+    }
 }

@@ -1,6 +1,7 @@
 package com.livecompose.livecapture.core.frame
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
@@ -86,52 +87,106 @@ object FrameRenderer {
     }
 
     /**
-     * 仅应用水印
+     * 仅应用水印（文字水印 + 图片水印）
      */
     private fun applyWatermark(bitmap: Bitmap, watermarkInfo: WatermarkInfo): Bitmap {
-        if (!watermarkInfo.isEnabled || watermarkInfo.text.isBlank()) return bitmap
+        if (!watermarkInfo.isEnabled) return bitmap
+
+        val hasText = watermarkInfo.text.isNotBlank()
+        val hasLogo = watermarkInfo.logoBitmapPath != null
+        if (!hasText && !hasLogo) return bitmap
 
         val output = bitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas = Canvas(output)
 
-        val typeface = if (watermarkInfo.fontName == "ds-digital") {
-            try {
-                Typeface.createFromAsset(android.app.Application::class.java.getClassLoader()?.load("assets")?.let {
-                    // In actual usage, context would be passed; fallback to default
-                    null
-                }) ?: Typeface.MONOSPACE
-            } catch (_: Exception) {
-                Typeface.DEFAULT_BOLD
-            }
-        } else {
-            Typeface.DEFAULT
+        // 绘制文字水印
+        if (hasText) {
+            drawTextWatermark(canvas, bitmap, watermarkInfo)
         }
 
+        // 绘制图片水印
+        if (hasLogo) {
+            drawLogoWatermark(canvas, bitmap, watermarkInfo)
+        }
+
+        return output
+    }
+
+    /**
+     * 绘制文字水印
+     */
+    private fun drawTextWatermark(canvas: Canvas, bitmap: Bitmap, watermarkInfo: WatermarkInfo) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = watermarkInfo.textColor
             textSize = watermarkInfo.textSize * bitmap.density
-            typeface = this.typeface
+            typeface = if (watermarkInfo.fontName == "ds-digital") {
+                try {
+                    Typeface.MONOSPACE
+                } catch (_: Exception) {
+                    Typeface.DEFAULT_BOLD
+                }
+            } else {
+                Typeface.DEFAULT
+            }
             textAlign = watermarkInfo.positionX.toPaintAlign()
             alpha = (watermarkInfo.alpha * 255).toInt()
         }
 
-        // 计算 X 坐标
         val x = when (watermarkInfo.positionX) {
             WatermarkPosition.TOP_LEFT, WatermarkPosition.CENTER_LEFT, WatermarkPosition.BOTTOM_LEFT -> watermarkInfo.marginDp * bitmap.density
             WatermarkPosition.TOP_CENTER, WatermarkPosition.CENTER_CENTER, WatermarkPosition.BOTTOM_CENTER -> bitmap.width / 2f
             else -> bitmap.width - watermarkInfo.marginDp * bitmap.density
         }
 
-        // 计算 Y 坐标
         val y = watermarkInfo.positionY * bitmap.height
 
-        // 保存并旋转画布
         canvas.save()
         canvas.rotate(watermarkInfo.rotationDegrees, x, y)
         canvas.drawText(watermarkInfo.text, x, y, paint)
         canvas.restore()
+    }
 
-        return output
+    /**
+     * 绘制图片水印
+     */
+    private fun drawLogoWatermark(canvas: Canvas, bitmap: Bitmap, watermarkInfo: WatermarkInfo) {
+        val path = watermarkInfo.logoBitmapPath ?: return
+        val logoBitmap = try {
+            val options = BitmapFactory.Options().apply {
+                inPreferredConfig = Bitmap.Config.ARGB_8888
+            }
+            BitmapFactory.decodeFile(path, options)
+        } catch (e: Exception) {
+            return
+        } ?: return
+
+        // 计算水印大小: 相对于图片宽度
+        val logoWidth = (bitmap.width * watermarkInfo.logoScale).toInt().coerceAtLeast(1)
+        val aspectRatio = logoBitmap.width.toFloat() / logoBitmap.height.toFloat()
+        val logoHeight = (logoWidth / aspectRatio).toInt().coerceAtLeast(1)
+
+        val scaledLogo = Bitmap.createScaledBitmap(logoBitmap, logoWidth, logoHeight, true)
+        if (scaledLogo !== logoBitmap && !logoBitmap.isRecycled) {
+            logoBitmap.recycle()
+        }
+
+        // 计算位置
+        val marginPx = watermarkInfo.marginDp * bitmap.density
+        val x = when (watermarkInfo.positionX) {
+            WatermarkPosition.TOP_LEFT, WatermarkPosition.CENTER_LEFT, WatermarkPosition.BOTTOM_LEFT -> marginPx
+            WatermarkPosition.TOP_CENTER, WatermarkPosition.CENTER_CENTER, WatermarkPosition.BOTTOM_CENTER -> (bitmap.width - logoWidth) / 2f
+            else -> bitmap.width - logoWidth - marginPx
+        }
+        val y = watermarkInfo.positionY * bitmap.height - logoHeight / 2f
+
+        val logoPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
+            alpha = (watermarkInfo.logoAlpha * 255).toInt()
+        }
+
+        canvas.save()
+        canvas.rotate(watermarkInfo.rotationDegrees, x + logoWidth / 2f, y + logoHeight / 2f)
+        canvas.drawBitmap(scaledLogo, x, y, logoPaint)
+        canvas.restore()
     }
 
     /**

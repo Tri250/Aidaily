@@ -23,116 +23,122 @@ class LutProcessor {
         preset: LutPreset,
         onProgress: (Float) -> Unit = {}
     ): Bitmap = withContext(Dispatchers.Default) {
-        val width = source.width
-        val height = source.height
-        val pixels = IntArray(width * height)
-        source.getPixels(pixels, 0, width, 0, 0, width, height)
+        var result: Bitmap? = null
+        try {
+            val width = source.width
+            val height = source.height
+            val pixels = IntArray(width * height)
+            source.getPixels(pixels, 0, width, 0, 0, width, height)
 
-        val outputPixels = IntArray(width * height)
-        for (i in pixels.indices) {
-            val pixel = pixels[i]
-            var r = ((pixel shr 16) and 0xFF) / 255f
-            var g = ((pixel shr 8) and 0xFF) / 255f
-            var b = (pixel and 0xFF) / 255f
+            val outputPixels = IntArray(width * height)
+            for (i in pixels.indices) {
+                val pixel = pixels[i]
+                var r = ((pixel shr 16) and 0xFF) / 255f
+                var g = ((pixel shr 8) and 0xFF) / 255f
+                var b = (pixel and 0xFF) / 255f
 
-            // 曝光
-            if (preset.exposure != 0f) {
-                val factor = 2f.pow(preset.exposure)
-                r = (r * factor).coerceIn(0f, 1f)
-                g = (g * factor).coerceIn(0f, 1f)
-                b = (b * factor).coerceIn(0f, 1f)
+                // 曝光
+                if (preset.exposure != 0f) {
+                    val factor = 2f.pow(preset.exposure)
+                    r = (r * factor).coerceIn(0f, 1f)
+                    g = (g * factor).coerceIn(0f, 1f)
+                    b = (b * factor).coerceIn(0f, 1f)
+                }
+
+                // 对比度
+                if (preset.contrast != 1f) {
+                    r = ((r - 0.5f) * preset.contrast + 0.5f).coerceIn(0f, 1f)
+                    g = ((g - 0.5f) * preset.contrast + 0.5f).coerceIn(0f, 1f)
+                    b = ((b - 0.5f) * preset.contrast + 0.5f).coerceIn(0f, 1f)
+                }
+
+                // 高光与阴影
+                val lum = 0.299f * r + 0.587f * g + 0.114f * b
+                if (preset.highlights != 1f) {
+                    val highlightMask = (lum - 0.5f).coerceIn(0f, 0.5f) / 0.5f
+                    val adjust = (preset.highlights - 1f) * highlightMask
+                    r = (r + adjust).coerceIn(0f, 1f)
+                    g = (g + adjust).coerceIn(0f, 1f)
+                    b = (b + adjust).coerceIn(0f, 1f)
+                }
+                if (preset.shadows != 1f) {
+                    val shadowMask = (0.5f - lum).coerceIn(0f, 0.5f) / 0.5f
+                    val adjust = (preset.shadows - 1f) * shadowMask
+                    r = (r + adjust).coerceIn(0f, 1f)
+                    g = (g + adjust).coerceIn(0f, 1f)
+                    b = (b + adjust).coerceIn(0f, 1f)
+                }
+
+                // 色温
+                if (preset.warmth != 0f) {
+                    val shift = preset.warmth / 100f
+                    r = (r + shift * 0.1f).coerceIn(0f, 1f)
+                    b = (b - shift * 0.1f).coerceIn(0f, 1f)
+                }
+
+                // 色调（绿/品）
+                if (preset.tint != 0f) {
+                    val shift = preset.tint / 100f
+                    g = (g + shift * 0.05f).coerceIn(0f, 1f)
+                }
+
+                // 饱和度
+                if (preset.saturation != 1f) {
+                    val gray = 0.299f * r + 0.587f * g + 0.114f * b
+                    r = (gray + (r - gray) * preset.saturation).coerceIn(0f, 1f)
+                    g = (gray + (g - gray) * preset.saturation).coerceIn(0f, 1f)
+                    b = (gray + (b - gray) * preset.saturation).coerceIn(0f, 1f)
+                }
+
+                // 褪色
+                if (preset.fade > 0f) {
+                    val blackLift = preset.fade * 0.15f
+                    r = (r * (1f - blackLift) + blackLift).coerceIn(0f, 1f)
+                    g = (g * (1f - blackLift) + blackLift).coerceIn(0f, 1f)
+                    b = (b * (1f - blackLift) + blackLift).coerceIn(0f, 1f)
+                }
+
+                // 晕影
+                // (applied in post-process below)
+
+                val outR = (r * 255f).roundToInt().coerceIn(0, 255)
+                val outG = (g * 255f).roundToInt().coerceIn(0, 255)
+                val outB = (b * 255f).roundToInt().coerceIn(0, 255)
+                outputPixels[i] = (0xFF shl 24) or (outR shl 16) or (outG shl 8) or outB
+
+                if (i % (width * 20) == 0) onProgress(i.toFloat() / pixels.size * 0.7f)
             }
 
-            // 对比度
-            if (preset.contrast != 1f) {
-                r = ((r - 0.5f) * preset.contrast + 0.5f).coerceIn(0f, 1f)
-                g = ((g - 0.5f) * preset.contrast + 0.5f).coerceIn(0f, 1f)
-                b = ((b - 0.5f) * preset.contrast + 0.5f).coerceIn(0f, 1f)
+            result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            result.setPixels(outputPixels, 0, width, 0, 0, width, height)
+
+            // 晕影效果
+            if (preset.vignette > 0f) {
+                applyVignette(result, preset.vignette)
             }
 
-            // 高光与阴影
-            val lum = 0.299f * r + 0.587f * g + 0.114f * b
-            if (preset.highlights != 1f) {
-                val highlightMask = (lum - 0.5f).coerceIn(0f, 0.5f) / 0.5f
-                val adjust = (preset.highlights - 1f) * highlightMask
-                r = (r + adjust).coerceIn(0f, 1f)
-                g = (g + adjust).coerceIn(0f, 1f)
-                b = (b + adjust).coerceIn(0f, 1f)
-            }
-            if (preset.shadows != 1f) {
-                val shadowMask = (0.5f - lum).coerceIn(0f, 0.5f) / 0.5f
-                val adjust = (preset.shadows - 1f) * shadowMask
-                r = (r + adjust).coerceIn(0f, 1f)
-                g = (g + adjust).coerceIn(0f, 1f)
-                b = (b + adjust).coerceIn(0f, 1f)
+            // 颗粒
+            if (preset.grain > 0f) {
+                applyGrain(result, preset.grain)
             }
 
-            // 色温
-            if (preset.warmth != 0f) {
-                val shift = preset.warmth / 100f
-                r = (r + shift * 0.1f).coerceIn(0f, 1f)
-                b = (b - shift * 0.1f).coerceIn(0f, 1f)
+            // 锐化
+            if (preset.sharpening > 0f) {
+                applySharpening(result, preset.sharpening)
             }
 
-            // 色调（绿/品）
-            if (preset.tint != 0f) {
-                val shift = preset.tint / 100f
-                g = (g + shift * 0.05f).coerceIn(0f, 1f)
+            // Bloom
+            if (preset.grain > 0f && preset.id != "original") {
+                // 轻微 bloom 效果增强胶片感
+                bloomProcessor.applyBloom(result, intensity = preset.grain * 0.1f, threshold = 0.85f, radius = 4)
             }
 
-            // 饱和度
-            if (preset.saturation != 1f) {
-                val gray = 0.299f * r + 0.587f * g + 0.114f * b
-                r = (gray + (r - gray) * preset.saturation).coerceIn(0f, 1f)
-                g = (gray + (g - gray) * preset.saturation).coerceIn(0f, 1f)
-                b = (gray + (b - gray) * preset.saturation).coerceIn(0f, 1f)
-            }
-
-            // 褪色
-            if (preset.fade > 0f) {
-                val blackLift = preset.fade * 0.15f
-                r = (r * (1f - blackLift) + blackLift).coerceIn(0f, 1f)
-                g = (g * (1f - blackLift) + blackLift).coerceIn(0f, 1f)
-                b = (b * (1f - blackLift) + blackLift).coerceIn(0f, 1f)
-            }
-
-            // 晕影
-            // (applied in post-process below)
-
-            val outR = (r * 255f).roundToInt().coerceIn(0, 255)
-            val outG = (g * 255f).roundToInt().coerceIn(0, 255)
-            val outB = (b * 255f).roundToInt().coerceIn(0, 255)
-            outputPixels[i] = (0xFF shl 24) or (outR shl 16) or (outG shl 8) or outB
-
-            if (i % (width * 20) == 0) onProgress(i.toFloat() / pixels.size * 0.7f)
+            onProgress(1f)
+            result
+        } catch (e: OutOfMemoryError) {
+            result?.recycle()
+            throw RuntimeException("LUT 预设处理内存不足，请尝试降低图像分辨率", e)
         }
-
-        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        result.setPixels(outputPixels, 0, width, 0, 0, width, height)
-
-        // 晕影效果
-        if (preset.vignette > 0f) {
-            applyVignette(result, preset.vignette)
-        }
-
-        // 颗粒
-        if (preset.grain > 0f) {
-            applyGrain(result, preset.grain)
-        }
-
-        // 锐化
-        if (preset.sharpening > 0f) {
-            applySharpening(result, preset.sharpening)
-        }
-
-        // Bloom
-        if (preset.grain > 0f && preset.id != "original") {
-            // 轻微 bloom 效果增强胶片感
-            bloomProcessor.applyBloom(result, intensity = preset.grain * 0.1f, threshold = 0.85f, radius = 4)
-        }
-
-        onProgress(1f)
-        result
     }
 
     /**

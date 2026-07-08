@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.coroutines.delay
 
 /**
@@ -30,6 +31,7 @@ import kotlinx.coroutines.delay
  * @param onCancel 用户取消倒计时回调
  * @param modifier 修饰符
  */
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 fun CountdownOverlay(
     seconds: Double,

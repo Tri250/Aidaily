@@ -17,11 +17,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 import com.livecompose.livecapture.core.frame.FrameInfo
 
 /**
  * 相框选择器组件
  */
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 fun FrameSelector(
     frames: List<FrameInfo> = FrameInfo.ALL_BUILT_IN,

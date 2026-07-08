@@ -29,6 +29,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -68,6 +69,7 @@ private object CaptureAnimationConfig {
  * @param onAnimationComplete 动画完成回调
  * @param modifier 修饰符
  */
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 fun CaptureAnimationOverlay(
     snapshot: CaptureAnimationSnapshot?,

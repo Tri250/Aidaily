@@ -1,12 +1,17 @@
 package com.livecompose.livecapture.features.capture
 
+import android.content.Intent
 import android.graphics.PointF
 import android.graphics.RectF
+import android.net.Uri
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -18,18 +23,27 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.livecompose.livecapture.core.camera.CameraPreview
-import com.livecompose.livecapture.core.camera.ZoomPreset
 import com.livecompose.livecapture.features.capture.components.*
 import com.livecompose.livecapture.ui.design.DesignSystem
 import kotlin.math.atan2
 import kotlin.math.sqrt
+
+/**
+ * 相机错误类型
+ */
+enum class CameraErrorType {
+    PERMISSION_DENIED,
+    CAMERA_IN_USE,
+    NO_CAMERA_HARDWARE,
+    UNKNOWN
+}
 
 /**
  * 主拍摄界面
@@ -63,6 +77,22 @@ fun CaptureScreen(
     val detectionReady by viewModel.detectionReady.collectAsState()
     val isFrontCamera by remember { mutableStateOf(false) }
 
+    // 相机错误状态
+    var cameraError by remember { mutableStateOf<CameraErrorType?>(null) }
+    var cameraErrorRetryCounter by remember { mutableIntStateOf(0) }
+
+    // 权限请求 launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            cameraError = null
+            viewModel.camera.openCamera("0")
+        } else {
+            cameraError = CameraErrorType.PERMISSION_DENIED
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.onAppear()
         viewModel.onCaptureTriggered = {
@@ -80,31 +110,57 @@ fun CaptureScreen(
         Box(modifier = Modifier.fillMaxSize().background(Color.Black))
 
         // 相机预览
-        CameraPreview(
-            cameraManager = viewModel.camera,
-            modifier = Modifier
-                .fillMaxSize()
-                .scale(captureAnimationScale)
-                .graphicsLayer {
-                    rotationY = cameraFlipRotation
-                    cameraDistance = 8f * density
-                },
-            isFrontCamera = isFrontCamera
-        )
+        if (cameraError == null) {
+            CameraPreview(
+                cameraManager = viewModel.camera,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .scale(captureAnimationScale)
+                    .graphicsLayer {
+                        rotationY = cameraFlipRotation
+                        cameraDistance = 8f * density
+                    },
+                isFrontCamera = isFrontCamera
+            )
+        }
 
         // 构图叠加层
-        CompositionOverlay(
-            compositionRect = viewModel.compositionRectInView.collectAsState().value,
-            cropRect = cropRect,
-            boxCenter = boxCenter,
-            isAligned = isAligned,
-            distanceToCenter = distanceToCenter
-        )
+        if (cameraError == null) {
+            CompositionOverlay(
+                compositionRect = viewModel.compositionRectInView.collectAsState().value,
+                cropRect = cropRect,
+                boxCenter = boxCenter,
+                isAligned = isAligned,
+                distanceToCenter = distanceToCenter
+            )
+        }
 
         // 拍照闪光
         if (captureFlashOpacity > 0f) {
             Box(
                 modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = captureFlashOpacity))
+            )
+        }
+
+        // 相机错误覆盖层
+        cameraError?.let { error ->
+            CameraErrorOverlay(
+                errorType = error,
+                onRetry = {
+                    cameraErrorRetryCounter++
+                    cameraError = null
+                    if (viewModel.camera.hasCameraPermission()) {
+                        viewModel.camera.openCamera("0")
+                    } else {
+                        permissionLauncher.launch(android.Manifest.permission.CAMERA)
+                    }
+                },
+                onGoToSettings = {
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                    }
+                    context.startActivity(intent)
+                }
             )
         }
 
@@ -160,6 +216,121 @@ fun CaptureScreen(
                     viewModel.toggleCameraPosition()
                 }
             )
+        }
+    }
+}
+
+/**
+ * 相机错误覆盖层
+ */
+@Composable
+private fun CameraErrorOverlay(
+    errorType: CameraErrorType,
+    onRetry: () -> Unit,
+    onGoToSettings: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.92f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(32.dp)
+        ) {
+            // 错误图标
+            Icon(
+                imageVector = when (errorType) {
+                    CameraErrorType.PERMISSION_DENIED -> Icons.Default.NoPhotography
+                    CameraErrorType.CAMERA_IN_USE -> Icons.Default.Cameraswitch
+                    CameraErrorType.NO_CAMERA_HARDWARE -> Icons.Default.CameraAlt
+                    CameraErrorType.UNKNOWN -> Icons.Default.ErrorOutline
+                },
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = Color(0xFFFF3B30)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 错误标题
+            Text(
+                text = when (errorType) {
+                    CameraErrorType.PERMISSION_DENIED -> "相机权限被拒绝"
+                    CameraErrorType.CAMERA_IN_USE -> "相机被占用"
+                    CameraErrorType.NO_CAMERA_HARDWARE -> "无可用相机"
+                    CameraErrorType.UNKNOWN -> "相机打开失败"
+                },
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 错误原因说明
+            Text(
+                text = when (errorType) {
+                    CameraErrorType.PERMISSION_DENIED -> "需要相机权限才能拍摄照片，请在系统设置中授权相机权限"
+                    CameraErrorType.CAMERA_IN_USE -> "相机正在被其他应用使用，请关闭其他应用后重试"
+                    CameraErrorType.NO_CAMERA_HARDWARE -> "设备未检测到相机硬件，无法使用拍摄功能"
+                    CameraErrorType.UNKNOWN -> "相机无法正常启动，请尝试重启应用或检查设备状态"
+                },
+                fontSize = 14.sp,
+                color = Color.White.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 重试按钮
+            Button(
+                onClick = onRetry,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = DesignSystem.Colors.primary
+                )
+            ) {
+                Icon(
+                    Icons.Default.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("重试", fontSize = 16.sp)
+            }
+
+            // 如果是权限问题，显示"去设置"按钮
+            if (errorType == CameraErrorType.PERMISSION_DENIED) {
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = onGoToSettings,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color.White
+                    ),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(
+                        brush = androidx.compose.ui.graphics.SolidColor(Color.White.copy(alpha = 0.3f))
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Settings,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("去设置", fontSize = 16.sp)
+                }
+            }
         }
     }
 }

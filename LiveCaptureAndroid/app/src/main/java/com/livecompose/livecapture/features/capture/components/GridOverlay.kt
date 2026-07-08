@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 
 /**
  * 构图网格叠加层
@@ -30,6 +31,7 @@ enum class GridMode(val displayName: String) {
     DIAGONAL("对角线")
 }
 
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 fun GridOverlay(
     gridMode: GridMode,

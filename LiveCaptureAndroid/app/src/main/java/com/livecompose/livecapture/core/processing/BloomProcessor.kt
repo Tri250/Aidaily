@@ -31,60 +31,66 @@ class BloomProcessor {
         radius: Int = 8,
         onProgress: (Float) -> Unit = {}
     ): Bitmap = withContext(Dispatchers.Default) {
-        if (intensity <= 0f) return@withContext source
+        var output: Bitmap? = null
+        try {
+            if (intensity <= 0f) return@withContext source
 
-        val width = source.width
-        val height = source.height
-        val pixels = IntArray(width * height)
-        source.getPixels(pixels, 0, width, 0, 0, width, height)
+            val width = source.width
+            val height = source.height
+            val pixels = IntArray(width * height)
+            source.getPixels(pixels, 0, width, 0, 0, width, height)
 
-        // 步骤 1: 提取高光
-        val highlightPixels = FloatArray(width * height * 3)
-        for (i in pixels.indices) {
-            val pixel = pixels[i]
-            val r = ((pixel shr 16) and 0xFF) / 255f
-            val g = ((pixel shr 8) and 0xFF) / 255f
-            val b = (pixel and 0xFF) / 255f
-            val lum = 0.299f * r + 0.587f * g + 0.114f * b
+            // 步骤 1: 提取高光
+            val highlightPixels = FloatArray(width * height * 3)
+            for (i in pixels.indices) {
+                val pixel = pixels[i]
+                val r = ((pixel shr 16) and 0xFF) / 255f
+                val g = ((pixel shr 8) and 0xFF) / 255f
+                val b = (pixel and 0xFF) / 255f
+                val lum = 0.299f * r + 0.587f * g + 0.114f * b
 
-            val highlightFactor = if (lum > threshold) {
-                ((lum - threshold) / (1f - threshold)).coerceIn(0f, 1f)
-            } else 0f
+                val highlightFactor = if (lum > threshold) {
+                    ((lum - threshold) / (1f - threshold)).coerceIn(0f, 1f)
+                } else 0f
 
-            highlightPixels[i * 3] = r * highlightFactor
-            highlightPixels[i * 3 + 1] = g * highlightFactor
-            highlightPixels[i * 3 + 2] = b * highlightFactor
+                highlightPixels[i * 3] = r * highlightFactor
+                highlightPixels[i * 3 + 1] = g * highlightFactor
+                highlightPixels[i * 3 + 2] = b * highlightFactor
+            }
+            onProgress(0.3f)
+
+            // 步骤 2: 简易盒式模糊 (多次传递近似高斯模糊)
+            val blurred = boxBlur3Pass(highlightPixels, width, height, radius)
+            onProgress(0.8f)
+
+            // 步骤 3: 叠加到原图
+            output = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val outputPixels = IntArray(width * height)
+
+            for (i in pixels.indices) {
+                val pixel = pixels[i]
+                val r = ((pixel shr 16) and 0xFF) / 255f
+                val g = ((pixel shr 8) and 0xFF) / 255f
+                val b = (pixel and 0xFF) / 255f
+
+                val bloomR = r + blurred[i * 3] * intensity
+                val bloomG = g + blurred[i * 3 + 1] * intensity
+                val bloomB = b + blurred[i * 3 + 2] * intensity
+
+                val outR = (bloomR.coerceIn(0f, 1f) * 255f).toInt()
+                val outG = (bloomG.coerceIn(0f, 1f) * 255f).toInt()
+                val outB = (bloomB.coerceIn(0f, 1f) * 255f).toInt()
+
+                outputPixels[i] = (0xFF shl 24) or (outR shl 16) or (outG shl 8) or outB
+            }
+
+            output.setPixels(outputPixels, 0, width, 0, 0, width, height)
+            onProgress(1f)
+            output
+        } catch (e: OutOfMemoryError) {
+            output?.recycle()
+            throw RuntimeException("Bloom 效果处理内存不足，请尝试降低图像分辨率", e)
         }
-        onProgress(0.3f)
-
-        // 步骤 2: 简易盒式模糊 (多次传递近似高斯模糊)
-        val blurred = boxBlur3Pass(highlightPixels, width, height, radius)
-        onProgress(0.8f)
-
-        // 步骤 3: 叠加到原图
-        val output = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val outputPixels = IntArray(width * height)
-
-        for (i in pixels.indices) {
-            val pixel = pixels[i]
-            val r = ((pixel shr 16) and 0xFF) / 255f
-            val g = ((pixel shr 8) and 0xFF) / 255f
-            val b = (pixel and 0xFF) / 255f
-
-            val bloomR = r + blurred[i * 3] * intensity
-            val bloomG = g + blurred[i * 3 + 1] * intensity
-            val bloomB = b + blurred[i * 3 + 2] * intensity
-
-            val outR = (bloomR.coerceIn(0f, 1f) * 255f).toInt()
-            val outG = (bloomG.coerceIn(0f, 1f) * 255f).toInt()
-            val outB = (bloomB.coerceIn(0f, 1f) * 255f).toInt()
-
-            outputPixels[i] = (0xFF shl 24) or (outR shl 16) or (outG shl 8) or outB
-        }
-
-        output.setPixels(outputPixels, 0, width, 0, 0, width, height)
-        onProgress(1f)
-        output
     }
 
     /**

@@ -13,6 +13,7 @@ import com.livecompose.livecapture.core.camera.ZoomState
 import com.livecompose.livecapture.core.detection.*
 import com.livecompose.livecapture.core.motion.MotionStabilityMonitor
 import com.livecompose.livecapture.core.storage.PhotoStorageService
+import com.livecompose.livecapture.di.AppContainer
 import com.livecompose.livecapture.utilities.HapticManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -24,13 +25,13 @@ import kotlinx.coroutines.launch
  */
 class CaptureViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val context = application.applicationContext
+    private val appContainer = AppContainer(application.applicationContext)
 
-    val camera = CameraManager(context)
-    private val motion = MotionStabilityMonitor(context)
+    val camera = appContainer.cameraManager
+    private val motion = appContainer.motionMonitor
     private val detector: CropDetectionStrategy
     val boxCenterManager = BoxCenterManager()
-    private val storage = PhotoStorageService(context)
+    private val storage = appContainer.photoStorageService
 
     // Published State
     private val _cropRectInView = MutableStateFlow<RectF?>(null)
@@ -375,6 +376,11 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
         _pipelineStage.value = stage
         message?.let { _debugMessage.value = it }
         refreshUserGuidance()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        appContainer.destroy()
     }
 }
 

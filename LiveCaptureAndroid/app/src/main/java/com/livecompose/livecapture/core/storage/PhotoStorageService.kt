@@ -3,12 +3,15 @@ package com.livecompose.livecapture.core.storage
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.File
 
 /**
@@ -23,6 +26,7 @@ class PhotoStorageService(context: Context) {
     private val recordsFile = File(baseDir, "records.json")
     private val gson = Gson()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val saveMutex = Mutex()
 
     private val _records = MutableStateFlow<List<PhotoRecord>>(emptyList())
     val records: StateFlow<List<PhotoRecord>> = _records.asStateFlow()
@@ -43,6 +47,7 @@ class PhotoStorageService(context: Context) {
                 _records.value = loaded
             }
         } catch (e: Exception) {
+            Log.e("PhotoStorage", "加载记录失败", e)
             _records.value = emptyList()
         }
         isLoaded = true
@@ -80,7 +85,7 @@ class PhotoStorageService(context: Context) {
                 _records.value = updated
                 persist(updated)
             } catch (e: Exception) {
-                // Handle error
+                Log.e("PhotoStorage", "保存照片失败", e)
             }
         }
     }
@@ -106,12 +111,24 @@ class PhotoStorageService(context: Context) {
         return File(photosDir, PhotoRecord.photoFilename(id))
     }
 
-    private fun persist(records: List<PhotoRecord>) {
-        try {
-            val json = gson.toJson(records)
-            recordsFile.writeText(json)
-        } catch (e: Exception) {
-            // Handle error
+    fun updateRecord(id: String, transform: (PhotoRecord) -> PhotoRecord) {
+        val current = _records.value.toMutableList()
+        val index = current.indexOfFirst { it.id == id }
+        if (index >= 0) {
+            current[index] = transform(current[index])
+            _records.value = current
+            persist(current)
+        }
+    }
+
+    private suspend fun persist(records: List<PhotoRecord>) {
+        saveMutex.withLock {
+            try {
+                val json = gson.toJson(records)
+                recordsFile.writeText(json)
+            } catch (e: Exception) {
+                Log.e("PhotoStorage", "持久化记录失败", e)
+            }
         }
     }
 }

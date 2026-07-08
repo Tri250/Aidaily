@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 import com.livecompose.livecapture.core.lut.BuiltInPresets
 import com.livecompose.livecapture.core.lut.ColorRecipeParams
 import com.livecompose.livecapture.core.lut.LutCategory
@@ -27,6 +28,7 @@ import com.livecompose.livecapture.ui.design.DesignSystem
  * 色彩配方面板
  * 支持预设选择 + 手动参数调整
  */
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 fun ColorRecipePanel(
     currentPreset: LutPreset,

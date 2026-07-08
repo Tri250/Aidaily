@@ -1,11 +1,12 @@
 package com.livecompose.livecapture.features.home
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -14,11 +15,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.livecompose.livecapture.core.storage.PhotoRecord
@@ -38,6 +43,20 @@ fun GalleryScreen(viewModel: HomeViewModel = viewModel()) {
     var selectedPhotoIndex by remember { mutableIntStateOf(-1) }
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf(setOf<String>()) }
+
+    // 筛选状态
+    var filterRating by remember { mutableIntStateOf(0) }
+    var filterFlaggedOnly by remember { mutableStateOf(false) }
+    var showFilterMenu by remember { mutableStateOf(false) }
+
+    // 应用筛选
+    val filteredRecords = remember(records, filterRating, filterFlaggedOnly) {
+        records.filter { record ->
+            val ratingMatch = filterRating == 0 || record.rating == filterRating
+            val flagMatch = !filterFlaggedOnly || record.flag
+            ratingMatch && flagMatch
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -72,6 +91,80 @@ fun GalleryScreen(viewModel: HomeViewModel = viewModel()) {
                     Text("取消", color = DesignSystem.Colors.textPrimary())
                 }
             } else if (records.isNotEmpty()) {
+                // 筛选按钮
+                Box {
+                    IconButton(onClick = { showFilterMenu = true }) {
+                        Icon(
+                            Icons.Default.FilterList,
+                            contentDescription = "筛选",
+                            tint = if (filterRating > 0 || filterFlaggedOnly) DesignSystem.Colors.primary
+                            else DesignSystem.Colors.textSecondary()
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showFilterMenu,
+                        onDismissRequest = { showFilterMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("全部照片") },
+                            onClick = {
+                                filterRating = 0
+                                filterFlaggedOnly = false
+                                showFilterMenu = false
+                            },
+                            leadingIcon = { Icon(Icons.Default.PhotoLibrary, null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("仅收藏") },
+                            onClick = {
+                                filterFlaggedOnly = !filterFlaggedOnly
+                                showFilterMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    if (filterFlaggedOnly) Icons.Default.Star else Icons.Default.StarOutline,
+                                    null
+                                )
+                            }
+                        )
+                        Divider()
+                        Text(
+                            "按评分筛选",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            fontSize = 12.sp,
+                            color = DesignSystem.Colors.textTertiary()
+                        )
+                        (1..5).forEach { stars ->
+                            DropdownMenuItem(
+                                text = {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        repeat(stars) {
+                                            Icon(
+                                                Icons.Default.Star,
+                                                null,
+                                                tint = Color(0xFFFF9500),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    filterRating = if (filterRating == stars) 0 else stars
+                                    showFilterMenu = false
+                                },
+                                leadingIcon = {
+                                    if (filterRating == stars) {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            null,
+                                            tint = DesignSystem.Colors.primary
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
                 Text(
                     "${records.size} 张照片",
                     style = DesignSystem.Typography.caption1,
@@ -106,7 +199,7 @@ fun GalleryScreen(viewModel: HomeViewModel = viewModel()) {
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                itemsIndexed(records) { index, record ->
+                items(filteredRecords, key = { it.id }) { record ->
                     PhotoCard(
                         record = record,
                         thumbnail = viewModel.getThumbnail(record.id),
@@ -120,7 +213,7 @@ fun GalleryScreen(viewModel: HomeViewModel = viewModel()) {
                                     new
                                 } else selectedIds + record.id
                             } else {
-                                selectedPhotoIndex = index
+                                selectedPhotoIndex = records.indexOf(record)
                             }
                         },
                         onLongClick = {
@@ -145,7 +238,9 @@ fun GalleryScreen(viewModel: HomeViewModel = viewModel()) {
             onDelete = {
                 viewModel.deleteRecord(record.id)
                 selectedPhotoIndex = -1
-            }
+            },
+            onRatingChange = { rating -> viewModel.updateRating(record.id, rating) },
+            onToggleFlag = { viewModel.toggleFlag(record.id) }
         )
     }
 }
@@ -172,14 +267,70 @@ private fun PhotoCard(
                 contentScale = ContentScale.Crop
             )
         } else {
+            // Shimmer placeholder 效果
+            val shimmerColors = remember {
+                listOf(
+                    Color(0xFF2C2C2E),
+                    Color(0xFF3A3A3C),
+                    Color(0xFF2C2C2E)
+                )
+            }
+            val transition = rememberInfiniteTransition()
+            val translateAnim = transition.animateFloat(
+                initialValue = 0f,
+                targetValue = 1000f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1200, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                )
+            )
+            val brush = Brush.linearGradient(
+                colors = shimmerColors,
+                start = Offset.Zero,
+                end = Offset(x = translateAnim.value, y = translateAnim.value)
+            )
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF2C2C2E)),
+                    .background(brush),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Default.Image, contentDescription = null, tint = Color.Gray)
             }
+        }
+
+        // 评分指示器
+        if (record.rating > 0 && !isSelectionMode) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(4.dp)
+                    .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 4.dp, vertical = 1.dp),
+                horizontalArrangement = Arrangement.spacedBy(1.dp)
+            ) {
+                repeat(record.rating) {
+                    Icon(
+                        Icons.Default.Star,
+                        null,
+                        tint = Color(0xFFFF9500),
+                        modifier = Modifier.size(10.dp)
+                    )
+                }
+            }
+        }
+
+        // 收藏标记
+        if (record.flag && !isSelectionMode) {
+            Icon(
+                Icons.Default.Bookmark,
+                contentDescription = null,
+                tint = DesignSystem.Colors.primary,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(4.dp)
+                    .size(16.dp)
+            )
         }
 
         if (isSelectionMode) {
@@ -206,8 +357,13 @@ private fun PhotoDetailDialog(
     record: PhotoRecord,
     photo: android.graphics.Bitmap?,
     onDismiss: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onRatingChange: (Int) -> Unit,
+    onToggleFlag: () -> Unit
 ) {
+    var currentRating by remember { mutableIntStateOf(record.rating) }
+    var isFlagged by remember { mutableStateOf(record.flag) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -222,8 +378,73 @@ private fun PhotoDetailDialog(
                         contentDescription = null,
                         modifier = Modifier.fillMaxWidth()
                     )
+                } else {
+                    // Shimmer placeholder for detail photo
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .background(Color(0xFF2C2C2E)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            color = DesignSystem.Colors.primary
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
+
+                // 星标评分
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    (1..5).forEach { star ->
+                        IconButton(
+                            onClick = {
+                                currentRating = if (currentRating == star) 0 else star
+                                onRatingChange(currentRating)
+                            },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                if (star <= currentRating) Icons.Default.Star else Icons.Default.StarOutline,
+                                contentDescription = "$star 星",
+                                tint = if (star <= currentRating) Color(0xFFFF9500) else Color.Gray,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // 收藏标记按钮
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    TextButton(onClick = {
+                        isFlagged = !isFlagged
+                        onToggleFlag()
+                    }) {
+                        Icon(
+                            if (isFlagged) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                            contentDescription = null,
+                            tint = if (isFlagged) DesignSystem.Colors.primary else Color.Gray,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            if (isFlagged) "已收藏" else "收藏",
+                            color = if (isFlagged) DesignSystem.Colors.primary else Color.Gray
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
                 record.detectionMethod?.let { Text("检测方法: $it") }
                 record.iso?.let { Text("ISO: ${it.toInt()}") }
                 record.shutterSpeed?.let { Text("快门: 1/${(1.0 / it).toInt()}s") }

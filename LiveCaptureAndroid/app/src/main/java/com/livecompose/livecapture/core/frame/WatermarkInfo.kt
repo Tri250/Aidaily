@@ -24,7 +24,12 @@ data class WatermarkInfo(
     val rotationDegrees: Float = 0f,      // 旋转角度
 
     // 透明度
-    val alpha: Float = 0.5f               // 0~1
+    val alpha: Float = 0.5f,              // 0~1
+
+    // 图片水印
+    val logoBitmapPath: String? = null,    // 图片水印文件路径
+    val logoScale: Float = 0.15f,          // 图片水印缩放比例 (相对于图片宽度)
+    val logoAlpha: Float = 0.8f            // 图片水印透明度 0~1
 ) {
     companion object {
         val EMPTY = WatermarkInfo()

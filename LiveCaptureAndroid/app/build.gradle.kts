@@ -76,4 +76,7 @@ dependencies {
 
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // ExifInterface
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 }
