@@ -23,7 +23,6 @@ import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
  * 设置界面
- * 对应 iOS 的 SettingsView
  */
 @Composable
 fun SettingsScreen() {
@@ -50,12 +49,27 @@ fun SettingsScreen() {
 
     // 低优先级功能状态
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var phantomModeEnabled by remember { mutableStateOf(PhantomService.isEnabled(context)) }
     var rawCaptureEnabled by remember { mutableStateOf(false) }
     var aiColorMatchEnabled by remember { mutableStateOf(false) }
     var lchMixerEnabled by remember { mutableStateOf(false) }
     var lchAdjustment by remember { mutableStateOf(LchColorAdjustment()) }
     var showLchMixerSheet by remember { mutableStateOf(false) }
+
+    // 从 DataStore 加载持久化设置
+    LaunchedEffect(Unit) {
+        autoCaptureEnabled = SettingsDataStore.isAutoCaptureEnabled(context)
+        captureDelay = SettingsDataStore.getCaptureDelay(context).toDouble()
+        detectionMode = SettingsDataStore.getDetectionMode(context)
+        gridMode = SettingsDataStore.getGridMode(context)
+        bloomEnabled = SettingsDataStore.isBloomEnabled(context)
+        softGlowEnabled = SettingsDataStore.isSoftGlowEnabled(context)
+        quickShotEnabled = SettingsDataStore.isQuickShotEnabled(context)
+        hdrFusionEnabled = SettingsDataStore.isHdrFusionEnabled(context)
+        multipleExposureCount = SettingsDataStore.getMultipleExposureCount(context)
+        rawCaptureEnabled = SettingsDataStore.isRawCaptureEnabled(context)
+    }
 
     Column(
         modifier = Modifier
@@ -116,7 +130,10 @@ fun SettingsScreen() {
                         Text("自动拍照", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
                         Text("对准构图框后自动触发拍摄", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
                     }
-                    Switch(checked = autoCaptureEnabled, onCheckedChange = { autoCaptureEnabled = it })
+                    Switch(checked = autoCaptureEnabled, onCheckedChange = {
+                        autoCaptureEnabled = it
+                        scope.launch { SettingsDataStore.setAutoCaptureEnabled(context, it) }
+                    })
                 }
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -129,7 +146,10 @@ fun SettingsScreen() {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row {
                     listOf(0.5, 1.0, 1.5, 2.0).forEach { delay ->
-                        TextButton(onClick = { captureDelay = delay }) {
+                        TextButton(onClick = {
+                            captureDelay = delay
+                            scope.launch { SettingsDataStore.setCaptureDelay(context, delay.toFloat()) }
+                        }) {
                             Text(
                                 "${"%.1f".format(delay)}秒",
                                 color = if (captureDelay == delay) DesignSystem.Colors.primary else DesignSystem.Colors.textTertiary()
@@ -156,6 +176,7 @@ fun SettingsScreen() {
                         TextButton(onClick = {
                             selectedMode = index
                             detectionMode = mode
+                            scope.launch { SettingsDataStore.setDetectionMode(context, mode) }
                         }) {
                             Text(mode.displayName, color = if (selectedMode == index) DesignSystem.Colors.primary else DesignSystem.Colors.textTertiary())
                         }
@@ -189,7 +210,10 @@ fun SettingsScreen() {
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("关闭", "三分法", "黄金分割", "九宫格").forEachIndexed { index, label ->
-                    TextButton(onClick = { gridMode = index }, modifier = Modifier.weight(1f)) {
+                    TextButton(onClick = {
+                        gridMode = index
+                        scope.launch { SettingsDataStore.setGridMode(context, index) }
+                    }, modifier = Modifier.weight(1f)) {
                         Text(
                             label,
                             color = if (gridMode == index) DesignSystem.Colors.primary else DesignSystem.Colors.textTertiary(),
@@ -223,7 +247,10 @@ fun SettingsScreen() {
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 DetectionMode.entries.forEachIndexed { index, mode ->
-                    TextButton(onClick = { detectionMode = mode }, modifier = Modifier.weight(1f)) {
+                    TextButton(onClick = {
+                        detectionMode = mode
+                        scope.launch { SettingsDataStore.setDetectionMode(context, mode) }
+                    }, modifier = Modifier.weight(1f)) {
                         Text(
                             mode.displayName,
                             color = if (detectionMode == mode) DesignSystem.Colors.primary else DesignSystem.Colors.textTertiary(),
@@ -297,7 +324,10 @@ fun SettingsScreen() {
                         Text("Bloom 效果", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
                         Text("添加柔和光晕效果", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
                     }
-                    Switch(checked = bloomEnabled, onCheckedChange = { bloomEnabled = it })
+                    Switch(checked = bloomEnabled, onCheckedChange = {
+                        bloomEnabled = it
+                        scope.launch { SettingsDataStore.setBloomEnabled(context, it) }
+                    })
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -307,7 +337,10 @@ fun SettingsScreen() {
                         Text("柔光滤镜", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
                         Text("应用柔美光线效果", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
                     }
-                    Switch(checked = softGlowEnabled, onCheckedChange = { softGlowEnabled = it })
+                    Switch(checked = softGlowEnabled, onCheckedChange = {
+                        softGlowEnabled = it
+                        scope.launch { SettingsDataStore.setSoftGlowEnabled(context, it) }
+                    })
                 }
             }
         }
@@ -331,7 +364,10 @@ fun SettingsScreen() {
                     Text("Quick Shot", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
                     Text("快速抓拍模式，无需对焦即可拍摄", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
                 }
-                Switch(checked = quickShotEnabled, onCheckedChange = { quickShotEnabled = it })
+                Switch(checked = quickShotEnabled, onCheckedChange = {
+                    quickShotEnabled = it
+                    scope.launch { SettingsDataStore.setQuickShotEnabled(context, it) }
+                })
             }
         }
 
@@ -364,7 +400,10 @@ fun SettingsScreen() {
                         Text("HDR 融合", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
                         Text("合成高动态范围图像", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
                     }
-                    Switch(checked = hdrFusionEnabled, onCheckedChange = { hdrFusionEnabled = it })
+                    Switch(checked = hdrFusionEnabled, onCheckedChange = {
+                        hdrFusionEnabled = it
+                        scope.launch { SettingsDataStore.setHdrFusionEnabled(context, it) }
+                    })
                 }
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
                 // 多重曝光选项
@@ -379,7 +418,10 @@ fun SettingsScreen() {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("关闭", "2次", "3次", "5次").forEachIndexed { index, label ->
-                        TextButton(onClick = { multipleExposureCount = index }, modifier = Modifier.weight(1f)) {
+                        TextButton(onClick = {
+                            multipleExposureCount = index
+                            scope.launch { SettingsDataStore.setMultipleExposureCount(context, index) }
+                        }, modifier = Modifier.weight(1f)) {
                             Text(
                                 label,
                                 color = if (multipleExposureCount == index) DesignSystem.Colors.primary else DesignSystem.Colors.textTertiary(),
@@ -531,7 +573,10 @@ fun SettingsScreen() {
                     Text("RAW 拍摄", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
                     Text("全链路 RAW 处理：去马赛克→色彩校正→色调映射", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
                 }
-                Switch(checked = rawCaptureEnabled, onCheckedChange = { rawCaptureEnabled = it })
+                Switch(checked = rawCaptureEnabled, onCheckedChange = {
+                    rawCaptureEnabled = it
+                    scope.launch { SettingsDataStore.setRawCaptureEnabled(context, it) }
+                })
             }
         }
 
@@ -568,17 +613,19 @@ fun SettingsScreen() {
                 if (!PhantomController.hasAllPermissions(context)) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "需要悬浮窗和文件访问权限",
+                        "需要媒体读取权限",
                         style = DesignSystem.Typography.caption1,
                         color = DesignSystem.Colors.primary
                     )
                     Spacer(Modifier.height(4.dp))
                     Row {
-                        TextButton(onClick = { PhantomController.requestOverlayPermission(context) }) {
-                            Text("授权悬浮窗")
-                        }
-                        TextButton(onClick = { PhantomController.requestStoragePermission(context) }) {
-                            Text("授权文件访问")
+                        TextButton(onClick = {
+                            // 请求权限需由Activity处理，此处提示用户到系统设置
+                            val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                            intent.data = android.net.Uri.parse("package:${context.packageName}")
+                            context.startActivity(intent)
+                        }) {
+                            Text("前往设置授权")
                         }
                     }
                 }

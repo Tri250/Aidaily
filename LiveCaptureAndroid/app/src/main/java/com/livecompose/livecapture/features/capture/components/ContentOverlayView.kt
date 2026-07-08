@@ -24,7 +24,6 @@ import kotlin.math.sqrt
 
 /**
  * 内容叠加层视图
- * 对应 iOS 的 ContentOverlayView
  */
 @Composable
 fun ContentOverlayView(

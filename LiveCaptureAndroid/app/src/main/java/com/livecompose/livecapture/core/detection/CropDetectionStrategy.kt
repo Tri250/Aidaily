@@ -4,7 +4,6 @@ import android.graphics.RectF
 
 /**
  * 美学裁切结果
- * 对应 iOS 的 AestheticCrop
  */
 data class AestheticCrop(
     val rect: RectF,          // 归一化坐标 [0,1]
@@ -14,7 +13,6 @@ data class AestheticCrop(
 
 /**
  * 裁切检测策略协议
- * 对应 iOS 的 CropDetectionStrategy
  */
 interface CropDetectionStrategy {
     fun detectBestCrop(
@@ -29,7 +27,6 @@ interface CropDetectionStrategy {
 
 /**
  * 检测模式
- * 对应 iOS 的 DetectionMode
  */
 enum class DetectionMode(val displayName: String, val description: String) {
     VISION("None", "使用 Android 原生框架进行人脸、人体和显著性检测，无额外模型"),

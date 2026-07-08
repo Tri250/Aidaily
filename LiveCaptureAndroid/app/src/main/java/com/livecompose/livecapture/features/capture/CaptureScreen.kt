@@ -47,7 +47,6 @@ enum class CameraErrorType {
 
 /**
  * 主拍摄界面
- * 对应 iOS 的 CaptureView
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -34,11 +34,13 @@ import java.util.*
 
 /**
  * 图库界面
- * 对应 iOS 的 GalleryView
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GalleryScreen(viewModel: HomeViewModel = viewModel()) {
+fun GalleryScreen(
+    viewModel: HomeViewModel = viewModel(),
+    onPhotoClick: ((String) -> Unit)? = null
+) {
     val records by viewModel.records.collectAsState()
     var selectedPhotoIndex by remember { mutableIntStateOf(-1) }
     var isSelectionMode by remember { mutableStateOf(false) }
@@ -213,7 +215,11 @@ fun GalleryScreen(viewModel: HomeViewModel = viewModel()) {
                                     new
                                 } else selectedIds + record.id
                             } else {
-                                selectedPhotoIndex = records.indexOf(record)
+                                if (onPhotoClick != null) {
+                                    onPhotoClick(record.id)
+                                } else {
+                                    selectedPhotoIndex = records.indexOf(record)
+                                }
                             }
                         },
                         onLongClick = {

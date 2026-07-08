@@ -1,8 +1,10 @@
 package com.livecompose.livecapture.features.livecompose
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,32 +12,232 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import com.livecompose.livecapture.core.lut.BuiltInPresets
+import com.livecompose.livecapture.core.lut.LutPreset
 import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
- * 构妙品牌页
- * 对应 iOS 的 LiveComposeView
+ * 构妙品牌页 + 实时滤镜预览
  */
 @Composable
-fun LiveComposeScreen() {
+fun LiveComposeScreen(
+    onNavigateToGallery: () -> Unit = {},
+    viewModel: LiveComposeViewModel = viewModel()
+) {
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val selectedPreset by viewModel.selectedPreset
+    val intensity by viewModel.intensity
+    val processedBitmap by viewModel.processedBitmap
+    val isProcessing by viewModel.isProcessing
+
+    LaunchedEffect(Unit) {
+        viewModel.generateDemoBitmap(context)
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp)
     ) {
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 预览区域标题
+        Text(
+            "滤镜预览",
+            style = DesignSystem.Typography.title2,
+            color = DesignSystem.Colors.textPrimary(),
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
+        Text(
+            "选择预设，实时预览效果",
+            style = DesignSystem.Typography.subheadline,
+            color = DesignSystem.Colors.textSecondary(),
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // 示例图片预览
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .aspectRatio(4f / 3f)
+                .clip(DesignSystem.mediumRoundedShape)
+                .background(DesignSystem.Colors.backgroundSecondary()),
+            contentAlignment = Alignment.Center
+        ) {
+            val displayBitmap = processedBitmap
+            if (displayBitmap != null) {
+                AsyncImage(
+                    model = displayBitmap.asImageBitmap(),
+                    contentDescription = "滤镜预览",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (isProcessing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            color = DesignSystem.Colors.primary,
+                            strokeWidth = 3.dp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "处理中...",
+                            style = DesignSystem.Typography.caption1,
+                            color = DesignSystem.Colors.textTertiary()
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.Image,
+                            contentDescription = null,
+                            tint = DesignSystem.Colors.textTertiary(),
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "加载示例图片...",
+                            style = DesignSystem.Typography.caption1,
+                            color = DesignSystem.Colors.textTertiary()
+                        )
+                    }
+                }
+            }
+
+            // 当前预设名称浮层
+            if (selectedPreset != null && displayBitmap != null) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp),
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color.Black.copy(alpha = 0.6f)
+                ) {
+                    Text(
+                        selectedPreset!!.name,
+                        style = DesignSystem.Typography.caption1,
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 强度滑块
+        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "强度",
+                    style = DesignSystem.Typography.subheadline,
+                    color = DesignSystem.Colors.textPrimary()
+                )
+                Text(
+                    "${(intensity * 100).toInt()}%",
+                    style = DesignSystem.Typography.monoCaption,
+                    color = DesignSystem.Colors.primary
+                )
+            }
+            Slider(
+                value = intensity,
+                onValueChange = { viewModel.updateIntensity(it) },
+                colors = SliderDefaults.colors(
+                    thumbColor = DesignSystem.Colors.primary,
+                    activeTrackColor = DesignSystem.Colors.primary
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // LUT 预设横向列表
+        Text(
+            "色彩预设",
+            style = DesignSystem.Typography.headline,
+            color = DesignSystem.Colors.textPrimary(),
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            items(BuiltInPresets.presets.size) { index ->
+                val preset = BuiltInPresets.presets[index]
+                val isSelected = selectedPreset?.id == preset.id
+
+                PresetCard(
+                    preset = preset,
+                    isSelected = isSelected,
+                    onClick = { viewModel.selectPreset(preset) }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 保存按钮
+        Button(
+            onClick = {
+                scope.launch {
+                    viewModel.saveProcessedPhoto(context)
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .height(48.dp),
+            shape = DesignSystem.mediumRoundedShape,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = DesignSystem.Colors.primary
+            ),
+            enabled = processedBitmap != null && !isProcessing
+        ) {
+            Icon(
+                Icons.Default.Save,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                "保存照片",
+                style = DesignSystem.Typography.headline,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ===== 原有品牌区域 =====
 
         // Logo 区域
         Box(
@@ -44,30 +246,37 @@ fun LiveComposeScreen() {
         ) {
             Box(
                 modifier = Modifier
-                    .size(100.dp)
-                    .clip(RoundedCornerShape(22.dp))
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(18.dp))
                     .background(DesignSystem.Colors.primary),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Camera, contentDescription = null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(48.dp))
+                Icon(
+                    Icons.Default.Camera,
+                    contentDescription = null,
+                    tint = androidx.compose.ui.graphics.Color.White,
+                    modifier = Modifier.size(40.dp)
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         Text(
             "构妙 LiveCompose",
             style = DesignSystem.Typography.largeTitle,
             color = DesignSystem.Colors.textPrimary(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
         )
         Text(
             "让每一次快门，都定格最美的瞬间",
             style = DesignSystem.Typography.body,
             color = DesignSystem.Colors.textSecondary(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         // 关于我们
         SectionCard(title = "关于我们", icon = Icons.Default.Star) {
@@ -110,16 +319,89 @@ fun LiveComposeScreen() {
         // 核心技术
         SectionCard(title = "核心技术", icon = Icons.Default.Settings) {
             TechRow(Icons.Default.Memory, "Adacrop 强化学习模型", "基于 Actor-Critic 架构的自适应美学裁切。")
-            Divider()
+            HorizontalDivider()
             TechRow(Icons.Default.Sensors, "陀螺仪运动追踪", "实时采集设备角速度与加速度。")
-            Divider()
+            HorizontalDivider()
             TechRow(Icons.Default.Visibility, "Vision 原生检测", "集成 ML Kit 人脸/人体检测。")
-            Divider()
+            HorizontalDivider()
             TechRow(Icons.Default.Camera, "多镜头智能变焦", "支持超广角、广角、长焦等多种镜头。")
         }
 
         Spacer(modifier = Modifier.height(40.dp))
     }
+}
+
+/**
+ * 预设卡片
+ */
+@Composable
+private fun PresetCard(
+    preset: LutPreset,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(72.dp)
+            .clickable(onClick = onClick)
+    ) {
+        // 色彩圆圈（根据预设参数生成代表色）
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(CircleShape)
+                .background(
+                    if (isSelected) DesignSystem.Colors.primary
+                    else DesignSystem.Colors.backgroundSecondary()
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            // 内圈展示预设色调
+            val tint = remember(preset.id) { generatePresetTint(preset) }
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(CircleShape)
+                    .background(tint)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            preset.name,
+            style = if (isSelected) DesignSystem.Typography.caption1.copy(
+                fontWeight = FontWeight.SemiBold
+            ) else DesignSystem.Typography.caption1,
+            color = if (isSelected) DesignSystem.Colors.primary else DesignSystem.Colors.textSecondary(),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+/**
+ * 根据预设参数生成代表色
+ */
+private fun generatePresetTint(preset: LutPreset): androidx.compose.ui.graphics.Color {
+    if (preset.id == "original") {
+        return androidx.compose.ui.graphics.Color(0xFF888888)
+    }
+    // 根据色温、饱和度、对比度推算代表色
+    val warmthShift = preset.warmth.coerceIn(-100f, 100f) / 100f
+    val r = (0.5f + warmthShift * 0.3f).coerceIn(0f, 1f)
+    val g = 0.4f
+    val b = (0.5f - warmthShift * 0.3f).coerceIn(0f, 1f)
+    val sat = preset.saturation.coerceIn(0f, 2f)
+    val gray = 0.299f * r + 0.587f * g + 0.114f * b
+    val sr = (gray + (r - gray) * sat).coerceIn(0f, 1f)
+    val sg = (gray + (g - gray) * sat).coerceIn(0f, 1f)
+    val sb = (gray + (b - gray) * sat).coerceIn(0f, 1f)
+
+    return androidx.compose.ui.graphics.Color(sr, sg, sb, 1f)
 }
 
 @Composable

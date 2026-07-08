@@ -14,7 +14,6 @@ import androidx.compose.ui.unit.sp
 
 /**
  * 设计系统
- * 对应 iOS 的 DesignSystem
  */
 object DesignSystem {
 

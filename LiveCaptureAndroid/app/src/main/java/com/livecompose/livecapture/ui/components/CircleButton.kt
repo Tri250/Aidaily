@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 
 /**
  * 圆形按钮组件
- * 对应 iOS 的 CircleButton
  */
 @Composable
 fun SecondaryCircleButton(

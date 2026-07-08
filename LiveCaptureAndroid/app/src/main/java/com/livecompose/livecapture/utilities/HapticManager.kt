@@ -8,7 +8,6 @@ import android.os.VibratorManager
 
 /**
  * 触觉反馈管理器
- * 对应 iOS 的 HapticManager
  */
 object HapticManager {
     private var vibrator: Vibrator? = null

@@ -9,7 +9,6 @@ import kotlinx.coroutines.*
 
 /**
  * 基于 ML Kit 的美学裁切检测器
- * 对应 iOS 的 AestheticCropDetector
  */
 class MLKitCropDetector : CropDetectionStrategy {
 

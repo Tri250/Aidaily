@@ -12,7 +12,6 @@ import kotlin.math.sqrt
 
 /**
  * 检测框中心点追踪管理器
- * 对应 iOS 的 BoxCenterManager
  */
 class BoxCenterManager {
 

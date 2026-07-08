@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.RotateRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,10 +58,11 @@ enum class CropAspectRatio(val displayName: String, val ratio: Float) {
 fun CropEditScreen(
     photoId: String,
     onBack: () -> Unit,
-    onSave: (Bitmap) -> Unit,
+    onSave: ((Bitmap) -> Unit)? = null,
     viewModel: HomeViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val bitmap = remember(photoId) { viewModel.getFullPhoto(photoId) }
     var selectedRatio by remember { mutableStateOf(CropAspectRatio.ORIGINAL) }
     var rotation by remember { mutableIntStateOf(0) }
@@ -89,7 +91,20 @@ fun CropEditScreen(
                     bitmap?.let { src ->
                         val rotated = rotateBitmap(src, rotation)
                         val cropped = cropBitmap(rotated, cropRect, selectedRatio)
-                        onSave(cropped)
+                        if (onSave != null) {
+                            onSave(cropped)
+                        } else {
+                            // 默认保存逻辑：保存到图库并返回
+                            scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                val stream = java.io.ByteArrayOutputStream()
+                                cropped.compress(Bitmap.CompressFormat.JPEG, 95, stream)
+                                val data = stream.toByteArray()
+                                val storage = PhotoStorageService(context)
+                                storage.savePhoto(data, detectionMethod = "crop")
+                                stream.close()
+                            }
+                            onBack()
+                        }
                     }
                 }) {
                     Icon(Icons.Default.Check, null, tint = DesignSystem.Colors.success)

@@ -13,7 +13,6 @@ import kotlin.math.pow
 
 /**
  * 设备运动稳定性监控器
- * 对应 iOS 的 MotionStabilityMonitor
  */
 class MotionStabilityMonitor(context: Context) : SensorEventListener {
 

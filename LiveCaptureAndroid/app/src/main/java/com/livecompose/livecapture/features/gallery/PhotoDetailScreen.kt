@@ -48,6 +48,7 @@ fun PhotoDetailScreen(
     photoId: String,
     onBack: () -> Unit,
     onEdit: (String) -> Unit,
+    onAdjust: (String) -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -88,6 +89,10 @@ fun PhotoDetailScreen(
                 // 编辑按钮
                 IconButton(onClick = { onEdit(photoId) }) {
                     Icon(Icons.Default.Edit, contentDescription = "编辑", tint = Color.White)
+                }
+                // 调整按钮
+                IconButton(onClick = { onAdjust(photoId) }) {
+                    Icon(Icons.Default.Tune, contentDescription = "调整", tint = Color.White)
                 }
                 // 分享按钮
                 IconButton(onClick = {

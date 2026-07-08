@@ -4,7 +4,6 @@ import java.util.UUID
 
 /**
  * 照片记录数据模型
- * 对应 iOS 的 PhotoRecord
  */
 data class PhotoRecord(
     val id: String = UUID.randomUUID().toString(),

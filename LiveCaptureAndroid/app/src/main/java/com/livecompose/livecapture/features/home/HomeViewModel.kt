@@ -13,7 +13,6 @@ import kotlinx.coroutines.launch
 
 /**
  * 图库 ViewModel
- * 对应 iOS 的 HomeViewModel
  */
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 

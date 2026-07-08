@@ -21,7 +21,6 @@ import kotlinx.coroutines.launch
 
 /**
  * 拍摄功能 ViewModel
- * 对应 iOS 的 CaptureViewModel
  */
 class CaptureViewModel(application: Application) : AndroidViewModel(application) {
 

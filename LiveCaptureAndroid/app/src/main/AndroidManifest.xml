@@ -105,5 +105,12 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- 微信分享回调 Activity（包名路径 wxapi.WXEntryActivity 为微信SDK强制要求） -->
+        <activity
+            android:name=".wxapi.WXEntryActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:launchMode="singleTop" />
     </application>
 </manifest>

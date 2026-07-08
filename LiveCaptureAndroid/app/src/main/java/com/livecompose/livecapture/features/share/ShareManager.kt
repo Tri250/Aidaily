@@ -190,6 +190,45 @@ class ShareManager(private val context: Context) {
         context.startActivity(chooser)
     }
 
+    /**
+     * 分享到微信（使用微信 OpenSDK）
+     *
+     * @param bitmap 要分享的图片
+     * @param scene 分享场景：好友(SESSION) 或 朋友圈(TIMELINE)
+     */
+    fun shareToWeChatWithSdk(bitmap: android.graphics.Bitmap, scene: Int = 1) {
+        if (!isWeChatInstalled()) {
+            Toast.makeText(context, "未安装微信", Toast.LENGTH_SHORT).show()
+            return
+        }
+        try {
+            WeChatShareHelper.shareImage(bitmap, scene)
+        } catch (e: Exception) {
+            Log.e(TAG, "微信 SDK 分享失败，降级到系统分享", e)
+            val tempFile = java.io.File(context.cacheDir, "share_wechat_${System.currentTimeMillis()}.jpg")
+            tempFile.outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, it) }
+            val uri = fileToUri(tempFile)
+            shareImage(uri)
+        }
+    }
+
+    /**
+     * 分享到微信（文件路径，优先使用 SDK）
+     */
+    fun shareToWeChatWithSdk(filePath: String) {
+        val file = File(filePath)
+        if (!file.exists()) return
+        val bitmap = android.graphics.BitmapFactory.decodeFile(filePath) ?: run {
+            shareToWeChat(filePath)
+            return
+        }
+        try {
+            WeChatShareHelper.shareImage(bitmap)
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
     // --- 私有辅助方法 ---
 
     /**

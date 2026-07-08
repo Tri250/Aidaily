@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.livecompose.livecapture.core.security.CryptoHelper
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +17,6 @@ import java.io.File
 
 /**
  * 照片存储服务
- * 对应 iOS 的 PhotoStorageService
  */
 class PhotoStorageService(context: Context) {
 
@@ -41,7 +41,9 @@ class PhotoStorageService(context: Context) {
         if (isLoaded) return
         try {
             if (recordsFile.exists()) {
-                val json = recordsFile.readText()
+                val rawText = recordsFile.readText()
+                // 尝试解密（如果数据已加密）
+                val json = CryptoHelper.decrypt(rawText) ?: rawText
                 val type = object : TypeToken<List<PhotoRecord>>() {}.type
                 val loaded: List<PhotoRecord> = gson.fromJson(json, type)
                 _records.value = loaded
@@ -133,7 +135,9 @@ class PhotoStorageService(context: Context) {
         saveMutex.withLock {
             try {
                 val json = gson.toJson(records)
-                recordsFile.writeText(json)
+                // 加密后存储，保护用户照片元数据隐私
+                val encrypted = CryptoHelper.encrypt(json) ?: json
+                recordsFile.writeText(encrypted)
             } catch (e: Exception) {
                 Log.e("PhotoStorage", "持久化记录失败", e)
             }

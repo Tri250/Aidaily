@@ -31,7 +31,6 @@ import java.io.ByteArrayOutputStream
 
 /**
  * Android 相机管理器 - 基于 Camera2 API
- * 对应 iOS 的 CameraManager
  */
 class CameraManager(private val context: Context) {
 

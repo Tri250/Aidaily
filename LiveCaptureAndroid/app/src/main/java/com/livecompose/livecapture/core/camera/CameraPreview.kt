@@ -11,7 +11,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 
 /**
  * Jetpack Compose 相机预览组件
- * 对应 iOS 的 CameraPreviewView
  */
 @Composable
 fun CameraPreview(

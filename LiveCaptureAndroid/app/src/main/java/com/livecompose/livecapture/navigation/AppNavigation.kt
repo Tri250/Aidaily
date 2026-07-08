@@ -9,14 +9,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.livecompose.livecapture.features.capture.CaptureScreen
 import com.livecompose.livecapture.features.home.GalleryScreen
-import com.livecompose.livecapture.features.home.CropEditScreen
+import com.livecompose.livecapture.features.gallery.PhotoDetailScreen
+import com.livecompose.livecapture.features.gallery.CropEditScreen
+import com.livecompose.livecapture.features.gallery.PhotoAdjustScreen
 import com.livecompose.livecapture.features.livecompose.LiveComposeScreen
 import com.livecompose.livecapture.features.settings.SettingsScreen
 import com.livecompose.livecapture.ui.design.DesignSystem
@@ -60,11 +63,63 @@ fun AppNavigation() {
                 }
             }
         ) { paddingValues ->
-            Box(modifier = Modifier.padding(paddingValues)) {
-                when (selectedTab) {
-                    0 -> LiveComposeScreen()
-                    1 -> GalleryScreen()
-                    3 -> SettingsScreen()
+            // 主 Tab 页面
+            when (selectedTab) {
+                0 -> LiveComposeScreen(
+                    onNavigateToGallery = { selectedTab = 1 }
+                )
+                1 -> GalleryScreen(
+                    onPhotoClick = { photoId ->
+                        navController.navigate("photo_detail/$photoId")
+                    }
+                )
+                3 -> SettingsScreen()
+            }
+
+            // 导航覆盖层（照片详情/编辑）
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            if (navBackStackEntry != null) {
+                NavHost(
+                    navController = navController,
+                    startDestination = "_empty",
+                    modifier = Modifier.padding(paddingValues)
+                ) {
+                    composable("_empty") { /* 空占位 */ }
+
+                    composable(
+                        route = "photo_detail/{photoId}",
+                        arguments = listOf(navArgument("photoId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val photoId = backStackEntry.arguments?.getString("photoId") ?: return@composable
+                        PhotoDetailScreen(
+                            photoId = photoId,
+                            onBack = { navController.popBackStack() },
+                            onEdit = { id -> navController.navigate("crop_edit/$id") },
+                            onAdjust = { id -> navController.navigate("adjust/$id") }
+                        )
+                    }
+
+                    composable(
+                        route = "crop_edit/{photoId}",
+                        arguments = listOf(navArgument("photoId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val photoId = backStackEntry.arguments?.getString("photoId") ?: return@composable
+                        CropEditScreen(
+                            photoId = photoId,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(
+                        route = "adjust/{photoId}",
+                        arguments = listOf(navArgument("photoId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val photoId = backStackEntry.arguments?.getString("photoId") ?: return@composable
+                        PhotoAdjustScreen(
+                            photoId = photoId,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
                 }
             }
         }
