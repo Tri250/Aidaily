@@ -60,5 +60,28 @@
 		<string>zh_CN</string>
 		<string>en</string>
 	</array>
+	<key>ICP_FILING_NUMBER</key>
+	<string></string>
+	<key>NETWORK_SECURITY_NUMBER</key>
+	<string></string>
+	<key>COMPANY_NAME</key>
+	<string></string>
+	<key>ICP_LINK</key>
+	<string>https://beian.miit.gov.cn</string>
+	<key>BUGLY_APP_ID</key>
+	<string></string>
+	<key>BUGLY_APP_KEY</key>
+	<string></string>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIApplicationSupportsMultipleScenes</key>
+	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>构妙可使用位置信息在照片中添加位置标签，位置信息仅存储在您的设备本地。</string>
 </dict>
 </plist>

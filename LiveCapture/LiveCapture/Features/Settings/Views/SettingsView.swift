@@ -1,3 +1,10 @@
+//
+//  SettingsView.swift
+//  LiveCapture
+//
+//  设置页面 - 含合规入口
+//
+
 import SwiftUI
 
 struct SettingsView: View {
@@ -5,6 +12,12 @@ struct SettingsView: View {
     @AppStorage("autoCaptureEnabled") private var autoCaptureEnabled = true
     @AppStorage("captureDelay") private var captureDelay: Double = 1.0
     @AppStorage("colorScheme") private var colorScheme: String = "system"
+
+    @State private var showPrivacy = false
+    @State private var showAgreement = false
+    @State private var showAccountDeletion = false
+    @State private var showYouthMode = false
+    @State private var showPersonalInfo = false
 
     var body: some View {
         NavigationStack {
@@ -17,12 +30,31 @@ struct SettingsView: View {
                     captureSection
 
                     modelSection
+
+                    complianceSection
+
+                    aboutSection
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 40)
             }
             .background(Color(uiColor: .systemBackground))
             .navigationBarHidden(true)
+        }
+        .sheet(isPresented: $showPrivacy) {
+            PrivacyPolicyView()
+        }
+        .sheet(isPresented: $showAgreement) {
+            UserAgreementView()
+        }
+        .sheet(isPresented: $showAccountDeletion) {
+            AccountDeletionView()
+        }
+        .sheet(isPresented: $showYouthMode) {
+            YouthModeView()
+        }
+        .sheet(isPresented: $showPersonalInfo) {
+            PersonalInfoCollectionView()
         }
     }
 
@@ -31,11 +63,14 @@ struct SettingsView: View {
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("设置")
-                .font(DesignSystem.Typography.largeTitle)
+                .font(DesignSystem.Typography.title)
                 .foregroundColor(DesignSystem.Colors.textPrimary)
+            Text("定制你的拍摄体验")
+                .font(DesignSystem.Typography.subheadline)
+                .foregroundColor(DesignSystem.Colors.textTertiary)
         }
-        .padding(.top, 8)
-        .padding(.bottom, 8)
+        .padding(.top, 20)
+        .accessibilityAddTraits(.isHeader)
     }
 
     // MARK: - Theme
@@ -46,56 +81,31 @@ struct SettingsView: View {
                 .font(DesignSystem.Typography.title3)
                 .foregroundColor(DesignSystem.Colors.textPrimary)
 
-            VStack(spacing: 0) {
-                HStack(spacing: 10) {
-                    Image(systemName: "circle.lefthalf.filled")
-                        .font(.system(size: 15))
-                        .foregroundColor(DesignSystem.Colors.primary)
-                        .frame(width: 24)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("主题模式")
-                            .font(DesignSystem.Typography.headline)
-                            .foregroundColor(DesignSystem.Colors.textPrimary)
-                        Text("切换深色 / 浅色外观")
-                            .font(DesignSystem.Typography.caption1)
-                            .foregroundColor(DesignSystem.Colors.textTertiary)
-                    }
-                    Spacer()
-                    Picker("主题", selection: $colorScheme) {
-                        Text("系统").tag("system")
-                        Text("浅色").tag("light")
-                        Text("深色").tag("dark")
-                    }
-                    .pickerStyle(.segmented)
-                }
-                .padding(.vertical, 14)
-                .padding(.horizontal, DesignSystem.Spacing.medium)
+            Picker("外观", selection: $colorScheme) {
+                Text("跟随系统").tag("system")
+                Text("浅色").tag("light")
+                Text("深色").tag("dark")
             }
-            .background(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
-                    .fill(DesignSystem.Colors.backgroundSecondary)
-            )
+            .pickerStyle(.segmented)
+            .accessibilityLabel("主题模式选择")
         }
     }
 
-    // MARK: - Capture Section
+    // MARK: - Capture
 
     private var captureSection: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
-            Text("拍摄设置")
+            Text("自动拍摄")
                 .font(DesignSystem.Typography.title3)
                 .foregroundColor(DesignSystem.Colors.textPrimary)
 
             VStack(spacing: 0) {
                 ToggleRow(
-                    icon: "bolt.fill",
-                    title: "自动拍照",
-                    description: "对准构图框后自动触发拍摄",
+                    icon: "viewfinder",
+                    title: "AI 自动拍摄",
+                    description: "当构图对齐中心时自动拍摄",
                     isOn: $autoCaptureEnabled
                 )
-
-                Divider()
-                    .background(DesignSystem.Colors.backgroundSecondary)
 
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(spacing: 10) {
@@ -111,6 +121,8 @@ struct SettingsView: View {
                             .font(DesignSystem.Typography.subheadline)
                             .foregroundColor(DesignSystem.Colors.textTertiary)
                     }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("拍照延迟 \(String(format: "%.1f", captureDelay)) 秒")
 
                     Picker("延迟", selection: $captureDelay) {
                         Text("0.5秒").tag(0.5)
@@ -134,7 +146,7 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Model Section
+    // MARK: - Model
 
     private var modelSection: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
@@ -148,6 +160,7 @@ struct SettingsView: View {
                 }
             }
             .pickerStyle(.segmented)
+            .accessibilityLabel("构图引擎模式选择")
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
@@ -170,6 +183,104 @@ struct SettingsView: View {
                     .fill(DesignSystem.Colors.backgroundSecondary)
             )
         }
+    }
+
+    // MARK: - Compliance
+
+    private var complianceSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
+            Text("隐私与合规")
+                .font(DesignSystem.Typography.title3)
+                .foregroundColor(DesignSystem.Colors.textPrimary)
+
+            VStack(spacing: 0) {
+                complianceRow(icon: "doc.text", title: "隐私政策") {
+                    showPrivacy = true
+                }
+
+                Divider().padding(.leading, 44)
+
+                complianceRow(icon: "doc.text.fill", title: "用户协议") {
+                    showAgreement = true
+                }
+
+                Divider().padding(.leading, 44)
+
+                complianceRow(icon: "list.clipboard", title: "个人信息收集清单") {
+                    showPersonalInfo = true
+                }
+
+                Divider().padding(.leading, 44)
+
+                complianceRow(icon: "person.crop.circle.badge.xmark", title: "账号管理") {
+                    showAccountDeletion = true
+                }
+
+                Divider().padding(.leading, 44)
+
+                complianceRow(icon: "lock.shield", title: "青少年模式") {
+                    showYouthMode = true
+                }
+            }
+            .background(
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                    .fill(DesignSystem.Colors.backgroundSecondary)
+            )
+        }
+    }
+
+    // MARK: - About
+
+    private var aboutSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
+            Text("关于")
+                .font(DesignSystem.Typography.title3)
+                .foregroundColor(DesignSystem.Colors.textPrimary)
+
+            VStack(spacing: 0) {
+                HStack {
+                    Text("版本")
+                        .font(DesignSystem.Typography.headline)
+                    Spacer()
+                    Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0")
+                        .font(DesignSystem.Typography.subheadline)
+                        .foregroundColor(DesignSystem.Colors.textTertiary)
+                }
+                .padding(.vertical, 14)
+                .padding(.horizontal, DesignSystem.Spacing.medium)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("版本 \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0")")
+            }
+            .background(
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                    .fill(DesignSystem.Colors.backgroundSecondary)
+            )
+
+            // ICP 备案
+            ICPFilingView()
+        }
+    }
+
+    private func complianceRow(icon: String, title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 15))
+                    .foregroundColor(DesignSystem.Colors.primary)
+                    .frame(width: 24)
+                Text(title)
+                    .font(DesignSystem.Typography.headline)
+                    .foregroundColor(DesignSystem.Colors.textPrimary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(DesignSystem.Colors.textTertiary)
+            }
+            .padding(.vertical, 14)
+            .padding(.horizontal, DesignSystem.Spacing.medium)
+        }
+        .accessibilityLabel(title)
+        .accessibilityHint("点击查看 \(title)")
     }
 
     private var modelIcon: String {
@@ -210,5 +321,9 @@ private struct ToggleRow: View {
         }
         .padding(.vertical, 14)
         .padding(.horizontal, DesignSystem.Spacing.medium)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title), \(isOn ? "已开启" : "已关闭")")
+        .accessibilityHint(description)
+        .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 }

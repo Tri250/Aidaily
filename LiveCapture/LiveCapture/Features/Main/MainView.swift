@@ -9,6 +9,25 @@ import SwiftUI
 
 #if os(iOS)
 
+/// 拍摄模式
+enum CaptureMode: String, CaseIterable, Identifiable {
+    case photo = "照片"
+    case video = "视频"
+    case slowMotion = "慢动作"
+    case timelapse = "延时摄影"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .photo: return "camera.fill"
+        case .video: return "video.fill"
+        case .slowMotion: return "slowmo"
+        case .timelapse: return "timelapse"
+        }
+    }
+}
+
 /// 极简主视图 - 相机始终为主界面，手势导航到其他页面
 struct MinimalMainView: View {
 	@AppStorage("detectionMode") private var detectionMode: DetectionMode = .fast
@@ -21,6 +40,9 @@ struct MinimalMainView: View {
 	@State private var showCommunity = false
 	@State private var albumOffset: CGFloat = 0
 	@State private var settingsOffset: CGFloat = 0
+
+    /// 当前拍摄模式
+    @State private var captureMode: CaptureMode = .photo
 
 	private var resolvedScheme: ColorScheme? {
 		switch colorScheme {
@@ -40,6 +62,14 @@ struct MinimalMainView: View {
 			)
 			.preferredColorScheme(.dark)
 			.zIndex(0)
+
+			// 拍摄模式选择器
+			VStack {
+				Spacer()
+				captureModeSelector
+					.padding(.bottom, 40)
+			}
+			.zIndex(1)
 
 			// 相册面板 - 从左滑入
 			if showAlbum {
@@ -113,6 +143,56 @@ struct MinimalMainView: View {
 			_ = PhotoStorageService.shared.loadRecords()
 		}
 	}
+
+	// MARK: - Capture Mode Selector
+
+    private var captureModeSelector: some View {
+        HStack(spacing: 8) {
+            ForEach(CaptureMode.allCases) { mode in
+                Button {
+                    HapticManager.shared.light()
+                    withAnimation(.spring(response: 0.3)) {
+                        captureMode = mode
+                    }
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: mode.icon)
+                            .font(.system(size: 18, weight: .medium))
+                        Text(mode.rawValue)
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                    .frame(width: 56, height: 56)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(captureMode == mode
+                                  ? Color.white.opacity(0.2)
+                                  : Color.black.opacity(0.4))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(captureMode == mode
+                                    ? Color.white.opacity(0.6)
+                                    : Color.white.opacity(0.15),
+                                    lineWidth: 1)
+                    )
+                    .foregroundColor(captureMode == mode ? .white : .white.opacity(0.6))
+                }
+                .accessibilityLabel("\(mode.rawValue)模式")
+                .accessibilityHint(captureMode == mode ? "当前已选中" : "点击切换到\(mode.rawValue)")
+                .accessibilityAddTraits(captureMode == mode ? .isSelected : [])
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(Color.black.opacity(0.5))
+        )
+        .overlay(
+            Capsule()
+                .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+        )
+    }
 
 	// MARK: - Album Panel
 
