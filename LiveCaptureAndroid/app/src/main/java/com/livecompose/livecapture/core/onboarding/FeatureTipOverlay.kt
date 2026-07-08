@@ -43,6 +43,7 @@ import com.livecompose.livecapture.ui.design.DesignSystem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -113,6 +114,11 @@ class FeatureTipManager(private val context: Context) {
             val saved = context.featureTipDataStore.data.first()[SHOWN_TIPS_KEY] ?: emptySet()
             _shownTips.value = saved
         }
+    }
+
+    /** 释放协程作用域，应在 DI 容器销毁时调用 */
+    fun dispose() {
+        scope.cancel()
     }
 
     /** 按顺序返回下一个未展示的提示 */

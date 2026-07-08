@@ -171,7 +171,7 @@ class SkinProtectionFilter(
             return@withContext lutProcessor.applyPreset(image, preset) { /* 忽略进度 */ }
         }
 
-        // 2. 应用完整滤镜效果（非皮肤区域）
+        // 2. 应用完整滤镜效果（非皮肤区域，复用作为皮肤区域的滤镜结果）
         val fullFiltered = lutProcessor.applyPreset(image, preset) { /* 忽略进度 */ }
 
         // 3. 应用弱滤镜效果（皮肤区域）
@@ -180,9 +180,8 @@ class SkinProtectionFilter(
             // 皮肤区域不应用滤镜，直接用原图
             image.copy(Bitmap.Config.ARGB_8888, true)
         } else {
-            // 用更弱的强度应用滤镜（通过混合原图与滤镜结果实现）
-            val filtered = lutProcessor.applyPreset(image, preset) { /* 忽略进度 */ }
-            blendByIntensity(image, filtered, skinFilterIntensity * intensity)
+            // 复用 fullFiltered 作为滤镜结果，按强度与原图混合
+            blendByIntensity(image, fullFiltered, skinFilterIntensity * intensity)
         }
 
         // 4. 使用遮罩混合：皮肤区域用 skinFiltered，非皮肤区域用 fullFiltered

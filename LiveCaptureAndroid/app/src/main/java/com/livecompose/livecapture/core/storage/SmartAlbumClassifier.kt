@@ -429,7 +429,8 @@ class SmartAlbumClassifier(
             for (record in records) {
                 val file = photoStorage.getPhotoFile(record.id)
                 if (!file.exists()) continue
-                val bitmap = BitmapFactory.decodeFile(file.absolutePath) ?: continue
+                // 降采样解码（人脸检测无需全分辨率，限制最长边 1024 像素）
+                val bitmap = decodeSampledBitmap(file, 1024) ?: continue
                 try {
                     val count = detectFaceCount(bitmap)
                     if (count > 0) {
@@ -449,6 +450,27 @@ class SmartAlbumClassifier(
 
             byFaceCount.values.toList()
         }
+
+    /**
+     * 降采样解码大图（用于人脸检测等无需全分辨率的场景）
+     *
+     * @param file 图片文件
+     * @param reqMax 最长边目标像素，默认 1024
+     * @return 降采样后的 Bitmap，失败返回 null
+     */
+    private fun decodeSampledBitmap(file: java.io.File, reqMax: Int = 1024): Bitmap? {
+        return try {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.absolutePath, bounds)
+            var sample = 1
+            var (w, h) = bounds.outWidth to bounds.outHeight
+            while (w / sample > reqMax || h / sample > reqMax) sample *= 2
+            val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+            BitmapFactory.decodeFile(file.absolutePath, opts)
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     /**
      * 检测图片中的人脸数量

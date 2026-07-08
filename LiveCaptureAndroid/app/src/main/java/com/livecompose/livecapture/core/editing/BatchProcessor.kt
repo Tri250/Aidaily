@@ -121,14 +121,23 @@ class BatchProcessor(
         val photoFile = photoStorage.getPhotoFile(record.id)
         if (!photoFile.exists()) return
 
-        val bitmap = BitmapFactory.decodeFile(photoFile.absolutePath) ?: return
+        // 降采样解码大图，避免批量处理 OOM
+        val bitmap = decodeSampledBitmap(photoFile) ?: return
 
         val resultBitmap = try {
-            // 滤镜占位实现：调用 LutProcessor 处理
-            // intensity 参数预留给后续按强度混合原图与结果图，此处先透传给处理器
-            when (filter) {
+            val filtered = when (filter) {
                 is LutPreset -> lutProcessor.applyPreset(bitmap, filter) { /* 忽略单图内部进度 */ }
-                else -> bitmap
+                else -> {
+                    AppLogger.w(TAG, "不支持的滤镜类型: ${filter::class.java.simpleName}，跳过: ${record.id}")
+                    null
+                }
+            } ?: return
+
+            // 按 intensity 混合原图与滤镜结果（0=原图，1=完整滤镜）
+            if (intensity >= 0.999f) {
+                filtered
+            } else {
+                blendByIntensity(bitmap, filtered, intensity)
             }
         } catch (e: Exception) {
             AppLogger.e(TAG, "滤镜处理异常: ${record.id}", e)
@@ -140,6 +149,60 @@ class BatchProcessor(
 
         // 更新缩略图
         updateThumbnail(record.id, resultBitmap)
+
+        // 回收临时位图
+        if (resultBitmap !== bitmap) {
+            bitmap.recycle()
+        }
+    }
+
+    /**
+     * 按强度混合原图与滤镜结果
+     *
+     * result = original * (1 - intensity) + filtered * intensity
+     *
+     * @param original 原图
+     * @param filtered 滤镜后的图
+     * @param intensity 混合强度（0-1）
+     * @return 混合后的 Bitmap
+     */
+    private fun blendByIntensity(original: Bitmap, filtered: Bitmap, intensity: Float): Bitmap {
+        val width = original.width
+        val height = original.height
+        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(result)
+        val bgPaint = android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG)
+        canvas.drawBitmap(original, 0f, 0f, bgPaint)
+        val fgPaint = android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG).apply {
+            alpha = (intensity.coerceIn(0f, 1f) * 255).toInt()
+            xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_ATOP)
+        }
+        canvas.drawBitmap(filtered, 0f, 0f, fgPaint)
+        return result
+    }
+
+    /**
+     * 降采样解码大图
+     *
+     * 先只解码尺寸计算 inSampleSize，再按采样率解码，避免 OOM。
+     *
+     * @param file 图片文件
+     * @return 降采样后的 Bitmap，失败返回 null
+     */
+    private fun decodeSampledBitmap(file: File): Bitmap? {
+        return try {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.absolutePath, bounds)
+            val reqMax = 2048
+            var sample = 1
+            var (w, h) = bounds.outWidth to bounds.outHeight
+            while (w / sample > reqMax || h / sample > reqMax) sample *= 2
+            val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+            BitmapFactory.decodeFile(file.absolutePath, opts)
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "降采样解码失败: ${file.absolutePath}", e)
+            null
+        }
     }
 
     // MARK: - 批量自动增强
@@ -183,7 +246,7 @@ class BatchProcessor(
         val photoFile = photoStorage.getPhotoFile(record.id)
         if (!photoFile.exists()) return
 
-        val bitmap = BitmapFactory.decodeFile(photoFile.absolutePath) ?: return
+        val bitmap = decodeSampledBitmap(photoFile) ?: return
 
         val enhanced = try {
             autoEnhancer.autoEnhance(bitmap)
@@ -194,6 +257,10 @@ class BatchProcessor(
 
         saveBitmapToFile(enhanced, photoFile)
         updateThumbnail(record.id, enhanced)
+
+        if (enhanced !== bitmap) {
+            bitmap.recycle()
+        }
     }
 
     // MARK: - 批量删除

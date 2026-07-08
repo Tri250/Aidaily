@@ -411,9 +411,12 @@ class ImageExpander {
         var rSum = 0; var gSum = 0; var bSum = 0; var count = 0
         val maxX = (sampleX + sampleSize).coerceAtMost(canvas.width)
         val maxY = (sampleY + sampleSize).coerceAtMost(canvas.height)
-        for (y in sampleY until maxY) {
-            for (x in sampleX until maxX) {
-                val c = canvas.getPixel(x, y)
+        val regionW = maxX - sampleX
+        val regionH = maxY - sampleY
+        if (regionW > 0 && regionH > 0) {
+            val regionPixels = IntArray(regionW * regionH)
+            canvas.getPixels(regionPixels, 0, regionW, sampleX, sampleY, regionW, regionH)
+            for (c in regionPixels) {
                 rSum += Color.red(c); gSum += Color.green(c); bSum += Color.blue(c)
                 count++
             }

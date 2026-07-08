@@ -481,10 +481,44 @@ class PhotoSearchEngine(
     }
 
     /**
+     * 地点关键词 → 经纬度范围（用于基于 EXIF GPS 的地点匹配，替代 iOS Geocoder）
+     *
+     * 每个条目为 Triple(名称, 纬度范围, 经度范围)，与 [SmartAlbumClassifier.coordinateToRegionLabel] 对齐。
+     */
+    private val locationCoordinates: List<Triple<String, ClosedFloatingPointRange<Double>, ClosedFloatingPointRange<Double>>> = listOf(
+        Triple("北京", 39.4..41.0, 115.4..117.5),
+        Triple("上海", 30.7..31.5, 120.8..122.0),
+        Triple("广州", 22.5..23.5, 112.9..114.0),
+        Triple("深圳", 22.4..22.8, 113.7..114.6),
+        Triple("杭州", 29.8..30.5, 119.7..120.8),
+        Triple("成都", 30.0..31.0, 103.5..104.5),
+        Triple("南京", 31.5..32.5, 118.3..119.2),
+        Triple("武汉", 30.0..31.0, 113.7..115.0),
+        Triple("西安", 33.8..34.6, 108.5..109.5),
+        Triple("重庆", 29.0..30.0, 106.0..107.0),
+        Triple("苏州", 30.8..31.5, 120.3..121.0),
+        Triple("厦门", 24.2..24.6, 117.8..118.3),
+        Triple("青岛", 35.8..36.5, 120.0..120.8),
+        Triple("大连", 38.5..39.2, 121.0..122.0),
+        Triple("三亚", 18.0..18.5, 109.0..109.8),
+        Triple("香港", 22.1..22.5, 114.0..114.4),
+        Triple("澳门", 22.0..22.2, 113.4..113.6),
+        Triple("台北", 24.9..25.2, 121.4..121.6),
+        Triple("哈尔滨", 45.3..46.0, 126.0..127.0),
+        Triple("昆明", 24.5..25.5, 102.0..103.0),
+        Triple("拉萨", 29.3..30.0, 90.5..91.5),
+        Triple("乌鲁木齐", 43.3..44.2, 87.0..88.0),
+        Triple("海口", 19.5..20.2, 110.0..110.5),
+        Triple("桂林", 24.5..25.5, 110.0..110.8),
+        Triple("丽江", 26.5..27.5, 100.0..100.5),
+        Triple("张家界", 28.5..29.5, 110.0..111.0)
+    )
+
+    /**
      * 匹配地点（基于照片 EXIF GPS 数据）
      *
-     * 简化实现：只要照片包含中国范围内的 GPS 坐标即视为匹配。
-     * 实际项目可通过 Geocoder 进行反向地理编码精确匹配城市名。
+     * 将 [location] 关键词映射到城市经纬度范围，判断照片 GPS 是否落在该城市范围内。
+     * 若关键词不匹配任何已知城市，回退到"中国范围"粗略匹配（避免漏召回）。
      *
      * @param record 照片记录
      * @param location 地点关键词
@@ -498,8 +532,19 @@ class PhotoSearchEngine(
             val latLong = exif.latLong ?: return false
             val lat = latLong[0].toDouble()
             val lon = latLong[1].toDouble()
-            // 判断是否在中国范围内（粗略）
-            lat in 18.0..54.0 && lon in 73.0..135.0
+
+            // 查找地点关键词对应的城市坐标范围
+            val cityRange = locationCoordinates.firstOrNull { (name, _, _) ->
+                location.contains(name) || name.contains(location)
+            }
+
+            if (cityRange != null) {
+                val (_, latRange, lonRange) = cityRange
+                lat in latRange && lon in lonRange
+            } else {
+                // 未知城市关键词，回退到中国范围粗略匹配
+                lat in 18.0..54.0 && lon in 73.0..135.0
+            }
         } catch (e: Exception) {
             AppLogger.w(TAG, "读取 EXIF GPS 失败: ${record.id}", e)
             false

@@ -69,7 +69,7 @@ class LocationRecommender {
         } else {
             _nearbyLocations.value = allLocations.sortedBy { it.name }
         }
-        AppLogger.d(TAG, "当前定位已更新: ${coordinate ?: "无"}")
+        AppLogger.d(TAG, "当前定位已更新（坐标已脱敏）")
     }
 
     // MARK: - 查找附近拍摄点

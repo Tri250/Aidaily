@@ -48,6 +48,10 @@ class VideoViewModel(context: Context) : ViewModel() {
     val stabilizer = VideoStabilizer(appContext)
     /** 视频编辑器 */
     val editor = VideoEditor(appContext)
+    /** 音频采集器（为标准/慢动作/电影模式提供真实音频录制） */
+    private val audioCapture = AudioCapture { pcmData, ptsUs ->
+        processAudioFrame(pcmData, ptsUs)
+    }
 
     // MARK: - UI 状态
 
@@ -156,6 +160,8 @@ class VideoViewModel(context: Context) : ViewModel() {
                     if (_stabilizationEnabled.value) {
                         stabilizer.startStabilization()
                     }
+                    // 启动音频采集（延时摄影无音频）
+                    startAudioCapture()
                 }
 
                 VideoMode.SLOW_MOTION -> {
@@ -166,6 +172,7 @@ class VideoViewModel(context: Context) : ViewModel() {
                     if (_stabilizationEnabled.value) {
                         stabilizer.startStabilization()
                     }
+                    startAudioCapture()
                 }
 
                 VideoMode.TIMELAPSE -> {
@@ -180,6 +187,24 @@ class VideoViewModel(context: Context) : ViewModel() {
         }
     }
 
+    /**
+     * 启动音频采集
+     *
+     * 仅在 AudioRecord 可用（权限已授予且硬件支持）时启动，
+     * 不可用时静默降级为无声视频，不影响录制流程。
+     */
+    private fun startAudioCapture() {
+        try {
+            if (audioCapture.isAvailable()) {
+                audioCapture.start()
+            } else {
+                AppLogger.w(TAG, "音频采集不可用，本次录制为无声视频")
+            }
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "音频采集启动失败，降级为无声视频", e)
+        }
+    }
+
     // MARK: - 停止录制
 
     /**
@@ -187,6 +212,11 @@ class VideoViewModel(context: Context) : ViewModel() {
      */
     fun stopRecording() {
         if (!_recordingState.value.isRecording) return
+
+        // 先停止音频采集，确保音频 EOS 先于视频编码器
+        if (_selectedMode.value != VideoMode.TIMELAPSE) {
+            audioCapture.stop()
+        }
 
         when (_selectedMode.value) {
             VideoMode.NORMAL, VideoMode.CINEMATIC, VideoMode.SLOW_MOTION -> {
@@ -385,6 +415,7 @@ class VideoViewModel(context: Context) : ViewModel() {
     override fun onCleared() {
         super.onCleared()
         try {
+            audioCapture.release()
             stabilizer.stopStabilization()
             videoRecorder.destroy()
             slowMotionRecorder.destroy()

@@ -37,14 +37,15 @@ data class BeautySettings(
     val isBeautyEnabled: Boolean = false
 ) {
 
-    /** 转换为引擎使用的 [BeautyParams]（红润参数由 UI 层独立处理，不传入引擎） */
+    /** 转换为引擎使用的 [BeautyParams] */
     fun toBeautyParams(): BeautyParams = BeautyParams(
         skinSmoothing = skinSmoothing,
         skinTone = skinTone,
         eyeBrightening = eyeBrightening,
         teethWhitening = teethWhitening,
         faceSlimming = faceSlimming,
-        blemishRemoval = blemishRemoval
+        blemishRemoval = blemishRemoval,
+        ruddy = ruddy
     )
 
     /** 是否所有美颜效果均已关闭 */
@@ -70,7 +71,7 @@ data class BeautySettings(
             eyeBrightening = params.eyeBrightening,
             teethWhitening = params.teethWhitening,
             faceSlimming = params.faceSlimming,
-            ruddy = 0f,
+            ruddy = params.ruddy,
             currentPreset = preset,
             isBeautyEnabled = enabled
         )

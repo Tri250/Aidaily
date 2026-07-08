@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -15,11 +16,19 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.livecompose.livecapture.di.AppContainer
 import com.livecompose.livecapture.features.capture.CaptureScreen
 import com.livecompose.livecapture.features.home.GalleryScreen
 import com.livecompose.livecapture.features.gallery.PhotoDetailScreen
 import com.livecompose.livecapture.features.gallery.CropEditScreen
 import com.livecompose.livecapture.features.gallery.PhotoAdjustScreen
+import com.livecompose.livecapture.features.gallery.CurveEditorScreen
+import com.livecompose.livecapture.features.gallery.HslAdjustScreen
+import com.livecompose.livecapture.features.gallery.VignetteEditorScreen
+import com.livecompose.livecapture.features.community.CommunityScreen
+import com.livecompose.livecapture.features.compliance.YouthModeScreen
+import com.livecompose.livecapture.features.compliance.IcpFilingScreen
+import com.livecompose.livecapture.features.share.ShareCardScreen
 import com.livecompose.livecapture.features.livecompose.LiveComposeScreen
 import com.livecompose.livecapture.features.settings.SettingsScreen
 import com.livecompose.livecapture.ui.design.DesignSystem
@@ -118,6 +127,68 @@ fun AppNavigation() {
                         val photoId = backStackEntry.arguments?.getString("photoId") ?: return@composable
                         PhotoAdjustScreen(
                             photoId = photoId,
+                            onBack = { navController.popBackStack() },
+                            onNavigateToCurve = { id -> navController.navigate("curve_edit/$id") },
+                            onNavigateToHsl = { id -> navController.navigate("hsl_edit/$id") },
+                            onNavigateToVignette = { id -> navController.navigate("vignette_edit/$id") }
+                        )
+                    }
+
+                    // 曲线编辑器
+                    composable(
+                        route = "curve_edit/{photoId}",
+                        arguments = listOf(navArgument("photoId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val photoId = backStackEntry.arguments?.getString("photoId") ?: return@composable
+                        CurveEditorScreen(
+                            photoId = photoId,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // HSL 调整
+                    composable(
+                        route = "hsl_edit/{photoId}",
+                        arguments = listOf(navArgument("photoId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val photoId = backStackEntry.arguments?.getString("photoId") ?: return@composable
+                        HslAdjustScreen(
+                            photoId = photoId,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // 暗角编辑
+                    composable(
+                        route = "vignette_edit/{photoId}",
+                        arguments = listOf(navArgument("photoId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val photoId = backStackEntry.arguments?.getString("photoId") ?: return@composable
+                        VignetteEditorScreen(
+                            photoId = photoId,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // 社区
+                    composable("community") {
+                        CommunityScreen(
+                            communityManager = AppContainer.getInstance(LocalContext.current).communityManager,
+                            locationRecommender = AppContainer.getInstance(LocalContext.current).locationRecommender
+                        )
+                    }
+
+                    // 青少年模式
+                    composable("youth_mode") {
+                        YouthModeScreen(
+                            manager = AppContainer.getInstance(LocalContext.current).youthModeManager,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // ICP 备案信息
+                    composable("icp_filing") {
+                        IcpFilingScreen(
                             onBack = { navController.popBackStack() }
                         )
                     }

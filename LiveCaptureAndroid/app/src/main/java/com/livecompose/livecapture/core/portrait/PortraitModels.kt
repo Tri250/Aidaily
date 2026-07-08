@@ -59,7 +59,9 @@ data class BeautyParams(
     /** 瘦脸强度 0-1 */
     val faceSlimming: Float = 0.0f,
     /** 祛痘强度 0-1 */
-    val blemishRemoval: Float = 0.3f
+    val blemishRemoval: Float = 0.3f,
+    /** 红润强度 0-1（提升皮肤区域 R 通道） */
+    val ruddy: Float = 0.0f
 ) {
     companion object {
         /** 默认美颜参数 */
@@ -72,14 +74,15 @@ data class BeautyParams(
             eyeBrightening = 0f,
             teethWhitening = 0f,
             faceSlimming = 0f,
-            blemishRemoval = 0f
+            blemishRemoval = 0f,
+            ruddy = 0f
         )
     }
 
     /** 是否所有美颜效果都已关闭 */
     val isOff: Boolean
         get() = skinSmoothing == 0f && skinTone == 0f && eyeBrightening == 0f &&
-            teethWhitening == 0f && faceSlimming == 0f && blemishRemoval == 0f
+            teethWhitening == 0f && faceSlimming == 0f && blemishRemoval == 0f && ruddy == 0f
 }
 
 // MARK: - 虚化参数
