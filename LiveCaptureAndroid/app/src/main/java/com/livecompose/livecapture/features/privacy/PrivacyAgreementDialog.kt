@@ -20,6 +20,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -28,7 +29,7 @@ import kotlinx.coroutines.launch
 private val Context.privacyDataStore by preferencesDataStore(name = "privacy_prefs")
 
 private val PRIVACY_AGREED_KEY = booleanPreferencesKey("privacy_agreed")
-private val PRIVACY_AGREED_VERSION_KEY = booleanPreferencesKey("privacy_agreed_version")
+private val PRIVACY_AGREED_VERSION_KEY = intPreferencesKey("privacy_agreed_version")
 
 /** 当前隐私协议版本号，更新协议时需递增 */
 private const val CURRENT_PRIVACY_VERSION = 1

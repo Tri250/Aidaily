@@ -123,7 +123,6 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
         camera.shouldBeRunning = true
         if (camera.hasCameraPermission()) {
             camera.openCamera("0")
-            bindCameraFlows()
         }
         motion.start()
         setupCallbacks()
@@ -261,10 +260,6 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             camera.zoomRange.collect { _zoomRange.value = it }
         }
-    }
-
-    private fun bindCameraFlows() {
-        // Already bound in bindCamera()
     }
 
     private fun setupCallbacks() {

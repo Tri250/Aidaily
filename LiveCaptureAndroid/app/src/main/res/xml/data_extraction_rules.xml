@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 12+ 数据提取规则
+    阻止自动备份和云端传输用户照片数据，符合《个人信息保护法》要求
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="privacy_prefs.xml" />
+        <exclude domain="sharedpref" path="crash_handler.xml" />
+        <exclude domain="sharedpref" path="app_settings.xml" />
+        <exclude domain="sharedpref" path="album_manager.xml" />
+        <exclude domain="file" path="LiveCapture/" />
+        <exclude domain="file" path="crash_logs/" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="privacy_prefs.xml" />
+        <exclude domain="sharedpref" path="crash_handler.xml" />
+        <exclude domain="sharedpref" path="app_settings.xml" />
+        <exclude domain="sharedpref" path="album_manager.xml" />
+        <exclude domain="file" path="LiveCapture/" />
+        <exclude domain="file" path="crash_logs/" />
+    </device-transfer>
+</data-extraction-rules>
