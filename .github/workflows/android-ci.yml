@@ -44,8 +44,11 @@ jobs:
       - name: 授予执行权限
         run: chmod +x gradlew
 
-      - name: 运行 Lint 检查
+      - name: 运行 Lint 检查 (Debug)
         run: ./gradlew lintOfficialDebug --stacktrace
+
+      - name: 运行 Lint 检查 (Release)
+        run: ./gradlew lintOfficialRelease --stacktrace
 
       - name: 上传 Lint 报告
         if: always()
@@ -81,8 +84,11 @@ jobs:
       - name: 授予执行权限
         run: chmod +x gradlew
 
-      - name: 运行单元测试
+      - name: 运行单元测试 (Debug)
         run: ./gradlew testOfficialDebugUnitTest --stacktrace
+
+      - name: 运行单元测试 (Release)
+        run: ./gradlew testOfficialReleaseUnitTest --stacktrace
 
       - name: 上传测试报告
         if: always()

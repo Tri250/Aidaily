@@ -11,7 +11,7 @@ import android.os.VibratorManager
  */
 object HapticManager {
     private var vibrator: Vibrator? = null
-    private val pendingRunnables = mutableListOf<android.os.Handler>()
+    private val delayedRunnables = mutableListOf<Runnable>()
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
 
     fun init(context: Context) {
@@ -28,8 +28,8 @@ object HapticManager {
      * 取消所有待执行的延迟振动，应在 Activity.onDestroy 中调用
      */
     fun cancelPending() {
-        pendingRunnables.forEach { it.removeCallbacksAndMessages(null) }
-        pendingRunnables.clear()
+        delayedRunnables.forEach { handler.removeCallbacks(it) }
+        delayedRunnables.clear()
     }
 
     private fun vibrate(effect: VibrationEffect) {
@@ -86,11 +86,11 @@ object HapticManager {
 
     fun capture() {
         medium()
-        // 延迟后轻触
         vibrator?.let { v ->
             val runnable = Runnable {
                 v.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
             }
+            delayedRunnables.add(runnable)
             handler.postDelayed(runnable, 50)
         }
     }
@@ -101,6 +101,7 @@ object HapticManager {
             val runnable = Runnable {
                 v.vibrate(VibrationEffect.createOneShot(8, 50))
             }
+            delayedRunnables.add(runnable)
             handler.postDelayed(runnable, 80)
         }
     }

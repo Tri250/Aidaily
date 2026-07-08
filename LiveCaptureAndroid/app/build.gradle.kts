@@ -21,10 +21,6 @@ android {
         buildConfigField("String", "BUGLY_APP_ID", "\"${project.findProperty("BUGLY_APP_ID") as? String ?: ""}\"")
         // 微信 AppID（需在 open.weixin.qq.com 注册获取，通过 -PWECHAT_APP_ID=xxx 传入）
         buildConfigField("String", "WECHAT_APP_ID", "\"${project.findProperty("WECHAT_APP_ID") as? String ?: ""}\"")
-
-        ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
-        }
     }
 
     signingConfigs {
@@ -48,12 +44,21 @@ android {
             isDebuggable = true
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            ndk {
+                abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            }
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            isDebuggable = false
+            isJniDebuggable = false
+            isCrunchPngs = true
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            ndk {
+                abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+            }
         }
     }
 
