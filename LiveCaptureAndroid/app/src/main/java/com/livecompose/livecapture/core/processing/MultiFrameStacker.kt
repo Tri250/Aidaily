@@ -162,10 +162,10 @@ class MultiFrameStacker {
                         }
                     }
 
-                    val r = (sumR / count).coerceIn(0, 255)
-                    val g = (sumG / count).coerceIn(0, 255)
-                    val b = (sumB / count).coerceIn(0, 255)
-                    outputPixels[y * width + x] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
+                    val r = (sumR / count).coerceIn(0, 255).toInt()
+                    val g = (sumG / count).coerceIn(0, 255).toInt()
+                    val b = (sumB / count).coerceIn(0, 255).toInt()
+                    outputPixels[y * width + x] = (r shl 16) or (g shl 8) or b or (-0x1000000)
                 }
 
                 if (y % 50 == 0) {

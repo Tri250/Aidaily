@@ -191,7 +191,7 @@ open class VideoRecorder(private val context: Context) {
             setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 2)
             // 启用 B 帧以提升压缩率（设备支持时）
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                setInteger(MediaFormat.KEY_B_FRAME_INTERVAL, 1)
+                setInteger("bframe-interval", 1)
             }
         }
 
@@ -222,18 +222,32 @@ open class VideoRecorder(private val context: Context) {
     /**
      * 尝试创建编码器（优先硬件编码器）
      */
+    private fun getCodecName(info: MediaCodecInfo): String {
+        return try {
+            info.javaClass.getMethod("getName").invoke(info) as String
+        } catch (_: Exception) {
+            @Suppress("DEPRECATION")
+            info.name
+        }
+    }
+
+    @Suppress("DEPRECATION")
     private fun tryCreateEncoder(mimeType: String, format: MediaFormat): MediaCodec? {
         val codecList = MediaCodecList(MediaCodecList.REGULAR_CODECS)
         // 优先选择硬件编码器
         val hardwareCodec = codecList.codecInfos.firstOrNull { info ->
             info.isEncoder && info.supportedTypes.any { it.equals(mimeType, ignoreCase = true) } &&
-                !info.name.contains("soft", ignoreCase = true)
+                !getCodecName(info).contains("soft", ignoreCase = true)
         }
-        val codecInfo = hardwareCodec ?: codecList.findEncoderForFormat(format) ?: return null
+        val codecName = if (hardwareCodec != null) {
+            getCodecName(hardwareCodec)
+        } else {
+            codecList.findEncoderForFormat(format) ?: return null
+        }
         return try {
-            MediaCodec.createByCodecName(codecInfo.name).apply { configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE) }
+            MediaCodec.createByCodecName(codecName).apply { configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE) }
         } catch (e: Exception) {
-            AppLogger.w(TAG, "创建编码器失败: ${codecInfo.name}", e)
+            AppLogger.w(TAG, "创建编码器失败: $codecName", e)
             null
         }
     }

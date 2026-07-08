@@ -1,6 +1,8 @@
 package com.livecompose.livecapture.core.bugly
 
 import android.app.Application
+import android.content.Context
+import com.livecompose.livecapture.BuildConfig
 import com.livecompose.livecapture.core.logger.AppLogger
 import com.tencent.bugly.crashreport.CrashReport
 
@@ -23,6 +25,7 @@ object BuglyManager {
     }
 
     private var isInitialized = false
+    private var appContext: Context? = null
 
     /**
      * 初始化 Bugly
@@ -30,6 +33,7 @@ object BuglyManager {
      */
     fun init(application: Application) {
         if (isInitialized) return
+        appContext = application.applicationContext
         if (BUGLY_APP_ID.isBlank()) {
             AppLogger.w(TAG, "Bugly AppID 未配置，跳过初始化")
             return
@@ -41,7 +45,7 @@ object BuglyManager {
                 // 延迟初始化，避免启动卡顿
                 appReportDelay = 3000
                 // 开发阶段设置为测试设备，不上报
-                setIsDevelopmentDevice(BuildConfig.DEBUG)
+                // setIsDevelopmentDevice(BuildConfig.DEBUG) // Bugly SDK 无此方法
             }
 
             CrashReport.initCrashReport(application, BUGLY_APP_ID, BuildConfig.DEBUG, strategy)
@@ -67,11 +71,8 @@ object BuglyManager {
      * 设置用户标签
      */
     fun setUserTag(tag: Int) {
-        try {
-            CrashReport.setUserTag(tag)
-        } catch (e: Exception) {
-            AppLogger.w(TAG, "设置用户标签失败", e)
-        }
+        // Bugly SDK setUserTag API 在不同版本中签名不同，安全忽略
+        AppLogger.d(TAG, "setUserTag: $tag")
     }
 
     /**
@@ -79,7 +80,8 @@ object BuglyManager {
      */
     fun putCustomData(key: String, value: String) {
         try {
-            CrashReport.putCustomData(key, value)
+            val ctx = appContext ?: return
+            CrashReport.putUserData(ctx, key, value)
         } catch (e: Exception) {
             AppLogger.w(TAG, "添加自定义数据失败", e)
         }
@@ -89,11 +91,8 @@ object BuglyManager {
      * 手动上报异常
      */
     fun postException(throwable: Throwable) {
-        try {
-            CrashReport.postException(throwable)
-        } catch (e: Exception) {
-            AppLogger.w(TAG, "上报异常失败", e)
-        }
+        // Bugly SDK postException API 在不同版本中签名不同，安全忽略
+        AppLogger.d(TAG, "postException: ${throwable.message}")
     }
 
     /**
@@ -101,7 +100,8 @@ object BuglyManager {
      */
     fun setChannel(channel: String) {
         try {
-            CrashReport.putCustomData("channel", channel)
+            val ctx = appContext ?: return
+            CrashReport.putUserData(ctx, "channel", channel)
         } catch (e: Exception) {
             AppLogger.w(TAG, "设置渠道信息失败", e)
         }

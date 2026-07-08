@@ -24,8 +24,8 @@ class SplitToneProcessor {
      */
     suspend fun applySplitTone(
         bitmap: Bitmap,
-        highlightColor: Int = 0xFFFFCC00,
-        shadowColor: Int = 0xFF0066CC,
+        highlightColor: Int = 0xFFFFCC00L.toInt(),
+        shadowColor: Int = 0xFF0066CCL.toInt(),
         balance: Float = 0f
     ): Bitmap = withContext(Dispatchers.Default) {
         val width = bitmap.width

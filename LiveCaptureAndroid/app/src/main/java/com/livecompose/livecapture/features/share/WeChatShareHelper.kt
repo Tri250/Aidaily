@@ -82,26 +82,21 @@ object WeChatShareHelper {
             // 压缩图片
             val outputStream = ByteArrayOutputStream()
             bitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
-            val thumbData = outputStream.toByteArray()
             outputStream.close()
 
             // 创建图片对象
             val imageObject = WXImageObject(bitmap)
 
             // 创建媒体消息
-            val message = WXMediaMessage().apply {
-                mediaObject = imageObject
-                // 缩略图（微信要求不超过 32KB）
-                val thumbBmp = compressThumb(bitmap)
-                thumbData = thumbBmp
-            }
+            val message = WXMediaMessage()
+            message.mediaObject = imageObject
+            message.thumbData = compressThumb(bitmap)
 
             // 创建请求
-            val request = SendMessageToWX.Req().apply {
-                transaction = "img_${System.currentTimeMillis()}"
-                message = message
-                scene = this@shareImage.scene
-            }
+            val request = SendMessageToWX.Req()
+            request.transaction = "img_${System.currentTimeMillis()}"
+            request.message = message
+            request.scene = scene
 
             api.sendReq(request)
             AppLogger.i(TAG, "微信分享请求已发送")
@@ -123,22 +118,21 @@ object WeChatShareHelper {
         try {
             val api = wxApi ?: return
 
-            val webObject = WXWebpageObject().apply {
-                webUrl = url
+            val webObject = WXWebpageObject()
+            webObject.webpageUrl = url
+
+            val message = WXMediaMessage()
+            message.mediaObject = webObject
+            message.title = title
+            message.description = description
+            if (thumbBitmap != null) {
+                message.thumbData = compressThumb(thumbBitmap)
             }
 
-            val message = WXMediaMessage().apply {
-                mediaObject = webObject
-                this.title = title
-                this.description = description
-                thumbBitmap?.let { thumbData = compressThumb(it) }
-            }
-
-            val request = SendMessageToWX.Req().apply {
-                transaction = "web_${System.currentTimeMillis()}"
-                this.message = message
-                this.scene = scene
-            }
+            val request = SendMessageToWX.Req()
+            request.transaction = "web_${System.currentTimeMillis()}"
+            request.message = message
+            request.scene = scene
 
             api.sendReq(request)
         } catch (e: Exception) {

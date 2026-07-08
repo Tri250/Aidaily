@@ -129,8 +129,9 @@ fun PhotoDetailScreen(
                 contentAlignment = Alignment.Center
             ) {
                 if (bitmap != null) {
+                    val bmp = bitmap!!
                     Image(
-                        bitmap = bitmap.asImageBitmap(),
+                        bitmap = bmp.asImageBitmap(),
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit
@@ -220,6 +221,7 @@ fun PhotoDetailScreen(
 
                 // RGB 直方图卡片
                 if (bitmap != null) {
+                    val bmp = bitmap
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
@@ -235,7 +237,7 @@ fun PhotoDetailScreen(
                                 fontWeight = FontWeight.SemiBold
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            RgbHistogram(bitmap)
+                            if (bmp != null) RgbHistogram(bmp)
                         }
                     }
 

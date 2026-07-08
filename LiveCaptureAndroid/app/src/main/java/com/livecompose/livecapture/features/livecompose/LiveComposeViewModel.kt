@@ -189,7 +189,7 @@ class LiveComposeViewModel(application: Application) : AndroidViewModel(applicat
 
         // 云彩（简单白色椭圆）
         val cloudPaint = Paint().apply {
-            color = Color.WHITE.copy(alpha = 180)
+            color = Color.argb(180, 255, 255, 255)
             isAntiAlias = true
         }
         canvas.drawOval(

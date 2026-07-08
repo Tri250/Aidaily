@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -410,6 +411,6 @@ private fun downscaleForPreview(src: Bitmap, maxDim: Int): Bitmap {
  */
 private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier = this.then(
     Modifier.pointerInput(Unit) {
-        androidx.compose.foundation.gestures.detectTapGestures(onTap = { onClick() })
+        detectTapGestures(onTap = { onClick() })
     }
 )

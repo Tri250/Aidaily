@@ -30,9 +30,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.ColorFilter
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -209,24 +212,23 @@ fun CaptureAnimationOverlay(
             bitmap = snapshot.bitmap,
             contentDescription = "捕获照片",
             contentScale = ContentScale.Fit,
+            colorFilter = if (brightnessAnim.value != 0f) {
+                val brightness = brightnessAnim.value
+                ColorFilter.colorMatrix(ColorMatrix(
+                    floatArrayOf(
+                        1f, 0f, 0f, 0f, brightness,
+                        0f, 1f, 0f, 0f, brightness,
+                        0f, 0f, 1f, 0f, brightness,
+                        0f, 0f, 0f, 1f, 0f
+                    )
+                ))
+            } else null,
             modifier = Modifier
                 .fillMaxSize(0.85f)
                 .graphicsLayer {
                     scaleX = scaleAnim.value
                     scaleY = scaleAnim.value
                     this.alpha = alphaAnim.value
-                    // 亮度调整（通过颜色矩阵实现）
-                    if (brightnessAnim.value != 0f) {
-                        val brightness = brightnessAnim.value
-                        colorMatrix = ColorMatrix(
-                            floatArrayOf(
-                                1f, 0f, 0f, 0f, brightness,
-                                0f, 1f, 0f, 0f, brightness,
-                                0f, 0f, 1f, 0f, brightness,
-                                0f, 0f, 0f, 1f, 0f
-                            )
-                        )
-                    }
                 }
                 .clip(RoundedCornerShape(8.dp))
         )

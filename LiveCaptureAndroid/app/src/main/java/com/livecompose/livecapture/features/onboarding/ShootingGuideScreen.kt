@@ -23,7 +23,7 @@ import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.PanHand
+import androidx.compose.material.icons.filled.OpenWith
 import androidx.compose.material.icons.filled.Panorama
 import androidx.compose.material.icons.filled.PanoramaHorizontal
 import androidx.compose.material.icons.filled.Person
@@ -137,7 +137,7 @@ object ShootingGuideData {
             icon = Icons.Filled.Smartphone,
             title = "手机摄影",
             tips = listOf(
-                ShootingTip("stability", Icons.Filled.PanHand, "稳定性",
+                ShootingTip("stability", Icons.Filled.OpenWith, "稳定性",
                     "保持手机稳定是拍出清晰照片的关键。双手握持、肘部贴紧身体，或使用三脚架。拍摄时轻按快门，避免晃动。"),
                 ShootingTip("clean_lens", Icons.Filled.AutoFixHigh, "清洁镜头",
                     "手机镜头容易被指纹和灰尘污染，拍照前用软布擦拭镜头。一个干净的镜头能让照片清晰度大幅提升，避免朦胧和光晕。"),

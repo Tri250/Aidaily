@@ -51,6 +51,7 @@ class PhotoSearchEngine(
 
     companion object {
         private const val TAG = "PhotoSearchEngine"
+        private const val MILLIS_PER_DAY = 24L * 60 * 60 * 1000
     }
 
     /** 场景关键词 → SceneType 映射 */
@@ -551,7 +552,4 @@ class PhotoSearchEngine(
         }
     }
 
-    companion object {
-        private const val MILLIS_PER_DAY = 24L * 60 * 60 * 1000
-    }
 }

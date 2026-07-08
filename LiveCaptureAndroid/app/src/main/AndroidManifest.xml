@@ -78,20 +78,11 @@
                 <action android:name="android.media.action.STILL_IMAGE_CAMERA_SECURE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-        </activity>
 
-        <!-- 快捷方式 -->
-        <shortcut
-            android:shortcutId="quick_capture"
-            android:enabled="true"
-            android:icon="@mipmap/ic_launcher"
-            android:shortcutShortLabel="快速抓拍"
-            android:shortcutLongLabel="快速抓拍模式">
-            <intent
-                android:action="com.livecompose.livecapture.QUICK_CAPTURE"
-                android:targetPackage="com.livecompose.livecapture"
-                android:targetClass="com.livecompose.livecapture.MainActivity" />
-        </shortcut>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity>
 
         <!-- 幻影模式前台服务 -->
         <service

@@ -1,6 +1,7 @@
 package com.livecompose.livecapture.core.push
 
 import android.content.Context
+import com.livecompose.livecapture.BuildConfig
 import com.livecompose.livecapture.core.logger.AppLogger
 
 /**

@@ -157,31 +157,15 @@ class AppContainer(context: Context) {
      */
     fun destroy() {
         try {
-            if (::levelMonitor.isInitialized) {
-                levelMonitor.stopMonitoring()
-            }
-            if (::motionMonitor.isInitialized) {
-                motionMonitor.stop()
-            }
-            if (::memoryMonitor.isInitialized) {
-                memoryMonitor.dispose()
-            }
-            if (::videoViewModel.isInitialized) {
-                // VideoViewModel 的 onCleared 会在 ViewModel 销毁时调用，此处确保音频/录制资源释放
-                videoViewModel.stopRecording()
-            }
-            if (::cameraManager.isInitialized) {
-                cameraManager.destroy()
-            }
-            if (::lutImporter.isInitialized) {
-                lutImporter.dispose()
-            }
-            if (::communityManager.isInitialized) {
-                communityManager.dispose()
-            }
-            if (::youthModeManager.isInitialized) {
-                youthModeManager.dispose()
-            }
+            levelMonitor.stopMonitoring()
+            motionMonitor.stop()
+            memoryMonitor.dispose()
+            // VideoViewModel 的 onCleared 会在 ViewModel 销毁时调用，此处确保音频/录制资源释放
+            videoViewModel.stopRecording()
+            cameraManager.destroy()
+            lutImporter.dispose()
+            communityManager.dispose()
+            youthModeManager.dispose()
         } catch (e: Exception) {
             AppLogger.w(TAG, "清理资源时发生异常", e)
         }

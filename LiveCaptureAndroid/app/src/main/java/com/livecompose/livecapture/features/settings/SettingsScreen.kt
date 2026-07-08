@@ -3,6 +3,8 @@ package com.livecompose.livecapture.features.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -22,10 +24,12 @@ import com.livecompose.livecapture.ui.components.LchMixerPanel
 import com.livecompose.livecapture.ui.components.WatermarkEditSheet
 import com.livecompose.livecapture.ui.design.DesignSystem
 import com.livecompose.livecapture.BuildConfig
+import kotlinx.coroutines.launch
 
 /**
  * 设置界面
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen() {
     var detectionMode by remember { mutableStateOf(DetectionMode.FAST) }

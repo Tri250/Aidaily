@@ -50,7 +50,7 @@ class SceneClassifier {
     private val objectDetector = ObjectDetection.getClient(
         ObjectDetectorOptions.Builder()
             .setDetectorMode(ObjectDetectorOptions.SINGLE_IMAGE_MODE)
-            .setMultipleObjects(true)
+            .enableMultipleObjects()
             .build()
     )
 
@@ -220,7 +220,7 @@ class SceneClassifier {
             }
 
             val dominantPosition = faceRect?.let { computeSubjectPosition(it) }
-                ?: bodyRect?.let { computeSubjectPosition(BodyRect(it.left, it.top, it.right, it.bottom)) }
+                ?: bodyRect?.let { computeSubjectPosition(FaceRect(it.left, it.top, it.right, it.bottom)) }
                 ?: SubjectPosition.CENTER
 
             SubjectDetection(

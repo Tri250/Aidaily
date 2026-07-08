@@ -1,6 +1,6 @@
 package com.livecompose.livecapture.features.capture.components
 
-import androidx.compose.animation.animateFloatAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,6 +31,8 @@ enum class GridMode(val displayName: String) {
     DIAGONAL("对角线")
 }
 
+private data class DrawArea(val w: Float, val h: Float, val ox: Float, val oy: Float)
+
 @Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 fun GridOverlay(
@@ -57,10 +59,10 @@ fun GridOverlay(
         val containerRatio = 3f / 4f
         val (drawW, drawH, offX, offY) = if (aspectRatio > containerRatio) {
             val h = canvasWidth / aspectRatio
-            Quadruple(canvasWidth, h, 0f, (canvasHeight - h) / 2f)
+            DrawArea(canvasWidth, h, 0f, (canvasHeight - h) / 2f)
         } else {
             val w = canvasHeight * aspectRatio
-            Quadruple(w, canvasHeight, (canvasWidth - w) / 2f, 0f)
+            DrawArea(w, canvasHeight, (canvasWidth - w) / 2f, 0f)
         }
 
         val gridColor = Color.White.copy(alpha = 0.4f * animatedAlpha)

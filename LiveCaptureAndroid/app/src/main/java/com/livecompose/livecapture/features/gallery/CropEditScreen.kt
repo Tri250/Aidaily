@@ -163,8 +163,9 @@ fun CropEditScreen(
             modifier = Modifier.fillMaxSize().padding(padding),
             contentAlignment = Alignment.Center
         ) {
-            if (bitmap != null) {
-                var rotatedBitmap by remember(rotation) { mutableStateOf(rotateBitmap(bitmap, rotation)) }
+            val bmp = bitmap
+            if (bmp != null) {
+                var rotatedBitmap by remember(rotation) { mutableStateOf(rotateBitmap(bmp, rotation)) }
 
                 // 可缩放拖动的图片
                 Image(

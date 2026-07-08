@@ -23,9 +23,7 @@
         android:fillColor="#00000000"
         android:pathData="M48,42L48,46M60,42L60,46M48,62L48,58M60,62L60,58" />
     <!-- 闪光灯 -->
-    <circle
+    <path
         android:fillColor="#FFFFFFFF"
-        android:cx="62"
-        android:cy="42"
-        android:radius="2" />
+        android:pathData="M62,42m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
 </vector>

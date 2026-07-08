@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 
 /**
  * 手动模式控制参数
@@ -195,7 +196,7 @@ private fun IsoSlider(
     value: Int,
     onValueChange: (Int) -> Unit
 ) {
-    val index = isoPresets.indexOf(value).coerceIn(0, isoPresets.lastIndex)
+    val index = isoPresets.indexOfFirst { it == value }.coerceIn(0, isoPresets.lastIndex)
 
     Column {
         Text(
@@ -256,9 +257,8 @@ private fun ShutterSpeedSlider(
     value: Float,
     onValueChange: (Float) -> Unit
 ) {
-    val closestIndex = shutterSpeedPresets.indexOf(
-        shutterSpeedPresets.minByOrNull { kotlin.math.abs(it - value) } ?: 1f / 60f
-    ).coerceIn(0, shutterSpeedPresets.lastIndex)
+    val closest = shutterSpeedPresets.minByOrNull { kotlin.math.abs(it - value) } ?: 1f / 60f
+    val closestIndex = shutterSpeedPresets.indexOfFirst { it == closest }.coerceIn(0, shutterSpeedPresets.lastIndex)
 
     Column {
         Text(

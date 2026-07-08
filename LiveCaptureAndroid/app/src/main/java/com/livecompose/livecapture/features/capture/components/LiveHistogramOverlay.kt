@@ -60,9 +60,10 @@ fun LiveHistogramOverlay(
             .padding(4.dp),
         contentAlignment = Alignment.Center
     ) {
-        if (histogramData != null) {
+        val data = histogramData
+        if (data != null) {
             Canvas(modifier = Modifier.fillMaxSize()) {
-                drawHistogram(histogramData, showRGB)
+                drawHistogram(data, showRGB)
             }
         }
     }

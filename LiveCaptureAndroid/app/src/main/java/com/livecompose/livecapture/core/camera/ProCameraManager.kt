@@ -3,6 +3,7 @@ package com.livecompose.livecapture.core.camera
 import android.content.Context
 import android.graphics.Bitmap
 import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraMetadata
 import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.params.RggbChannelVector
 import android.util.Range
@@ -328,7 +329,7 @@ class ProCameraManager(private val context: Context) : ViewModel() {
 
             // 手动曝光: 关闭 AE, 直接设置 ISO 和快门速度
             if (_manualExposureEnabled.value && isManualExposureSupported(characteristics)) {
-                builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF)
+                builder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_OFF)
                 val isoRange = characteristics.get(
                     CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE
                 )
@@ -363,7 +364,7 @@ class ProCameraManager(private val context: Context) : ViewModel() {
 
             // 手动白平衡: 关闭 AWB, 设置通道增益
             if (_manualWhiteBalanceEnabled.value) {
-                builder.set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_OFF)
+                builder.set(CaptureRequest.CONTROL_AWB_MODE, CameraMetadata.CONTROL_AWB_MODE_OFF)
                 val gains = colorTemperatureToRgbGains(_colorTemperature.value)
                 builder.set(CaptureRequest.COLOR_CORRECTION_GAINS, gains)
             }
@@ -373,9 +374,9 @@ class ProCameraManager(private val context: Context) : ViewModel() {
                 builder.set(CaptureRequest.CONTROL_AE_LOCK, true)
             }
 
-            // AF 锁
+            // AF 锁（Camera2 API 无 CONTROL_AF_LOCK，通过 AF_TRIGGER 锁定）
             if (_afLocked.value) {
-                builder.set(CaptureRequest.CONTROL_AF_LOCK, true)
+                builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START)
             }
         } catch (e: Exception) {
             AppLogger.e(TAG, "应用 CaptureRequest 失败", e)

@@ -6,6 +6,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -437,7 +438,7 @@ private fun CurveEditorCanvas(
                         onDrag = { change, _ ->
                             val idx = dragIndex.value
                             val pts = currentPoints
-                            if (idx in pts.indices) {
+                            if (idx != null && idx in pts.indices) {
                                 change.consume()
                                 val nx = (change.position.x / w).coerceIn(0f, 1f)
                                 val ny = (1f - change.position.y / h).coerceIn(0f, 1f)
@@ -563,6 +564,6 @@ private fun downscaleForPreview(src: Bitmap, maxDim: Int): Bitmap {
  */
 private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier = this.then(
     Modifier.pointerInput(Unit) {
-        androidx.compose.foundation.gestures.detectTapGestures(onTap = { onClick() })
+        detectTapGestures(onTap = { onClick() })
     }
 )

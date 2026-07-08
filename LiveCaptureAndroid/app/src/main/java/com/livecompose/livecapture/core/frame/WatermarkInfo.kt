@@ -12,7 +12,7 @@ data class WatermarkInfo(
 
     // 文字样式
     val textSize: Float = 14f,
-    val textColor: Int = 0x80FFFFFF,     // 半透明白色
+    val textColor: Int = 0x80FFFFFF.toInt(),     // 半透明白色
     val fontName: String = "default",     // default / ds-digital (数码字体)
 
     // 位置

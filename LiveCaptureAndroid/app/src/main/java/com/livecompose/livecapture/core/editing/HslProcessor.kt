@@ -16,7 +16,7 @@ import kotlin.math.roundToInt
  * @property hueCenter 该颜色在 HSV 色相环上的中心角度（0~360）
  * @property argb 用于 UI 显示的代表色（ARGB int）
  */
-enum class HslChannel(val name: String, val index: Int, val hueCenter: Float, val argb: Int) {
+enum class HslChannel(val displayName: String, val index: Int, val hueCenter: Float, val argb: Int) {
     RED("红", 0, 0f, 0xFFFF1A1A.toInt()),
     ORANGE("橙", 1, 30f, 0xFFFF8000.toInt()),
     YELLOW("黄", 2, 60f, 0xFFFFFF00.toInt()),

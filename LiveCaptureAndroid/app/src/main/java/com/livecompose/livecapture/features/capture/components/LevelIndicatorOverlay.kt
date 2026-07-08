@@ -51,11 +51,11 @@ fun LevelIndicatorOverlay(
     )
 
     // 传感器监听
-    LaunchedEffect(enabled) {
-        if (!enabled) return@LaunchedEffect
+    DisposableEffect(enabled) {
+        if (!enabled) return@DisposableEffect onDispose { }
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-            ?: return@LaunchedEffect
+            ?: return@DisposableEffect onDispose { }
 
         val listener = object : SensorEventListener {
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
@@ -64,14 +64,14 @@ fun LevelIndicatorOverlay(
                 val x = event.values[0]
                 val y = event.values[1]
                 // 计算倾斜角度 (横屏时使用 x 轴，竖屏时使用 y 轴)
-                targetRotation = kotlin.math.toDegrees(kotlin.math.atan2(x.toDouble(), y.toDouble())).toFloat()
+                targetRotation = Math.toDegrees(kotlin.math.atan2(x.toDouble(), y.toDouble())).toFloat()
                 isLevel = kotlin.math.abs(targetRotation) < LEVEL_THRESHOLD_DEGREES
             }
         }
 
         sensorManager.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_GAME)
 
-        awaitDispose { sensorManager.unregisterListener(listener) }
+        onDispose { sensorManager.unregisterListener(listener) }
     }
 
     Canvas(modifier = modifier.fillMaxSize()) {

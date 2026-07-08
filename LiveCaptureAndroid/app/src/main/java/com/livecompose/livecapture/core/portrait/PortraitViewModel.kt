@@ -2,6 +2,7 @@ package com.livecompose.livecapture.core.portrait
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.RectF
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.mlkit.vision.face.Face
@@ -221,7 +222,7 @@ class PortraitViewModel(context: Context) : ViewModel() {
         val height = image.height
 
         // 创建人脸区域掩码（前景清晰）
-        val faceRects = faces.map { face ->
+        val faceRects = faces.map { face: Face ->
             val bounds = face.boundingBox
             RectF(
                 bounds.left - bounds.width() * 0.15f,

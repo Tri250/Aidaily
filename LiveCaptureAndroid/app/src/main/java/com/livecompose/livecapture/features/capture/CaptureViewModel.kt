@@ -264,8 +264,9 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
 
     private fun setupCallbacks() {
         camera.onSampleBuffer = { image ->
-            if (!isCompositionPipelineEnabled.value) return@onSampleBuffer
-            handleSampleBuffer(image)
+            if (isCompositionPipelineEnabled.value) {
+                handleSampleBuffer(image)
+            }
         }
         camera.onPhotoDataReady = { data ->
             storage.savePhoto(data, detectionMode.displayName)

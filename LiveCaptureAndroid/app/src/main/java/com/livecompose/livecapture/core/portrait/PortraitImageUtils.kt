@@ -244,9 +244,12 @@ internal object PortraitImageUtils {
             val scale = contrast
             val translate = (-0.5f * scale + 0.5f) * 255f + brightness * 255f
             setScale(scale, scale, scale, 1f)
-            postConcat(android.graphics.ColorMatrix().apply {
-                setTranslate(translate, translate, translate, 0f)
-            })
+            postConcat(android.graphics.ColorMatrix(floatArrayOf(
+                1f, 0f, 0f, 0f, translate,
+                0f, 1f, 0f, 0f, translate,
+                0f, 0f, 1f, 0f, translate,
+                0f, 0f, 0f, 1f, 0f
+            )))
         }
         // 饱和度矩阵
         val saturationMatrix = android.graphics.ColorMatrix().apply {

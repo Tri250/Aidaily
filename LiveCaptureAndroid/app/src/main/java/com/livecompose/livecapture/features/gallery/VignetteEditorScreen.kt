@@ -5,6 +5,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -332,17 +333,15 @@ private fun VignettePreviewCanvas(
             val stopInner = (innerRadius / outerRadius).coerceIn(0f, 0.99f)
             val stopOuter = minOf(1f, stopInner + feather.coerceIn(0.01f, 1f) * (1f - stopInner))
 
-            val colors = listOf(
-                Color.Black.copy(alpha = 0f),
-                Color.Black.copy(alpha = 0f),
-                Color.Black.copy(alpha = maxAlpha)
+            val colorStops = listOf(
+                0f to Color.Black.copy(alpha = 0f),
+                stopInner to Color.Black.copy(alpha = 0f),
+                stopOuter to Color.Black.copy(alpha = maxAlpha)
             )
-            val stops = listOf(0f, stopInner, stopOuter)
 
             val scaleY = if (roundness) 1f else 0.7f
             val brush = Brush.radialGradient(
-                colors = colors,
-                stops = stops.toFloatArray(),
+                *colorStops.toTypedArray(),
                 center = Offset(cx, cy),
                 radius = outerRadius
             )
@@ -484,6 +483,6 @@ private fun downscaleForPreview(src: Bitmap, maxDim: Int): Bitmap {
  */
 private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier = this.then(
     Modifier.pointerInput(Unit) {
-        androidx.compose.foundation.gestures.detectTapGestures(onTap = { onClick() })
+        detectTapGestures(onTap = { onClick() })
     }
 )

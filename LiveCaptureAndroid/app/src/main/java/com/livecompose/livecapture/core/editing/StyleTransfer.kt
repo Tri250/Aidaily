@@ -104,7 +104,7 @@ class StyleTransfer {
             }
         } catch (e: Exception) {
             AppLogger.e(TAG, "风格迁移失败: $style", e)
-            image
+            return image
         } finally {
             _isProcessing.value = false
         }

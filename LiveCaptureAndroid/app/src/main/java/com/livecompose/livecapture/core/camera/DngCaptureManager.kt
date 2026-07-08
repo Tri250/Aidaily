@@ -2,7 +2,15 @@ package com.livecompose.livecapture.core.camera
 
 import android.content.Context
 import android.graphics.ImageFormat
-import android.hardware.camera2.*
+import android.hardware.camera2.CameraCaptureSession
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraDevice
+import android.hardware.camera2.CameraManager as SystemCameraManager
+import android.hardware.camera2.CameraMetadata
+import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.CaptureResult
+import android.hardware.camera2.DngCreator
+import android.hardware.camera2.TotalCaptureResult
 import android.hardware.camera2.params.OutputConfiguration
 import android.hardware.camera2.params.SessionConfiguration
 import android.hardware.camera2.params.StreamConfigurationMap
@@ -38,7 +46,7 @@ class DngCaptureManager(private val context: Context) {
     }
 
     private val systemCameraManager =
-        context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        context.getSystemService(Context.CAMERA_SERVICE) as SystemCameraManager
 
     private val dngThread = HandlerThread("DngCapture").apply { start() }
     private val dngHandler = Handler(dngThread.looper)
@@ -251,10 +259,10 @@ class DngCaptureManager(private val context: Context) {
             requestBuilder.addTarget(jpegSurface)
 
             // 设置手动控制参数
-            requestBuilder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_OFF)
-            requestBuilder.set(CaptureRequest.NOISE_REDUCTION_MODE, CaptureRequest.NOISE_REDUCTION_MODE_OFF)
-            requestBuilder.set(CaptureRequest.EDGE_MODE, CaptureRequest.EDGE_MODE_OFF)
-            requestBuilder.set(CaptureRequest.COLOR_CORRECTION_MODE, CaptureRequest.COLOR_CORRECTION_MODE_TRANSFORM_MATRIX)
+            requestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_OFF)
+            requestBuilder.set(CaptureRequest.NOISE_REDUCTION_MODE, CameraMetadata.NOISE_REDUCTION_MODE_OFF)
+            requestBuilder.set(CaptureRequest.EDGE_MODE, CameraMetadata.EDGE_MODE_OFF)
+            requestBuilder.set(CaptureRequest.COLOR_CORRECTION_MODE, CameraMetadata.COLOR_CORRECTION_MODE_TRANSFORM_MATRIX)
             requestBuilder.set(CaptureRequest.JPEG_ORIENTATION, 90)
 
             // 设置传感器参数

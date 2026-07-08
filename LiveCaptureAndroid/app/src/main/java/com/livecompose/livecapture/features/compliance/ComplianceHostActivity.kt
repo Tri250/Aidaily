@@ -4,10 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import com.livecompose.livecapture.di.AppContainer
 import com.livecompose.livecapture.features.community.CommunityScreen
-import com.livecompose.livecapture.ui.design.LiveCaptureTheme
 
 /**
  * 合规页面宿主 Activity
@@ -22,7 +22,7 @@ class ComplianceHostActivity : ComponentActivity() {
         val appContainer = AppContainer.getInstance(this)
 
         setContent {
-            LiveCaptureTheme {
+            MaterialTheme {
                 when (page) {
                     "privacy" -> PrivacyPolicyScreen(onBack = { finish() })
                     "agreement" -> UserAgreementScreen(onBack = { finish() })

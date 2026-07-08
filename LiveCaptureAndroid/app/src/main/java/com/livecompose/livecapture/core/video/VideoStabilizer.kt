@@ -161,9 +161,9 @@ class VideoStabilizer(context: Context) : SensorEventListener {
         val maxTranslationY = height * MAX_TRANSLATION_RATIO
 
         val tx = (clampedYaw / MAX_ROTATION_RAD * maxTranslationX)
-            .coerceIn(-maxTranslationX, maxTranslationX).toFloat()
+            .coerceIn(-maxTranslationX.toDouble(), maxTranslationX.toDouble()).toFloat()
         val ty = (clampedPitch / MAX_ROTATION_RAD * maxTranslationY)
-            .coerceIn(-maxTranslationY, maxTranslationY).toFloat()
+            .coerceIn(-maxTranslationY.toDouble(), maxTranslationY.toDouble()).toFloat()
 
         // 3. 构建防抖变换矩阵（反向补偿）
         val targetMatrix = Matrix()

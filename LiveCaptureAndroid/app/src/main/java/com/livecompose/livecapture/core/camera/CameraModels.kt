@@ -1,5 +1,7 @@
 package com.livecompose.livecapture.core.camera
 
+import kotlin.math.roundToInt
+
 /**
  * 镜头类型
  */

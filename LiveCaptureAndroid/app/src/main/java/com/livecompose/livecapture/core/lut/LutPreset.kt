@@ -35,7 +35,7 @@ enum class LutCategory(val displayName: String) {
 /** 内置预设列表 */
 object BuiltInPresets {
     val presets: List<LutPreset> = listOf(
-        LutPreset("original", "原片", LutCategory.STANDARD, "原始色彩", 1f, 1f, 0, 0, 1f, 1f, 0f, 0f, 0f, 0f, 0f, 0f),
+        LutPreset("original", "原片", LutCategory.STANDARD, "原始色彩", 1f, 1f, 0f, 0f, 1f, 1f, 0f, 0f, 0f, 0f, 0f),
 
         // --- 胶片系列 ---
         LutPreset("portra400", "Kodak Portra 400", LutCategory.FILM,

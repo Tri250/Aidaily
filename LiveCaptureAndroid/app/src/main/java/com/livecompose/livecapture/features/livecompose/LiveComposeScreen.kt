@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
 import com.livecompose.livecapture.core.lut.BuiltInPresets
 import com.livecompose.livecapture.core.lut.LutPreset
 import com.livecompose.livecapture.ui.design.DesignSystem
@@ -43,10 +45,10 @@ fun LiveComposeScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val selectedPreset by viewModel.selectedPreset
-    val intensity by viewModel.intensity
-    val processedBitmap by viewModel.processedBitmap
-    val isProcessing by viewModel.isProcessing
+    val selectedPreset by viewModel.selectedPreset.collectAsState()
+    val intensity by viewModel.intensity.collectAsState()
+    val processedBitmap by viewModel.processedBitmap.collectAsState()
+    val isProcessing by viewModel.isProcessing.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.generateDemoBitmap(context)

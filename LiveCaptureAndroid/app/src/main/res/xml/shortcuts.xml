@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="quick_capture"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_quick_capture"
+        android:shortcutLongLabel="@string/shortcut_quick_capture_long">
+        <intent
+            android:targetPackage="com.livecompose.livecapture"
+            android:targetClass="com.livecompose.livecapture.MainActivity">
+            <action android:name="com.livecompose.livecapture.QUICK_CAPTURE" />
+        </intent>
+    </shortcut>
+</shortcuts>

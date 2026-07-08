@@ -274,8 +274,9 @@ private fun PhotoCard(
             .clickable(onClick = onClick)
     ) {
         if (thumbnail != null) {
+            val thumb = thumbnail!!
             Image(
-                bitmap = thumbnail.asImageBitmap(),
+                bitmap = thumb.asImageBitmap(),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
@@ -392,8 +393,9 @@ private fun PhotoDetailDialog(
         text = {
             Column {
                 if (photo != null) {
+                    val p = photo!!
                     Image(
-                        bitmap = photo.asImageBitmap(),
+                        bitmap = p.asImageBitmap(),
                         contentDescription = null,
                         modifier = Modifier.fillMaxWidth()
                     )

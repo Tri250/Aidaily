@@ -79,8 +79,6 @@ import com.livecompose.livecapture.core.sharecard.ShareCardStyle
 import com.livecompose.livecapture.core.storage.PhotoRecord
 import com.livecompose.livecapture.ui.design.DesignSystem
 import com.livecompose.livecapture.ui.design.elevatedShadow
-import com.livecompose.livecapture.ui.design.largeRoundedShape
-import com.livecompose.livecapture.ui.design.smallRoundedShape
 import com.tencent.mm.opensdk.modelmsg.SendMessageToWX
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -162,7 +160,7 @@ fun ShareCardScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = rememberSnackbarHostState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val selectedStyle by viewModel.selectedStyle.collectAsState()
     val cardImage by viewModel.cardImage.collectAsState()
@@ -331,7 +329,7 @@ private fun DragIndicator() {
             .padding(top = 8.dp)
             .width(36.dp)
             .height(5.dp)
-            .clip(smallRoundedShape)
+            .clip(DesignSystem.smallRoundedShape)
             .background(DesignSystem.Colors.gray3()),
     )
 }
@@ -344,7 +342,7 @@ private fun CardPreview(
 ) {
     Box(
         modifier = modifier
-            .clip(largeRoundedShape)
+            .clip(DesignSystem.largeRoundedShape)
             .background(DesignSystem.Colors.backgroundSecondary())
             .elevatedShadow(),
     ) {
@@ -441,9 +439,9 @@ private fun StyleButton(
         Box(
             modifier = Modifier
                 .size(width = 72.dp, height = 96.dp)
-                .clip(smallRoundedShape)
+                .clip(DesignSystem.smallRoundedShape)
                 .background(DesignSystem.Colors.backgroundSecondary())
-                .border(width = borderWidth, color = borderColor, shape = smallRoundedShape),
+                .border(width = borderWidth, color = borderColor, shape = DesignSystem.smallRoundedShape),
             contentAlignment = Alignment.Center,
         ) {
             if (preview != null) {

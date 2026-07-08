@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -61,7 +63,7 @@ class EditSessionManager(private val context: Context) {
      * 保存当前编辑会话
      */
     suspend fun saveSession(session: EditSession) {
-        dataStore.edit { preferences ->
+        dataStore.edit { preferences: androidx.datastore.preferences.core.MutablePreferences ->
             preferences[KEY_HAS_SESSION] = true
             preferences[KEY_PHOTO_ID] = session.photoId
             preferences[KEY_ROTATION] = session.rotation
@@ -128,7 +130,7 @@ class EditSessionManager(private val context: Context) {
      * 清除当前编辑会话
      */
     suspend fun clearSession() {
-        dataStore.edit { preferences ->
+        dataStore.edit { preferences: androidx.datastore.preferences.core.MutablePreferences ->
             preferences.clear()
         }
         // 清理临时文件

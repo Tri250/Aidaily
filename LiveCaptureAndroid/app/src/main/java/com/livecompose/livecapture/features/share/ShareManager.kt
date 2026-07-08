@@ -156,7 +156,7 @@ class ShareManager(private val context: Context) {
     /**
      * 多图分享（文件路径）
      */
-    fun shareMultipleImages(filePaths: List<String>) {
+    fun shareMultipleImagesByPaths(filePaths: List<String>) {
         val uris = filePaths
             .map { File(it) }
             .filter { it.exists() }
