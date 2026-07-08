@@ -84,12 +84,15 @@ class BloomProcessor {
                 outputPixels[i] = (0xFF shl 24) or (outR shl 16) or (outG shl 8) or outB
             }
 
-            output.setPixels(outputPixels, 0, width, 0, 0, width, height)
+            output!!.setPixels(outputPixels, 0, width, 0, 0, width, height)
             onProgress(1f)
-            output
+            output!!
         } catch (e: OutOfMemoryError) {
             output?.recycle()
             throw RuntimeException("Bloom 效果处理内存不足，请尝试降低图像分辨率", e)
+        } catch (e: Exception) {
+            output?.recycle()
+            throw e
         }
     }
 
@@ -102,52 +105,61 @@ class BloomProcessor {
         intensity: Float = 0.3f,
         onProgress: (Float) -> Unit = {}
     ): Bitmap = withContext(Dispatchers.Default) {
-        if (intensity <= 0f) return@withContext source
+        var output: Bitmap? = null
+        try {
+            if (intensity <= 0f) return@withContext source
 
-        val width = source.width
-        val height = source.height
-        val pixels = IntArray(width * height)
-        source.getPixels(pixels, 0, width, 0, 0, width, height)
+            val width = source.width
+            val height = source.height
+            val pixels = IntArray(width * height)
+            source.getPixels(pixels, 0, width, 0, 0, width, height)
 
-        // 提取 RGB
-        val rgb = FloatArray(width * height * 3)
-        for (i in pixels.indices) {
-            val pixel = pixels[i]
-            rgb[i * 3] = ((pixel shr 16) and 0xFF) / 255f
-            rgb[i * 3 + 1] = ((pixel shr 8) and 0xFF) / 255f
-            rgb[i * 3 + 2] = (pixel and 0xFF) / 255f
+            // 提取 RGB
+            val rgb = FloatArray(width * height * 3)
+            for (i in pixels.indices) {
+                val pixel = pixels[i]
+                rgb[i * 3] = ((pixel shr 16) and 0xFF) / 255f
+                rgb[i * 3 + 1] = ((pixel shr 8) and 0xFF) / 255f
+                rgb[i * 3 + 2] = (pixel and 0xFF) / 255f
+            }
+
+            // 模糊
+            val blurred = boxBlur3Pass(rgb, width, height, 12)
+            onProgress(0.7f)
+
+            // Screen 混合：result = 1 - (1 - a) * (1 - b)
+            output = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val outputPixels = IntArray(width * height)
+
+            for (i in pixels.indices) {
+                val r = rgb[i * 3]
+                val g = rgb[i * 3 + 1]
+                val b = rgb[i * 3 + 2]
+                val br = blurred[i * 3]
+                val bg = blurred[i * 3 + 1]
+                val bb = blurred[i * 3 + 2]
+
+                // Screen blend
+                val mixedR = r * (1f - intensity) + (1f - (1f - r) * (1f - br)) * intensity
+                val mixedG = g * (1f - intensity) + (1f - (1f - g) * (1f - bg)) * intensity
+                val mixedB = b * (1f - intensity) + (1f - (1f - b) * (1f - bb)) * intensity
+
+                val outR = (mixedR.coerceIn(0f, 1f) * 255f).toInt()
+                val outG = (mixedG.coerceIn(0f, 1f) * 255f).toInt()
+                val outB = (mixedB.coerceIn(0f, 1f) * 255f).toInt()
+                outputPixels[i] = (0xFF shl 24) or (outR shl 16) or (outG shl 8) or outB
+            }
+
+            output!!.setPixels(outputPixels, 0, width, 0, 0, width, height)
+            onProgress(1f)
+            output!!
+        } catch (e: OutOfMemoryError) {
+            output?.recycle()
+            throw RuntimeException("柔光效果处理内存不足", e)
+        } catch (e: Exception) {
+            output?.recycle()
+            throw e
         }
-
-        // 模糊
-        val blurred = boxBlur3Pass(rgb, width, height, 12)
-        onProgress(0.7f)
-
-        // Screen 混合：result = 1 - (1 - a) * (1 - b)
-        val output = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val outputPixels = IntArray(width * height)
-
-        for (i in pixels.indices) {
-            val r = rgb[i * 3]
-            val g = rgb[i * 3 + 1]
-            val b = rgb[i * 3 + 2]
-            val br = blurred[i * 3]
-            val bg = blurred[i * 3 + 1]
-            val bb = blurred[i * 3 + 2]
-
-            // Screen blend
-            val mixedR = r * (1f - intensity) + (1f - (1f - r) * (1f - br)) * intensity
-            val mixedG = g * (1f - intensity) + (1f - (1f - g) * (1f - bg)) * intensity
-            val mixedB = b * (1f - intensity) + (1f - (1f - b) * (1f - bb)) * intensity
-
-            val outR = (mixedR.coerceIn(0f, 1f) * 255f).toInt()
-            val outG = (mixedG.coerceIn(0f, 1f) * 255f).toInt()
-            val outB = (mixedB.coerceIn(0f, 1f) * 255f).toInt()
-            outputPixels[i] = (0xFF shl 24) or (outR shl 16) or (outG shl 8) or outB
-        }
-
-        output.setPixels(outputPixels, 0, width, 0, 0, width, height)
-        onProgress(1f)
-        output
     }
 
     /**

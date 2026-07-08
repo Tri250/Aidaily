@@ -32,11 +32,16 @@ import kotlin.math.roundToInt
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
 class DngCaptureManager(private val context: Context) {
 
+    companion object {
+        private const val TAG = "DngCaptureManager"
+    }
+
     private val systemCameraManager =
         context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
 
     private val dngThread = HandlerThread("DngCapture").apply { start() }
     private val dngHandler = Handler(dngThread.looper)
+    private var isDestroyed = false
 
     private var rawImageReader: ImageReader? = null
     private var jpegImageReader: ImageReader? = null
@@ -94,28 +99,39 @@ class DngCaptureManager(private val context: Context) {
      */
     @androidx.annotation.RequiresPermission(android.Manifest.permission.CAMERA)
     fun openCamera(cameraId: String = "0") {
+        if (isDestroyed) return
         currentCameraId = cameraId
         try {
+            close()
             systemCameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
                 override fun onOpened(device: CameraDevice) {
                     cameraDevice = device
-                    cameraCharacteristics = systemCameraManager.getCameraCharacteristics(cameraId)
+                    cameraCharacteristics = try {
+                        systemCameraManager.getCameraCharacteristics(cameraId)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "获取相机特性失败", e)
+                        null
+                    }
                 }
 
                 override fun onDisconnected(device: CameraDevice) {
+                    Log.w(TAG, "相机断开连接")
                     device.close()
                     cameraDevice = null
                 }
 
                 override fun onError(device: CameraDevice, error: Int) {
+                    Log.e(TAG, "相机打开失败, 错误码: $error")
                     device.close()
                     cameraDevice = null
                     onError?.invoke("相机打开失败: $error")
                 }
             }, dngHandler)
         } catch (e: SecurityException) {
+            Log.e(TAG, "相机权限不足", e)
             onError?.invoke("相机权限不足")
         } catch (e: Exception) {
+            Log.e(TAG, "相机打开异常", e)
             onError?.invoke("相机打开异常: ${e.message}")
         }
     }
@@ -268,11 +284,11 @@ class DngCaptureManager(private val context: Context) {
         location: Location?
     ) {
         val rawImage = rawImageReader?.acquireNextImage() ?: run {
-            // 尝试处理 JPEG
             processJpegCapture()
             return
         }
 
+        var outputStream: FileOutputStream? = null
         try {
             val timestamp = System.currentTimeMillis()
             val dateFormat = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
@@ -294,15 +310,18 @@ class DngCaptureManager(private val context: Context) {
             writeExifInfo(dngCreator, result, characteristics, rawSize, location)
 
             // 写入 DNG 文件
-            val outputStream = FileOutputStream(dngFile)
+            outputStream = FileOutputStream(dngFile)
             dngCreator.writeImage(outputStream, rawImage)
-            outputStream.close()
             dngCreator.close()
 
             onDngSaved?.invoke(dngFile.absolutePath)
         } catch (e: Exception) {
+            Log.e(TAG, "DNG 保存失败", e)
             onError?.invoke("DNG 保存失败: ${e.message}")
         } finally {
+            try {
+                outputStream?.close()
+            } catch (_: Exception) {}
             rawImage.close()
         }
 
@@ -390,14 +409,40 @@ class DngCaptureManager(private val context: Context) {
      * 关闭所有资源
      */
     fun close() {
-        captureSession?.close()
+        try {
+            captureSession?.close()
+        } catch (e: Exception) {
+            Log.w(TAG, "关闭会话异常", e)
+        }
         captureSession = null
-        cameraDevice?.close()
+        try {
+            cameraDevice?.close()
+        } catch (e: Exception) {
+            Log.w(TAG, "关闭相机异常", e)
+        }
         cameraDevice = null
-        rawImageReader?.close()
+        try {
+            rawImageReader?.close()
+        } catch (e: Exception) {
+            Log.w(TAG, "关闭 RAW ImageReader 异常", e)
+        }
         rawImageReader = null
-        jpegImageReader?.close()
+        try {
+            jpegImageReader?.close()
+        } catch (e: Exception) {
+            Log.w(TAG, "关闭 JPEG ImageReader 异常", e)
+        }
         jpegImageReader = null
-        dngThread.quitSafely()
+    }
+
+    fun destroy() {
+        isDestroyed = true
+        close()
+        try {
+            dngThread.quitSafely()
+            dngThread.join(3000)
+        } catch (e: Exception) {
+            Log.w(TAG, "DNG线程关闭异常", e)
+        }
     }
 }

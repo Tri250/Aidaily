@@ -17,7 +17,10 @@ import android.os.IBinder
 import android.os.Looper
 import android.provider.MediaStore
 import android.util.Log
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import com.livecompose.livecapture.core.lut.BuiltInPresets
 import com.livecompose.livecapture.core.lut.LutProcessor
@@ -87,6 +90,7 @@ class PhantomService : Service() {
 
     private var contentObserver: ContentObserver? = null
     private var isRunning = false
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
@@ -105,6 +109,7 @@ class PhantomService : Service() {
 
     override fun onDestroy() {
         unregisterContentObserver()
+        serviceScope.cancel()
         isRunning = false
         Log.d(TAG, "幻影模式已停止")
         super.onDestroy()
@@ -199,10 +204,11 @@ class PhantomService : Service() {
      * 应用幻影模式色彩处理
      */
     private fun applyPhantomProcessing(uri: Uri, name: String, width: Int, height: Int) {
+        var originalBitmap: Bitmap? = null
         try {
             // 读取原始照片
             val inputStream = contentResolver.openInputStream(uri) ?: return
-            val originalBitmap = BitmapFactory.decodeStream(inputStream)
+            originalBitmap = BitmapFactory.decodeStream(inputStream)
             inputStream.close()
 
             if (originalBitmap == null) {
@@ -216,19 +222,22 @@ class PhantomService : Service() {
 
             if (lutId.isEmpty()) {
                 originalBitmap.recycle()
+                originalBitmap = null
                 return
             }
 
             val preset = BuiltInPresets.presets.find { it.id == lutId }
             if (preset == null) {
                 originalBitmap.recycle()
+                originalBitmap = null
                 return
             }
 
-            val lutProcessor = LutProcessor()
-            GlobalScope.launch {
+            val capturedOriginal = originalBitmap
+            serviceScope.launch {
+                var processedBitmap: Bitmap? = null
                 try {
-                    val processedBitmap = lutProcessor.applyPreset(originalBitmap, preset) {}
+                    processedBitmap = lutProcessor.applyPreset(capturedOriginal, preset) {}
 
                     // 保存处理后的照片
                     val saveAsNew = isSaveAsNew(this@PhantomService)
@@ -238,18 +247,23 @@ class PhantomService : Service() {
                         overwriteOriginal(processedBitmap, uri)
                     }
 
-                    originalBitmap.recycle()
-                    processedBitmap.recycle()
-
                     Log.d(TAG, "幻影模式处理完成: $name")
                 } catch (e: Exception) {
                     Log.e(TAG, "色彩处理失败: $name", e)
+                } finally {
+                    processedBitmap?.recycle()
+                    capturedOriginal.recycle()
                 }
             }
+            // 原始 Bitmap 由协程负责回收，这里不再 recycle
+            originalBitmap = null
         } catch (e: Exception) {
+            originalBitmap?.recycle()
             Log.e(TAG, "处理新照片失败: $name", e)
         }
     }
+
+    private val lutProcessor = LutProcessor()
 
     /**
      * 另存为新照片
