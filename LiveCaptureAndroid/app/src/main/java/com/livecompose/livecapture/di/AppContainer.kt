@@ -1,10 +1,26 @@
 package com.livecompose.livecapture.di
 
 import android.content.Context
-import com.livecompose.livecapture.core.logger.AppLogger
 import com.livecompose.livecapture.core.camera.CameraManager
+import com.livecompose.livecapture.core.camera.ProCameraManager
+import com.livecompose.livecapture.core.composition.LevelMonitor
+import com.livecompose.livecapture.core.editing.AutoEnhancer
+import com.livecompose.livecapture.core.editing.BatchProcessor
+import com.livecompose.livecapture.core.community.CommunityManager
+import com.livecompose.livecapture.core.community.LocationRecommender
+import com.livecompose.livecapture.core.compliance.YouthModeManager
+import com.livecompose.livecapture.core.errorhandling.AppErrorHandler
+import com.livecompose.livecapture.core.filter.AiFilterRecommender
+import com.livecompose.livecapture.core.filter.SkinProtectionFilter
+import com.livecompose.livecapture.core.intelligence.SceneIntelligenceEngine
+import com.livecompose.livecapture.core.logger.AppLogger
+import com.livecompose.livecapture.core.lut.LutImporter
 import com.livecompose.livecapture.core.motion.MotionStabilityMonitor
+import com.livecompose.livecapture.core.performance.MemoryMonitor
+import com.livecompose.livecapture.core.storage.PhotoSearchEngine
 import com.livecompose.livecapture.core.storage.PhotoStorageService
+import com.livecompose.livecapture.core.storage.SmartAlbumClassifier
+import com.livecompose.livecapture.core.video.VideoViewModel
 
 /**
  * 轻量级 DI 容器
@@ -28,21 +44,112 @@ class AppContainer(context: Context) {
         }
     }
 
-    private val applicationContext = context.applicationContext ?: throw IllegalArgumentException("Application context is required")
+    private val applicationContext = context.applicationContext
+        ?: throw IllegalArgumentException("Application context is required")
+
+    // MARK: - 相机与视频
 
     /** 相机管理器 */
     val cameraManager by lazy {
         CameraManager(applicationContext)
     }
 
+    /** 专业相机模式管理器 */
+    val proCameraManager by lazy {
+        ProCameraManager(applicationContext)
+    }
+
+    /** 视频录制视图模型 */
+    val videoViewModel by lazy {
+        VideoViewModel(applicationContext)
+    }
+
+    // MARK: - 运动与构图
+
     /** 运动稳定性监控器 */
     val motionMonitor by lazy {
         MotionStabilityMonitor(applicationContext)
     }
 
+    /** 水平仪监控器（构图辅助） */
+    val levelMonitor by lazy {
+        LevelMonitor(applicationContext)
+    }
+
+    // MARK: - 智能与编辑
+
+    /** 场景智能引擎 */
+    val sceneIntelligenceEngine by lazy {
+        SceneIntelligenceEngine(applicationContext)
+    }
+
+    /** 自动增强器（AI 编辑） */
+    val autoEnhancer by lazy {
+        AutoEnhancer()
+    }
+
+    /** 批量处理器 */
+    val batchProcessor by lazy {
+        BatchProcessor(photoStorageService, applicationContext)
+    }
+
+    // MARK: - 存储与错误处理
+
     /** 照片存储服务 */
     val photoStorageService by lazy {
         PhotoStorageService(applicationContext)
+    }
+
+    /** 智能相册分类器 */
+    val smartAlbumClassifier by lazy {
+        SmartAlbumClassifier(photoStorageService)
+    }
+
+    /** 照片搜索引擎 */
+    val photoSearchEngine by lazy {
+        PhotoSearchEngine(photoStorageService)
+    }
+
+    /** AI 滤镜推荐器 */
+    val aiFilterRecommender by lazy {
+        AiFilterRecommender()
+    }
+
+    /** 皮肤保护滤镜 */
+    val skinProtectionFilter by lazy {
+        SkinProtectionFilter()
+    }
+
+    /** LUT 导入器 */
+    val lutImporter by lazy {
+        LutImporter(applicationContext)
+    }
+
+    /** 内存监控器 */
+    val memoryMonitor by lazy {
+        MemoryMonitor(applicationContext)
+    }
+
+    // MARK: - 社区与合规
+
+    /** 社区管理器（照片挑战 + 滤镜社区） */
+    val communityManager by lazy {
+        CommunityManager(applicationContext)
+    }
+
+    /** 拍照地点推荐器 */
+    val locationRecommender by lazy {
+        LocationRecommender()
+    }
+
+    /** 青少年模式管理器 */
+    val youthModeManager by lazy {
+        YouthModeManager(applicationContext)
+    }
+
+    /** 全局错误处理器 */
+    val errorHandler by lazy {
+        AppErrorHandler()
     }
 
     /**
@@ -50,11 +157,14 @@ class AppContainer(context: Context) {
      */
     fun destroy() {
         try {
-            if (::photoStorageService.isInitialized) {
-                // PhotoStorageService 的 CoroutineScope 会随 GC 回收，无需显式停止
+            if (::levelMonitor.isInitialized) {
+                levelMonitor.stopMonitoring()
             }
             if (::motionMonitor.isInitialized) {
                 motionMonitor.stop()
+            }
+            if (::memoryMonitor.isInitialized) {
+                memoryMonitor.stopMonitoring()
             }
             if (::cameraManager.isInitialized) {
                 cameraManager.destroy()
