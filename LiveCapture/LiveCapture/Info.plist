@@ -31,7 +31,7 @@
 	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
+		<string>arm64</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
@@ -79,8 +79,6 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>UIApplicationSupportsMultipleScenes</key>
-	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>构妙可使用位置信息在照片中添加位置标签，位置信息仅存储在您的设备本地。</string>
 	<key>LSApplicationQueriesSchemes</key>

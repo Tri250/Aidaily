@@ -487,7 +487,7 @@ final class PortraitViewModel: ObservableObject {
         }
 
         let context = CIContext(options: [
-            .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!,
+            .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
             .highQualityDownsample: true
         ])
 

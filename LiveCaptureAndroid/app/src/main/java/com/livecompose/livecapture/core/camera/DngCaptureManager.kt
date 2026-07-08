@@ -179,8 +179,14 @@ class DngCaptureManager(private val context: Context) {
             jpegSize.width, jpegSize.height, ImageFormat.JPEG, 1
         )
 
-        val rawSurface = rawImageReader!!.surface
-        val jpegSurface = jpegImageReader!!.surface
+        val rawSurface = rawImageReader?.surface ?: run {
+            onError?.invoke("RAW ImageReader 创建失败")
+            return
+        }
+        val jpegSurface = jpegImageReader?.surface ?: run {
+            onError?.invoke("JPEG ImageReader 创建失败")
+            return
+        }
 
         val targets = listOf(
             OutputConfiguration(rawSurface),

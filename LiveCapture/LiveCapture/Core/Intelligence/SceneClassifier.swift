@@ -60,7 +60,7 @@ final class SceneClassifier {
 	// MARK: - 私有属性
 
 	private let queue = DispatchQueue(label: "livecapture.scene.classifier", qos: .userInitiated)
-	private let ciContext = CIContext(options: [.workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
+	private let ciContext = CIContext(options: [.workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()])
 
 	/// 场景分类所需的 Vision 标签到 SceneType 的映射表
 	private let sceneLabelMapping: [String: SceneType] = [

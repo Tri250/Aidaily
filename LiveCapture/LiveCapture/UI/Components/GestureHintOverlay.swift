@@ -78,7 +78,7 @@ struct GestureHintOverlay: View {
                             .font(DesignSystem.Typography.title2)
                             .foregroundColor(.white)
 
-                        Text("\(GestureHint.allCases.firstIndex(of: currentHint)! + 1) / \(GestureHint.allCases.count)")
+                        Text("\((GestureHint.allCases.firstIndex(of: currentHint) ?? 0) + 1) / \(GestureHint.allCases.count)")
                             .font(DesignSystem.Typography.subheadline)
                             .foregroundColor(.white.opacity(0.5))
 

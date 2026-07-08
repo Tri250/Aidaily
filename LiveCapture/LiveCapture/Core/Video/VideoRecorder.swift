@@ -86,14 +86,14 @@ final class VideoRecorder: NSObject, ObservableObject {
         // 使用 Metal 加速创建 Core Image 上下文
         if let device = MTLCreateSystemDefaultDevice() {
             ciContext = CIContext(mtlDevice: device, options: [
-                .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!,
-                .outputColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!,
+                .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
+                .outputColorSpace: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
                 .name: "VideoRecorder"
             ])
         } else {
             ciContext = CIContext(options: [
-                .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!,
-                .outputColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!,
+                .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
+                .outputColorSpace: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
                 .name: "VideoRecorder"
             ])
         }
@@ -245,7 +245,8 @@ final class VideoRecorder: NSObject, ObservableObject {
         }
 
         // 写入视频帧（避免"旋转"问题）
-        let adjustedTimestamp = CMTimeSubtract(timestamp, startTime!)
+        guard let startTime = startTime else { return }
+        let adjustedTimestamp = CMTimeSubtract(timestamp, startTime)
         lastSampleTime = adjustedTimestamp
 
         guard let videoInput = videoInput, videoInput.isReadyForMoreMediaData else { return }

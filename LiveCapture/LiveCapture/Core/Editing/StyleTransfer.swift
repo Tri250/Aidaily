@@ -66,7 +66,7 @@ final class StyleTransfer: ObservableObject {
     // MARK: - 私有属性
 
     private let context: CIContext
-    private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+    private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
 
     // MARK: - 初始化
 

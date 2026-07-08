@@ -548,7 +548,7 @@ object ShareCardGenerator {
     }
 
     private fun formattedDate(timestamp: Long): String =
-        dateFormatter.get()!!.format(Date(timestamp))
+        dateFormatter.get()?.format(Date(timestamp)) ?: ""
 
     /** 快门速度显示：≥1s 显示 "Ns"，否则显示 "1/Ns" */
     private fun shutterDisplay(speed: Double): String =

@@ -243,7 +243,7 @@ final class VideoViewModel: ObservableObject {
                     } else if url != nil {
                         // 录制成功
                         #if DEBUG
-                        print("✅ 视频录制完成: \(url!.lastPathComponent)")
+                        print("✅ 视频录制完成: \(url?.lastPathComponent ?? "unknown")")
                         #endif
                     }
                 }
@@ -254,7 +254,7 @@ final class VideoViewModel: ObservableObject {
                 DispatchQueue.main.async {
                     if url != nil {
                         #if DEBUG
-                        print("✅ 延时摄影完成: \(url!.lastPathComponent)")
+                        print("✅ 延时摄影完成: \(url?.lastPathComponent ?? "unknown")")
                         #endif
                     }
                 }

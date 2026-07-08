@@ -85,7 +85,7 @@ final class PhotoEditor: ObservableObject {
     // MARK: - 私有属性
 
     private let context: CIContext
-    private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+    private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
     private var originalImage: CIImage?
     private var editHistory: [EditState] = []
     private var historyIndex: Int = -1

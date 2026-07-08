@@ -410,8 +410,9 @@ open class VideoRecorder(private val context: Context) {
                 outputIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
                     // 仅在第一次输出格式变化时启动 muxer
                     synchronized(this) {
-                        if (!muxerStarted && mediaMuxer != null) {
-                            val newTrack = mediaMuxer!!.addTrack(encoder.outputFormat)
+                        val muxer = mediaMuxer
+                        if (!muxerStarted && muxer != null) {
+                            val newTrack = muxer.addTrack(encoder.outputFormat)
                             if (isVideo) {
                                 videoTrackIndex = newTrack
                             } else {
@@ -422,7 +423,7 @@ open class VideoRecorder(private val context: Context) {
                             val needsAudio = currentMode.requiresAudio
                             val hasAudioTrack = audioTrackIndex >= 0
                             if (hasVideoTrack && (!needsAudio || hasAudioTrack)) {
-                                mediaMuxer!!.start()
+                                muxer.start()
                                 muxerStarted = true
                             }
                         }

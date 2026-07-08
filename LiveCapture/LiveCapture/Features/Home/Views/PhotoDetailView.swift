@@ -302,8 +302,9 @@ struct PhotoBrowserView: View {
     private func saveToPhotos(_ image: UIImage) {
         PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
             guard status == .authorized || status == .limited else { return }
+            guard let pngData = image.pngData() else { return }
             PHPhotoLibrary.shared().performChanges({
-                PHAssetCreationRequest.forAsset().addResource(with: .photo, data: image.pngData()!, options: nil)
+                PHAssetCreationRequest.forAsset().addResource(with: .photo, data: pngData, options: nil)
             }) { success, _ in
                 DispatchQueue.main.async {
                     if success {

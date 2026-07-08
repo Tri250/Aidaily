@@ -51,7 +51,7 @@ extension PhotoEditor {
         let context = CIContext()
         context.render(output, toBitmap: &bitmap, rowBytes: 4,
                        bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
-                       format: .RGBA8, colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!)
+                       format: .RGBA8, colorSpace: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB())
 
         let avgR = Float(bitmap[0]) / 255.0
         let avgG = Float(bitmap[1]) / 255.0
@@ -205,7 +205,7 @@ extension PhotoEditor {
         var bitmap = [UInt8](repeating: 0, count: 4)
         context.render(output, toBitmap: &bitmap, rowBytes: 4,
                        bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
-                       format: .RGBA8, colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!)
+                       format: .RGBA8, colorSpace: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB())
 
         return Float(bitmap[0]) / 255.0
     }

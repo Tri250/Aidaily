@@ -321,8 +321,9 @@ final class PhotoEditorViewModel: ObservableObject {
                 return
             }
 
+            guard let jpegData = image.jpegData(compressionQuality: 0.95) else { return }
             PHPhotoLibrary.shared().performChanges {
-                PHAssetCreationRequest.forAsset().addResource(with: .photo, data: image.jpegData(compressionQuality: 0.95)!, options: nil)
+                PHAssetCreationRequest.forAsset().addResource(with: .photo, data: jpegData, options: nil)
             } completionHandler: { [weak self] success, _ in
                 DispatchQueue.main.async {
                     self?.isProcessing = false

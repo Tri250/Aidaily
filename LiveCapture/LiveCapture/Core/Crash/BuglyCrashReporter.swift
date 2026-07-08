@@ -99,7 +99,6 @@ final class BuglyCrashReporter {
                 "callStack": callStack,
                 "timestamp": Date().timeIntervalSince1970
             ], forKey: "livecapture.last_crash")
-            UserDefaults.standard.synchronize()
         }
     }
 
@@ -107,28 +106,42 @@ final class BuglyCrashReporter {
 
     private func registerSignalHandlers() {
         // 捕获 SIGABRT, SIGSEGV, SIGBUS 等致命信号
+        // 注意：信号处理回调中只能调用 async-signal-safe 函数
         let signals: [Int32] = [SIGABRT, SIGSEGV, SIGBUS, SIGFPE, SIGILL, SIGTRAP]
+        let crashFilePath = BuglyCrashReporter.signalCrashFilePath()
         for sig in signals {
             signal(sig) { signal in
-                let signalName: String
-                switch signal {
-                case SIGABRT: signalName = "SIGABRT"
-                case SIGSEGV: signalName = "SIGSEGV"
-                case SIGBUS: signalName = "SIGBUS"
-                case SIGFPE: signalName = "SIGFPE"
-                case SIGILL: signalName = "SIGILL"
-                case SIGTRAP: signalName = "SIGTRAP"
-                default: signalName = "Unknown(\(signal))"
+                // 仅使用 async-signal-safe 操作：写入文件描述符
+                let fd = open(crashFilePath, O_WRONLY | O_CREAT | O_TRUNC, 0o644)
+                if fd >= 0 {
+                    let signalName: StaticString
+                    switch signal {
+                    case SIGABRT: signalName = "SIGABRT"
+                    case SIGSEGV: signalName = "SIGSEGV"
+                    case SIGBUS: signalName = "SIGBUS"
+                    case SIGFPE: signalName = "SIGFPE"
+                    case SIGILL: signalName = "SIGILL"
+                    case SIGTRAP: signalName = "SIGTRAP"
+                    default: signalName = "Unknown"
+                    }
+                    let timestamp = time(nil)
+                    let message = "signal=\(signalName)&ts=\(timestamp)"
+                    message.withCString { ptr in
+                        _ = write(fd, ptr, strlen(ptr))
+                    }
+                    close(fd)
                 }
-                LiveCaptureLogger.shared.error("收到致命信号: \(signalName)")
-                UserDefaults.standard.set([
-                    "signal": signalName,
-                    "timestamp": Date().timeIntervalSince1970
-                ], forKey: "livecapture.last_signal_crash")
-                UserDefaults.standard.synchronize()
-                exit(signal)
+                // 重置信号处理器为默认，然后重新发送信号以生成核心转储
+                signal(signal, SIG_DFL)
+                raise(signal)
             }
         }
+    }
+
+    /// 获取信号崩溃日志文件路径
+    private static func signalCrashFilePath() -> String {
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+        return (dir?.appendingPathComponent("livecapture_signal_crash.txt").path) ?? "/tmp/livecapture_signal_crash.txt"
     }
 
     // MARK: - 上次崩溃检测
@@ -141,10 +154,15 @@ final class BuglyCrashReporter {
             LiveCaptureLogger.shared.info("检测到上次启动发生崩溃: \(crashInfo)")
             return crashInfo
         }
-        if let signalInfo = UserDefaults.standard.dictionary(forKey: "livecapture.last_signal_crash") {
-            UserDefaults.standard.removeObject(forKey: "livecapture.last_signal_crash")
-            LiveCaptureLogger.shared.info("检测到上次启动收到致命信号: \(signalInfo)")
-            return signalInfo
+        // 检查信号崩溃文件（由 async-signal-safe 信号处理器写入）
+        let crashFilePath = BuglyCrashReporter.signalCrashFilePath()
+        if FileManager.default.fileExists(atPath: crashFilePath) {
+            if let content = try? String(contentsOfFile: crashFilePath, encoding: .utf8), !content.isEmpty {
+                try? FileManager.default.removeItem(atPath: crashFilePath)
+                let info: [String: Any] = ["signal_crash": content]
+                LiveCaptureLogger.shared.info("检测到上次启动收到致命信号: \(content)")
+                return info
+            }
         }
         return nil
     }

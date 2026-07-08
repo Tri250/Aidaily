@@ -38,6 +38,11 @@ jobs:
       - name: 显示构建目标
         run: xcodebuild -list
 
+      - name: SwiftLint
+        run: |
+          brew install swiftlint
+          swiftlint --strict
+
       - name: 构建项目
         run: |
           xcodebuild build \

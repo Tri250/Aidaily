@@ -158,10 +158,11 @@ final class ShareManager {
                 return
             }
 
+            guard let pngData = image.pngData() else { return }
             PHPhotoLibrary.shared().performChanges {
                 PHAssetCreationRequest.forAsset().addResource(
                     with: .photo,
-                    data: image.pngData()!,
+                    data: pngData,
                     options: nil
                 )
             } completionHandler: { success, error in

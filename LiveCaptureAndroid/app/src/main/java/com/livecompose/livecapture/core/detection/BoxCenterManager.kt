@@ -78,11 +78,12 @@ class BoxCenterManager {
     }
 
     fun updateCenter(motion: FloatArray?) {
-        if (motion == null || referenceAttitude == null) return
+        if (motion == null) return
+        val reference = referenceAttitude ?: return
 
         val currentAttitude = motion
-        val deltaPitch = currentAttitude[1] - referenceAttitude!![1] // pitch
-        val deltaRoll = currentAttitude[2] - referenceAttitude!![2]   // roll
+        val deltaPitch = currentAttitude[1] - reference[1] // pitch
+        val deltaRoll = currentAttitude[2] - reference[2]   // roll
 
         val clampedPitch = max(-maxAngle, min(maxAngle, deltaPitch.toDouble()))
         val clampedRoll = max(-maxAngle, min(maxAngle, deltaRoll.toDouble()))
@@ -92,8 +93,8 @@ class BoxCenterManager {
         val offsetX = (rollForOffset / maxAngle).toFloat()
         val offsetY = (pitchForOffset / maxAngle).toFloat()
 
-        val rotationRateY = (currentAttitude[1] - referenceAttitude!![1]).toFloat()
-        val rotationRateX = (currentAttitude[2] - referenceAttitude!![2]).toFloat()
+        val rotationRateY = (currentAttitude[1] - reference[1]).toFloat()
+        val rotationRateX = (currentAttitude[2] - reference[2]).toFloat()
         val angularVelocity = PointF(rotationRateX, rotationRateY)
         updateVelocityHistory(angularVelocity)
 
@@ -203,9 +204,10 @@ class BoxCenterManager {
         val isAligned = distance <= tolerance
 
         if (isAligned) {
-            if (alignedStartTime == null) {
+            val startTime = alignedStartTime
+            if (startTime == null) {
                 alignedStartTime = System.currentTimeMillis()
-            } else if (System.currentTimeMillis() - alignedStartTime!! >= lockDuration && !isLockedToCenter) {
+            } else if (System.currentTimeMillis() - startTime >= lockDuration && !isLockedToCenter) {
                 isLockedToCenter = true
             }
         } else {
@@ -251,14 +253,16 @@ class AdaptivePointSmoother(private val baseResponse: Double) {
     }
 
     fun filter(x: Double, y: Double): Pair<Double, Double> {
-        if (previousX == null || previousY == null) {
+        val prevX = previousX
+        val prevY = previousY
+        if (prevX == null || prevY == null) {
             previousX = x
             previousY = y
             return x to y
         }
         val t = currentResponse
-        val filteredX = previousX!! + t * (x - previousX!!)
-        val filteredY = previousY!! + t * (y - previousY!!)
+        val filteredX = prevX + t * (x - prevX)
+        val filteredY = prevY + t * (y - prevY)
         previousX = filteredX
         previousY = filteredY
         return filteredX to filteredY

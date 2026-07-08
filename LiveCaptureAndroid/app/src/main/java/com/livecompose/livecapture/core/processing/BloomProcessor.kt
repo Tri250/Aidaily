@@ -64,7 +64,8 @@ class BloomProcessor {
             onProgress(0.8f)
 
             // 步骤 3: 叠加到原图
-            output = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val outputBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            output = outputBitmap
             val outputPixels = IntArray(width * height)
 
             for (i in pixels.indices) {
@@ -84,9 +85,9 @@ class BloomProcessor {
                 outputPixels[i] = (0xFF shl 24) or (outR shl 16) or (outG shl 8) or outB
             }
 
-            output!!.setPixels(outputPixels, 0, width, 0, 0, width, height)
+            outputBitmap.setPixels(outputPixels, 0, width, 0, 0, width, height)
             onProgress(1f)
-            output!!
+            outputBitmap
         } catch (e: OutOfMemoryError) {
             output?.recycle()
             throw RuntimeException("Bloom 效果处理内存不足，请尝试降低图像分辨率", e)
@@ -128,7 +129,8 @@ class BloomProcessor {
             onProgress(0.7f)
 
             // Screen 混合：result = 1 - (1 - a) * (1 - b)
-            output = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val outputBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            output = outputBitmap
             val outputPixels = IntArray(width * height)
 
             for (i in pixels.indices) {
@@ -150,9 +152,9 @@ class BloomProcessor {
                 outputPixels[i] = (0xFF shl 24) or (outR shl 16) or (outG shl 8) or outB
             }
 
-            output!!.setPixels(outputPixels, 0, width, 0, 0, width, height)
+            outputBitmap.setPixels(outputPixels, 0, width, 0, 0, width, height)
             onProgress(1f)
-            output!!
+            outputBitmap
         } catch (e: OutOfMemoryError) {
             output?.recycle()
             throw RuntimeException("柔光效果处理内存不足", e)

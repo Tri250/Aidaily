@@ -97,12 +97,12 @@ final class TimelapseRecorder: ObservableObject {
 
         if let device = MTLCreateSystemDefaultDevice() {
             ciContext = CIContext(mtlDevice: device, options: [
-                .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!,
+                .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
                 .name: "TimelapseRecorder"
             ])
         } else {
             ciContext = CIContext(options: [
-                .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!,
+                .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
                 .name: "TimelapseRecorder"
             ])
         }

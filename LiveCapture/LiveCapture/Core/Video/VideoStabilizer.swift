@@ -80,12 +80,12 @@ final class VideoStabilizer {
     init() {
         if let device = MTLCreateSystemDefaultDevice() {
             ciContext = CIContext(mtlDevice: device, options: [
-                .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!,
+                .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
                 .name: "VideoStabilizer"
             ])
         } else {
             ciContext = CIContext(options: [
-                .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!,
+                .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
                 .name: "VideoStabilizer"
             ])
         }
@@ -284,7 +284,7 @@ final class VideoStabilizer {
             return true
         }
 
-        let currentAttitude = attitude.copy() as! CMAttitude
+        guard let currentAttitude = attitude.copy() as? CMAttitude else { return true }
         currentAttitude.multiply(byInverseOf: reference)
 
         let rotationThreshold: Double = 0.5 * .pi / 180.0 // 0.5°
@@ -300,7 +300,7 @@ final class VideoStabilizer {
             return 0
         }
 
-        let currentAttitude = attitude.copy() as! CMAttitude
+        guard let currentAttitude = attitude.copy() as? CMAttitude else { return 0 }
         currentAttitude.multiply(byInverseOf: reference)
 
         return sqrt(

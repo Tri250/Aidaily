@@ -183,6 +183,7 @@ extension CameraManager {
                     self.configureStabilization(for: connection)
                 }
             } catch {
+                LiveCaptureLogger.shared.error("CameraManager session error: \(error)")
                 return
             }
         }

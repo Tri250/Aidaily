@@ -117,7 +117,7 @@ final class AIEditViewModel: ObservableObject {
     private let styleTransfer = StyleTransfer()
 
     private let context: CIContext
-    private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+    private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
 
     private var cancellables = Set<AnyCancellable>()
 

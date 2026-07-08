@@ -143,6 +143,7 @@ final class VideoEditor: ObservableObject {
             let cgImage = try generator.copyCGImage(at: time, actualTime: nil)
             return UIImage(cgImage: cgImage)
         } catch {
+            LiveCaptureLogger.shared.error("VideoEditor error: \(error)")
             return nil
         }
     }

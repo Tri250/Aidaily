@@ -33,7 +33,7 @@ final class BatchProcessor: ObservableObject {
     private let filterProcessor = LutFilterProcessor()
     private let autoEnhancer = AutoEnhancer()
     private let processingQueue = DispatchQueue(label: "livecapture.batch.processor", qos: .userInitiated, attributes: .concurrent)
-    private let context = CIContext(options: [.workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
+    private let context = CIContext(options: [.workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()])
 
     private let lock = NSLock()
 

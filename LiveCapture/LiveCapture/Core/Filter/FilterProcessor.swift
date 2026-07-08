@@ -63,7 +63,7 @@ final class FilterProcessor {
     /// Core Image 上下文，复用 GPU 资源
     private let context: CIContext
     /// 颜色空间
-    private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+    private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
 
     /// 前后对比模式
     var comparisonMode: ComparisonMode = .disabled

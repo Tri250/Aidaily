@@ -10,7 +10,7 @@ import Accelerate
 final class CoreMLCropDetector {
     private let mode: DetectionMode
     private let queue = DispatchQueue(label: "livecapture.coreml.queue", qos: .userInitiated)
-    private let ciContext = CIContext(options: [.workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
+    private let ciContext = CIContext(options: [.workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()])
 
     private enum ModelLoadError: Error {
         case modelNotFound

@@ -33,7 +33,7 @@ import AVFoundation
 final class PortraitEffectEngine {
     private let context = CIContext(
         options: [
-            .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!,
+            .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
             .highQualityDownsample: true
         ]
     )
@@ -58,6 +58,7 @@ final class PortraitEffectEngine {
         do {
             try handler.perform([request, landmarkRequest])
         } catch {
+            LiveCaptureLogger.shared.error("PortraitEffectEngine error: \(error)")
             return PortraitResult(originalImage: image, hasPortrait: false)
         }
 

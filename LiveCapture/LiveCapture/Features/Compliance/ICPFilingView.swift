@@ -13,6 +13,10 @@ import SwiftUI
 struct ICPFilingView: View {
     let info = ICPFilingInfo.fromBundle()
 
+    private var beianURL: URL {
+        URL(string: "https://beian.miit.gov.cn") ?? URL(fileURLWithPath: "")
+    }
+
     var body: some View {
         VStack(spacing: 12) {
             // 公司名称
@@ -24,7 +28,7 @@ struct ICPFilingView: View {
 
             // ICP 备案号
             if !info.icpNumber.isEmpty {
-                Link(destination: URL(string: info.icpLink) ?? URL(string: "https://beian.miit.gov.cn")!) {
+                Link(destination: URL(string: info.icpLink) ?? beianURL) {
                     HStack(spacing: 4) {
                         Image(systemName: "shield.checkered")
                             .font(.system(size: 10))
@@ -37,7 +41,7 @@ struct ICPFilingView: View {
                 .accessibilityHint("点击前往工信部备案系统查询")
             } else {
                 // 占位备案号
-                Link(destination: URL(string: "https://beian.miit.gov.cn")!) {
+                Link(destination: beianURL) {
                     HStack(spacing: 4) {
                         Image(systemName: "shield.checkered")
                             .font(.system(size: 10))
@@ -73,6 +77,10 @@ struct ICPFilingView: View {
 struct ICPFilingDetailView: View {
     @Environment(\.dismiss) private var dismiss
     let info = ICPFilingInfo.fromBundle()
+
+    private var beianURL: URL {
+        URL(string: "https://beian.miit.gov.cn") ?? URL(fileURLWithPath: "")
+    }
 
     var body: some View {
         NavigationStack {
@@ -112,7 +120,7 @@ struct ICPFilingDetailView: View {
                     )
 
                     // 链接到工信部
-                    Link(destination: URL(string: info.icpLink) ?? URL(string: "https://beian.miit.gov.cn")!) {
+                    Link(destination: URL(string: info.icpLink) ?? beianURL) {
                         HStack {
                             Image(systemName: "safari")
                                 .font(.system(size: 15))

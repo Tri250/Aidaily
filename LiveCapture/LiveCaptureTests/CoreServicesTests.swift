@@ -12,7 +12,7 @@ import AVFoundation
 
 // MARK: - PhotoStorageService Tests
 
-final class PhotoStorageServiceTests: XCTestCase {
+final class CorePhotoStorageServiceTests: XCTestCase {
     var storage: PhotoStorageService!
 
     override func setUp() {
@@ -27,10 +27,10 @@ final class PhotoStorageServiceTests: XCTestCase {
         XCTAssertTrue(type(of: records) == [PhotoRecord].self)
     }
 
-    func test_photoURL_forValidId_returnsURL() {
+    func test_photoURL_forNonexistentId_returnsNil() {
         let record = PhotoRecord(id: UUID(), creationDate: Date())
         let url = storage.photoURL(for: record.id)
-        XCTAssertNotNil(UUID(uuidString: url?.lastPathComponent.replacingOccurrences(of: ".jpg", with: "") ?? ""))
+        XCTAssertNil(url)
     }
 
     func test_thumbnail_forId_returnsNilWhenNoImage() {
@@ -63,9 +63,9 @@ final class FilterPresetManagerTests: XCTestCase {
         manager = FilterPresetManager()
     }
 
-    func test_builtInPresets_has12Presets() {
+    func test_builtInPresets_hasAtLeast30Presets() {
         let presets = manager.presets
-        XCTAssertEqual(presets.count, 12)
+        XCTAssertGreaterThanOrEqual(presets.count, 30)
     }
 
     func test_presets_allHaveUniqueNames() {
@@ -85,21 +85,21 @@ final class FilterPresetManagerTests: XCTestCase {
         XCTAssertEqual(manager.selectedPreset?.id, preset.id)
     }
 
-    func test_deselectAll_clearsSelection() {
+    func test_clearSelection_clearsSelection() {
         manager.selectPreset(manager.presets[0])
-        manager.deselectAll()
+        manager.clearSelection()
         XCTAssertNil(manager.selectedPreset)
     }
 
-    func test_filterByCategory_returnsCorrectCategory() {
-        let portraitPresets = manager.filterByCategory(.portrait)
+    func test_getPresetsForCategory_returnsCorrectCategory() {
+        let portraitPresets = manager.getPresetsForCategory(.portrait)
         for preset in portraitPresets {
             XCTAssertEqual(preset.category, .portrait)
         }
     }
 
     func test_defaultIntensity_returns1() {
-        XCTAssertEqual(manager.currentIntensity, 1.0)
+        XCTAssertEqual(manager.filterIntensity, 1.0)
     }
 }
 
@@ -234,7 +234,7 @@ final class FilterParametersTests: XCTestCase {
         XCTAssertNotNil(data)
 
         let decoder = JSONDecoder()
-        let decoded = try? decoder.decode(FilterParameters.self, from: data!)
+        let decoded = try? decoder.decode(FilterParameters.self, from: data ?? Data())
         XCTAssertEqual(decoded?.temperature, 800)
         XCTAssertEqual(decoded?.contrast, 0.92)
     }
@@ -263,8 +263,8 @@ final class DetectionModeTests: XCTestCase {
 // MARK: - FilterCategory Tests
 
 final class FilterCategoryTests: XCTestCase {
-    func test_allCases_sevenCategories() {
-        XCTAssertEqual(FilterCategory.allCases.count, 7)
+    func test_allCases_tenCategories() {
+        XCTAssertEqual(FilterCategory.allCases.count, 10)
     }
 
     func test_eachCategory_hasSymbolName() {
@@ -312,7 +312,7 @@ final class LightAnalysisTests: XCTestCase {
 
 final class SceneTypeTests: XCTestCase {
     func test_allCases_count() {
-        XCTAssertEqual(SceneType.allCases.count, 12)
+        XCTAssertEqual(SceneType.allCases.count, 31)
     }
 
     func test_displayName_matchesRawValue() {

@@ -34,7 +34,7 @@ import Accelerate
 final class SkinBeautifier {
     private let context = CIContext(
         options: [
-            .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!,
+            .workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
             .highQualityDownsample: true
         ]
     )

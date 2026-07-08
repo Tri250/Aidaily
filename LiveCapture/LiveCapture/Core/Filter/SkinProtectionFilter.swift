@@ -57,7 +57,7 @@ final class SkinProtectionFilter {
     /// Core Image 上下文
     private let context: CIContext
     /// 颜色空间
-    private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+    private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
 
     /// 人脸检测请求
     private lazy var faceDetectionRequest: VNDetectFaceRectanglesRequest = {
@@ -309,6 +309,7 @@ final class SkinProtectionFilter {
             try handler.perform([faceDetectionRequest])
             return !(faceDetectionRequest.results?.isEmpty ?? true)
         } catch {
+            LiveCaptureLogger.shared.error("SkinProtectionFilter error: \(error)")
             return false
         }
     }

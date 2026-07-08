@@ -408,7 +408,7 @@ final class ImageQualityAssessor {
 	// MARK: - 初始化
 
 	init() {
-		let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+		let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
 		self.ciContext = CIContext(options: [
 			.workingColorSpace: colorSpace,
 			.outputColorSpace: colorSpace,

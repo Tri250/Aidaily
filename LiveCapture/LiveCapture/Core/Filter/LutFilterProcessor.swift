@@ -47,7 +47,7 @@ final class LutFilterProcessor {
 
     /// Core Image 上下文（兼容旧代码）
     private let context: CIContext
-    private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+    private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
 
     // MARK: - 初始化
 

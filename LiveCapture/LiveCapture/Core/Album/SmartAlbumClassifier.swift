@@ -26,7 +26,7 @@ final class SmartAlbumClassifier {
     // MARK: - 私有属性
 
     private let queue = DispatchQueue(label: "livecapture.album.classifier", qos: .userInitiated)
-    private let ciContext = CIContext(options: [.workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
+    private let ciContext = CIContext(options: [.workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()])
 
     /// Vision 场景标签到 SceneType 的映射表
     private let sceneLabelMapping: [String: SceneType] = [
@@ -410,6 +410,7 @@ final class SmartAlbumClassifier {
                 do {
                     try handler.perform([request, landmarksRequest])
                 } catch {
+                    LiveCaptureLogger.shared.error("SmartAlbumClassifier error: \(error)")
                     return
                 }
 

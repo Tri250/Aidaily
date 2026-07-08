@@ -9,6 +9,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import Security
 
 #if os(iOS)
 
@@ -137,7 +138,6 @@ final class YouthModeManager: ObservableObject {
     private let usageKey = "livecapture.today_usage"
     private let communityDisabledKey = "livecapture.community_disabled"
     private let sharingDisabledKey = "livecapture.sharing_disabled"
-    private let passwordKey = "livecapture.youth_mode_password"
 
     private var usageTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
@@ -179,22 +179,56 @@ final class YouthModeManager: ObservableObject {
         stopUsageTracking()
     }
 
-    // MARK: - Password Management
+    // MARK: - Password Management (Keychain)
+
+    /// Keychain 服务标识
+    private let keychainService = "com.livecapture.youth_mode"
+    private let keychainAccount = "youth_mode_password"
 
     /// 是否已设置密码
     var hasSetPassword: Bool {
-        UserDefaults.standard.string(forKey: passwordKey) != nil
+        loadPasswordFromKeychain() != nil
     }
 
-    /// 设置密码
+    /// 设置密码（使用 Keychain 安全存储）
     func setPassword(_ password: String) {
-        UserDefaults.standard.set(password, forKey: passwordKey)
+        savePasswordToKeychain(password)
         LiveCaptureLogger.shared.info("青少年模式密码已设置")
     }
 
     /// 验证密码
     func verifyPassword(_ password: String) -> Bool {
-        UserDefaults.standard.string(forKey: passwordKey) == password
+        loadPasswordFromKeychain() == password
+    }
+
+    // MARK: - Keychain Helpers
+
+    private func savePasswordToKeychain(_ password: String) {
+        let data = password.data(using: .utf8) ?? Data()
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: keychainAccount
+        ]
+        SecItemDelete(query as CFDictionary)
+        var attributes = query
+        attributes[kSecValueData as String] = data
+        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        SecItemAdd(attributes as CFDictionary, nil)
+    }
+
+    private func loadPasswordFromKeychain() -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: keychainAccount,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess, let data = result as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
     }
 
     /// 切换青少年模式（需要密码验证）

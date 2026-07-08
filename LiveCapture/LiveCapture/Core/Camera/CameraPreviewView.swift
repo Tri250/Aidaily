@@ -122,7 +122,7 @@ final class PreviewUIView: UIView {
     /// 指定使用 AVCaptureVideoPreviewLayer 作为底层 layer
     override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
     /// 方便访问底层的 AVCaptureVideoPreviewLayer
-    var videoPreviewLayer: AVCaptureVideoPreviewLayer { layer as! AVCaptureVideoPreviewLayer }
+    var videoPreviewLayer: AVCaptureVideoPreviewLayer { layer as? AVCaptureVideoPreviewLayer ?? AVCaptureVideoPreviewLayer() }
 }
 
 /// 如果支持，应用视频防抖模式
