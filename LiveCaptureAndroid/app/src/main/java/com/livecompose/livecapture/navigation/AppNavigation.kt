@@ -16,14 +16,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.livecompose.livecapture.features.capture.CaptureScreen
 import com.livecompose.livecapture.features.home.GalleryScreen
+import com.livecompose.livecapture.features.home.CropEditScreen
 import com.livecompose.livecapture.features.livecompose.LiveComposeScreen
 import com.livecompose.livecapture.features.settings.SettingsScreen
 import com.livecompose.livecapture.ui.design.DesignSystem
 
-/**
- * 应用导航
- * 对应 iOS 的 MainTabView
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation() {
