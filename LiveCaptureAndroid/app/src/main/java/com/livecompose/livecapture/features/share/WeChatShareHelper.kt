@@ -20,9 +20,16 @@ object WeChatShareHelper {
 
     private const val TAG = "WeChatShare"
 
-    // 微信 AppID（需在 open.weixin.qq.com 注册获取）
-    // 正式发布前替换为真实 AppID
-    private const val WECHAT_APP_ID = "YOUR_WECHAT_APP_ID"
+    // 微信 AppID（从 BuildConfig 读取，在 build.gradle.kts 中配置）
+    // 需在 open.weixin.qq.com 注册获取
+    private val WECHAT_APP_ID: String by lazy {
+        try {
+            com.livecompose.livecapture.BuildConfig.WECHAT_APP_ID
+        } catch (_: Exception) {
+            Log.w(TAG, "WECHAT_APP_ID 未在 BuildConfig 中配置，微信分享不可用")
+            ""
+        }
+    }
 
     private var wxApi: IWXAPI? = null
 
@@ -31,6 +38,10 @@ object WeChatShareHelper {
      * 应在 Application.onCreate() 中调用
      */
     fun init(context: Context) {
+        if (WECHAT_APP_ID.isBlank()) {
+            Log.w(TAG, "微信 AppID 未配置，跳过初始化")
+            return
+        }
         try {
             wxApi = WXAPIFactory.createWXAPI(context, WECHAT_APP_ID, true)
             wxApi?.registerApp(WECHAT_APP_ID)
@@ -166,8 +177,9 @@ object WeChatShareHelper {
     /**
      * 处理微信回调
      * 需要在对应的 WXEntryActivity 中调用
+     * @param intent 从 WXEntryActivity 传入的 Intent
      */
-    fun handleIntent(context: Context): Boolean {
-        return wxApi?.handleIntent(null, null) ?: false
+    fun handleIntent(intent: android.content.Intent): Boolean {
+        return wxApi?.handleIntent(intent, null) ?: false
     }
 }

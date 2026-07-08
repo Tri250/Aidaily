@@ -1,9 +1,5 @@
 package com.livecompose.livecapture.features.capture.components
 
-import android.hardware.camera2.CameraCharacteristics
-import android.hardware.camera2.CameraManager
-import android.hardware.camera2.CaptureRequest
-import android.hardware.camera2.params.MeteringRectangle
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -16,7 +12,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 
 /**
@@ -39,6 +34,7 @@ fun FocusIndicator(
     )
 
     var focusState by remember { mutableStateOf(FocusState()) }
+    val coroutineScope = rememberCoroutineScope()
     val animatedScale by animateFloatAsState(
         targetValue = if (focusState.isActive) 1f else 0.5f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
@@ -71,7 +67,7 @@ fun FocusIndicator(
                         isLocked = false
                     )
                     // 延迟后变"锁定"
-                    kotlinx.coroutines.MainScope().launch {
+                    coroutineScope.launch {
                         delay(800)
                         focusState = focusState.copy(isLocked = true)
                     }

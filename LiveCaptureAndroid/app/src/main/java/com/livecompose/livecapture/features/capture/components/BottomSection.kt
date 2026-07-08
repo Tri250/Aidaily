@@ -46,7 +46,8 @@ fun BottomSection(
     onTogglePipeline: () -> Unit,
     onCapture: () -> Unit,
     onReset: () -> Unit,
-    onToggleCamera: () -> Unit
+    onToggleCamera: () -> Unit,
+    onNavigateToGallery: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -81,7 +82,7 @@ fun BottomSection(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             // 图库
-            SecondaryCircleButton(icon = Icons.Default.PhotoLibrary, onClick = { /* 导航到图库 */ })
+            SecondaryCircleButton(icon = Icons.Default.PhotoLibrary, onClick = onNavigateToGallery)
 
             // 构图按钮
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
@@ -98,6 +99,7 @@ fun BottomSection(
                         .clickable {
                             scale = 0.85f
                             onTogglePipeline()
+                            scale = 1f
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -217,6 +219,7 @@ private fun CaptureButton(onCapture: () -> Unit) {
             .clickable {
                 scale = 0.9f
                 onCapture()
+                scale = 1f
             },
         contentAlignment = Alignment.Center
     ) {
@@ -249,7 +252,8 @@ private fun ZoomRingView(
         )
 
         // 进度环
-        val progress = (zoomState.currentFactor - zoomRange.start) / (zoomRange.endInclusive - zoomRange.start)
+        val range = zoomRange.endInclusive - zoomRange.start
+        val progress = if (range > 0f) (zoomState.currentFactor - zoomRange.start) / range else 0f
         drawArc(
             color = Color.White,
             startAngle = -90f,

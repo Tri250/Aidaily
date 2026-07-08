@@ -43,26 +43,7 @@ data class ColorRecipeParams(
 
         /** 重置为默认值 */
         fun reset(): ColorRecipeParams = DEFAULT
-    }
 
-    /**
-     * 检查是否为默认值（所有参数均为默认）
-     */
-    val isDefault: Boolean get() = this == DEFAULT
-
-    /**
-     * 序列化为 Map 用于持久化
-     */
-    fun toMap(): Map<String, Any> = mapOf(
-        "exposure" to exposure, "contrast" to contrast,
-        "highlights" to highlights, "shadows" to shadows,
-        "saturation" to saturation, "temperature" to temperature,
-        "tint" to tint, "fade" to fade, "grain" to grain,
-        "vignette" to vignette, "sharpening" to sharpening,
-        "bloom" to bloom, "bleach" to bleach
-    )
-
-    companion object {
         /**
          * 从 Map 反序列化
          */
@@ -82,4 +63,21 @@ data class ColorRecipeParams(
             bleach = (map["bleach"] as? Number)?.toFloat() ?: 0f
         )
     }
+
+    /**
+     * 检查是否为默认值（所有参数均为默认）
+     */
+    val isDefault: Boolean get() = this == DEFAULT
+
+    /**
+     * 序列化为 Map 用于持久化
+     */
+    fun toMap(): Map<String, Any> = mapOf(
+        "exposure" to exposure, "contrast" to contrast,
+        "highlights" to highlights, "shadows" to shadows,
+        "saturation" to saturation, "temperature" to temperature,
+        "tint" to tint, "fade" to fade, "grain" to grain,
+        "vignette" to vignette, "sharpening" to sharpening,
+        "bloom" to bloom, "bleach" to bleach
+    )
 }

@@ -34,6 +34,8 @@ fun TopControlBar(
     onToggleAutoCapture: () -> Unit,
     onSetCaptureDelay: (Double) -> Unit
 ) {
+    var showCaptureMenu by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -72,7 +74,6 @@ fun TopControlBar(
         // 右侧按钮组
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TopCircleButton(icon = Icons.Default.FlipCameraAndroid, onClick = onToggleCamera)
-            var showCaptureMenu by remember { mutableStateOf(false) }
             TopCircleButton(icon = Icons.Default.Timer, onClick = { showCaptureMenu = true })
         }
     }

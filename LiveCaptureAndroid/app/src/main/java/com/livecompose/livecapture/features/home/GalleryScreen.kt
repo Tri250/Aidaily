@@ -13,11 +13,14 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -25,7 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
+
 import com.livecompose.livecapture.core.storage.PhotoRecord
 import com.livecompose.livecapture.ui.design.DesignSystem
 import java.io.File
@@ -204,7 +207,7 @@ fun GalleryScreen(
                 items(filteredRecords, key = { it.id }) { record ->
                     PhotoCard(
                         record = record,
-                        thumbnail = viewModel.getThumbnail(record.id),
+                        viewModel = viewModel,
                         isSelected = record.id in selectedIds,
                         isSelectionMode = isSelectionMode,
                         onClick = {
@@ -239,7 +242,7 @@ fun GalleryScreen(
         val record = records[selectedPhotoIndex]
         PhotoDetailDialog(
             record = record,
-            photo = viewModel.getFullPhoto(record.id),
+            viewModel = viewModel,
             onDismiss = { selectedPhotoIndex = -1 },
             onDelete = {
                 viewModel.deleteRecord(record.id)
@@ -254,20 +257,25 @@ fun GalleryScreen(
 @Composable
 private fun PhotoCard(
     record: PhotoRecord,
-    thumbnail: android.graphics.Bitmap?,
+    viewModel: HomeViewModel,
     isSelected: Boolean,
     isSelectionMode: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
+    var thumbnail by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    LaunchedEffect(record.id) {
+        thumbnail = viewModel.getThumbnail(record.id)
+    }
+
     Box(
         modifier = Modifier
             .aspectRatio(1f)
             .clickable(onClick = onClick)
     ) {
         if (thumbnail != null) {
-            AsyncImage(
-                model = thumbnail.asImageBitmap(),
+            Image(
+                bitmap = thumbnail.asImageBitmap(),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
@@ -361,12 +369,17 @@ private fun PhotoCard(
 @Composable
 private fun PhotoDetailDialog(
     record: PhotoRecord,
-    photo: android.graphics.Bitmap?,
+    viewModel: HomeViewModel,
     onDismiss: () -> Unit,
     onDelete: () -> Unit,
     onRatingChange: (Int) -> Unit,
     onToggleFlag: () -> Unit
 ) {
+    var photo by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    LaunchedEffect(record.id) {
+        photo = viewModel.getFullPhoto(record.id)
+    }
+
     var currentRating by remember { mutableIntStateOf(record.rating) }
     var isFlagged by remember { mutableStateOf(record.flag) }
 
@@ -379,8 +392,8 @@ private fun PhotoDetailDialog(
         text = {
             Column {
                 if (photo != null) {
-                    AsyncImage(
-                        model = photo.asImageBitmap(),
+                    Image(
+                        bitmap = photo.asImageBitmap(),
                         contentDescription = null,
                         modifier = Modifier.fillMaxWidth()
                     )

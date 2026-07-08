@@ -127,7 +127,7 @@ class PhotoStorageService(context: Context) {
         if (index >= 0) {
             current[index] = transform(current[index])
             _records.value = current
-            persist(current)
+            scope.launch { persist(current) }
         }
     }
 

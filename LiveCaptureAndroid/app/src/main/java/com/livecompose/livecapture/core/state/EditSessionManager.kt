@@ -5,7 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
-import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.*
@@ -54,7 +54,7 @@ class EditSessionManager(private val context: Context) {
         private val KEY_OFFSET_X = doublePreferencesKey("offset_x")
         private val KEY_OFFSET_Y = doublePreferencesKey("offset_y")
         private val KEY_CROP_RATIO = stringPreferencesKey("crop_ratio")
-        private val KEY_LAST_SAVED = intPreferencesKey("last_saved_timestamp")
+        private val KEY_LAST_SAVED = longPreferencesKey("last_saved_timestamp")
     }
 
     /**
@@ -69,7 +69,7 @@ class EditSessionManager(private val context: Context) {
             preferences[KEY_OFFSET_X] = session.offsetX.toDouble()
             preferences[KEY_OFFSET_Y] = session.offsetY.toDouble()
             preferences[KEY_CROP_RATIO] = session.cropRatio
-            preferences[KEY_LAST_SAVED] = session.lastSavedTimestamp.toInt()
+            preferences[KEY_LAST_SAVED] = session.lastSavedTimestamp
         }
     }
 
@@ -104,7 +104,7 @@ class EditSessionManager(private val context: Context) {
             offsetX = (preferences[KEY_OFFSET_X] ?: 0.0).toFloat(),
             offsetY = (preferences[KEY_OFFSET_Y] ?: 0.0).toFloat(),
             cropRatio = preferences[KEY_CROP_RATIO] ?: "original",
-            lastSavedTimestamp = (preferences[KEY_LAST_SAVED] ?: 0).toLong()
+            lastSavedTimestamp = preferences[KEY_LAST_SAVED] ?: 0L
         )
     }
 

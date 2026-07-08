@@ -14,6 +14,8 @@ import androidx.compose.material.icons.filled.RotateRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,7 +65,10 @@ fun CropEditScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val bitmap = remember(photoId) { viewModel.getFullPhoto(photoId) }
+    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(photoId) {
+        bitmap = viewModel.getFullPhoto(photoId)
+    }
     var selectedRatio by remember { mutableStateOf(CropAspectRatio.ORIGINAL) }
     var rotation by remember { mutableIntStateOf(0) }
     var scale by remember { mutableFloatStateOf(1f) }

@@ -40,7 +40,7 @@ fun CountdownOverlay(
     onCancel: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    var remainingSeconds by remember(seconds) { mutableIntStateOf(seconds.toInt()) }
+    var remainingSeconds by remember(seconds) { mutableIntStateOf(kotlin.math.ceil(seconds).toInt()) }
     var currentProgress by remember { mutableFloatStateOf(1f) }
     var isVisible by remember(isActive) { mutableStateOf(isActive) }
 
@@ -118,13 +118,14 @@ fun CountdownOverlay(
                 )
 
                 // 进度弧
+                val arcSize = androidx.compose.ui.geometry.Size(radius * 2 - 8.dp.toPx(), radius * 2 - 8.dp.toPx())
                 drawArc(
                     color = Color.White,
                     startAngle = -90f,
                     sweepAngle = 360f * currentProgress,
                     useCenter = false,
-                    topLeft = center - androidx.compose.ui.geometry.Size(radius * 2, radius * 2) / 2f,
-                    size = androidx.compose.ui.geometry.Size(radius * 2 - 8.dp.toPx(), radius * 2 - 8.dp.toPx()),
+                    topLeft = Offset(center.x - arcSize.width / 2, center.y - arcSize.height / 2),
+                    size = arcSize,
                     style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
                 )
             }

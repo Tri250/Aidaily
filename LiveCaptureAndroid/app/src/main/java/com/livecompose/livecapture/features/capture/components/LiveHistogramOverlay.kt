@@ -7,7 +7,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,9 +39,16 @@ fun LiveHistogramOverlay(
     backgroundColor: Color = Color.Black.copy(alpha = 0.5f),
     cornerRadius: Int = 12
 ) {
-    val histogramData = remember(previewBitmap) {
-        if (previewBitmap == null) return@remember null
-        computeHistogram(previewBitmap)
+    var histogramData by remember { mutableStateOf<HistogramData?>(null) }
+
+    LaunchedEffect(previewBitmap) {
+        if (previewBitmap == null) {
+            histogramData = null
+        } else {
+            histogramData = withContext(Dispatchers.Default) {
+                computeHistogram(previewBitmap)
+            }
+        }
     }
 
     Box(
@@ -56,10 +69,10 @@ fun LiveHistogramOverlay(
 }
 
 data class HistogramData(
-    val luminance: IntArray,      // 256 级亮度直方图
-    val red: IntArray,            // 256 级红色通道
-    val green: IntArray,          // 256 级绿色通道
-    val blue: IntArray,           // 256 级蓝色通道
+    val luminance: List<Int>,      // 256 级亮度直方图
+    val red: List<Int>,            // 256 级红色通道
+    val green: List<Int>,          // 256 级绿色通道
+    val blue: List<Int>,           // 256 级蓝色通道
     val maxLuminance: Int,
     val maxRgb: Int
 )
@@ -98,10 +111,10 @@ private fun computeHistogram(bitmap: Bitmap): HistogramData {
     scaled.recycle()
 
     return HistogramData(
-        luminance = luminance,
-        red = red,
-        green = green,
-        blue = blue,
+        luminance = luminance.toList(),
+        red = red.toList(),
+        green = green.toList(),
+        blue = blue.toList(),
         maxLuminance = luminance.maxOrNull() ?: 1,
         maxRgb = maxOf(
             red.maxOrNull() ?: 1,
@@ -157,7 +170,7 @@ private fun DrawScope.drawHistogram(data: HistogramData, showRGB: Boolean) {
  * 绘制单个通道直方图
  */
 private fun DrawScope.drawChannelHistogram(
-    channelData: IntArray,
+    channelData: List<Int>,
     maxValue: Int,
     color: Color,
     width: Float,

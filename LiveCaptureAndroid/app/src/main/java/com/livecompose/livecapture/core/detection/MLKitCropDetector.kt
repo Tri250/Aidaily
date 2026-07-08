@@ -10,7 +10,7 @@ import kotlinx.coroutines.*
 /**
  * 基于 ML Kit 的美学裁切检测器
  */
-class MLKitCropDetector : CropDetectionStrategy {
+class MLKitCropDetector : CropDetectionStrategy, java.io.Closeable {
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
@@ -148,5 +148,10 @@ class MLKitCropDetector : CropDetectionStrategy {
             confidence = 0.5f,
             detectionType = "默认中心"
         )
+    }
+
+    override fun close() {
+        scope.cancel()
+        faceDetector.close()
     }
 }

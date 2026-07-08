@@ -92,30 +92,75 @@ class DehazeProcessor {
 
     /**
      * 计算暗通道
-     * 对每个像素，取其邻域中 RGB 三个通道的最小值
+     * 使用分离式最小值滤波 O(W×H)，替代暴力滑动窗口 O(W×H×R²)
+     * 先水平方向取最小值，再垂直方向取最小值
      */
     private fun computeDarkChannel(
         r: FloatArray, g: FloatArray, b: FloatArray,
         width: Int, height: Int, radius: Int
     ): FloatArray {
-        val dark = FloatArray(width * height)
+        // 第一步：逐像素取 RGB 最小值
+        val minRgb = FloatArray(width * height)
+        for (i in minRgb.indices) {
+            minRgb[i] = minOf(r[i], g[i], b[i])
+        }
+
+        // 第二步：水平方向最小值滤波
+        val horizontal = FloatArray(width * height)
         for (y in 0 until height) {
-            for (x in 0 until width) {
-                var minVal = 1f
-                val yStart = maxOf(0, y - radius)
-                val yEnd = minOf(height - 1, y + radius)
-                val xStart = maxOf(0, x - radius)
-                val xEnd = minOf(width - 1, x + radius)
-                for (ny in yStart..yEnd) {
-                    for (nx in xStart..xEnd) {
-                        val idx = ny * width + nx
-                        val localMin = minOf(r[idx], g[idx], b[idx])
-                        if (localMin < minVal) minVal = localMin
+            val rowOffset = y * width
+            // 用单调双端队列实现 O(W) 水平最小值滤波
+            val deque = java.util.ArrayDeque<Int>()
+            for (x in 0 until width + radius) {
+                val clampedX = x.coerceIn(0, width - 1)
+                val val_ = minRgb[rowOffset + clampedX]
+                // 从队尾移除大于当前值的元素
+                while (deque.isNotEmpty() && minRgb[rowOffset + deque.last()] >= val_) {
+                    deque.removeLast()
+                }
+                deque.addLast(clampedX)
+                // 移除超出窗口的元素
+                val windowLeft = x - radius * 2
+                while (deque.isNotEmpty() && deque.first() < windowLeft.coerceIn(0, width - 1).also { if (it > deque.first()) deque.removeFirst() }) {
+                    deque.removeFirst()
+                }
+                if (deque.isNotEmpty() && deque.first() < (x - radius * 2).coerceIn(0, width - 1)) {
+                    deque.removeFirst()
+                }
+                // 输出当前窗口最小值
+                if (x >= radius) {
+                    val outX = x - radius
+                    if (outX < width) {
+                        horizontal[rowOffset + outX] = minRgb[rowOffset + deque.first()]
                     }
                 }
-                dark[y * width + x] = minVal
             }
         }
+
+        // 第三步：垂直方向最小值滤波
+        val dark = FloatArray(width * height)
+        for (x in 0 until width) {
+            val deque = java.util.ArrayDeque<Int>()
+            for (y in 0 until height + radius) {
+                val clampedY = y.coerceIn(0, height - 1)
+                val val_ = horizontal[clampedY * width + x]
+                while (deque.isNotEmpty() && horizontal[deque.last() * width + x] >= val_) {
+                    deque.removeLast()
+                }
+                deque.addLast(clampedY)
+                val windowTop = y - radius * 2
+                if (deque.isNotEmpty() && deque.first() < windowTop.coerceIn(0, height - 1)) {
+                    deque.removeFirst()
+                }
+                if (y >= radius) {
+                    val outY = y - radius
+                    if (outY < height) {
+                        dark[outY * width + x] = horizontal[deque.first() * width + x]
+                    }
+                }
+            }
+        }
+
         return dark
     }
 
@@ -158,6 +203,7 @@ class DehazeProcessor {
 
     /**
      * 计算透射率图
+     * 使用分离式最小值滤波优化，避免 O(W×H×R²)
      */
     private fun computeTransmission(
         r: FloatArray, g: FloatArray, b: FloatArray,
@@ -168,32 +214,86 @@ class DehazeProcessor {
         val aG = atmosphericLight[1]
         val aB = atmosphericLight[2]
 
+        // 归一化后取 RGB 最小值
+        val normalized = FloatArray(width * height)
+        for (i in normalized.indices) {
+            val nR = r[i] / maxOf(aR, 0.001f)
+            val nG = g[i] / maxOf(aG, 0.001f)
+            val nB = b[i] / maxOf(aB, 0.001f)
+            normalized[i] = minOf(nR, nG, nB)
+        }
+
+        // 分离式最小值滤波（与 computeDarkChannel 相同算法）
+        val darkChannel = computeDarkChannelFromNormalized(normalized, width, height, radius)
+
         val transmission = FloatArray(width * height)
+        for (i in transmission.indices) {
+            transmission[i] = 1f - omega * darkChannel[i]
+        }
+        return transmission
+    }
 
+    /**
+     * 对已归一化的单通道数据进行分离式最小值滤波
+     */
+    private fun computeDarkChannelFromNormalized(
+        data: FloatArray, width: Int, height: Int, radius: Int
+    ): FloatArray {
+        // 水平方向最小值滤波
+        val horizontal = FloatArray(width * height)
         for (y in 0 until height) {
-            for (x in 0 until width) {
-                var minVal = 1f
-                val yStart = maxOf(0, y - radius)
-                val yEnd = minOf(height - 1, y + radius)
-                val xStart = maxOf(0, x - radius)
-                val xEnd = minOf(width - 1, x + radius)
-
-                for (ny in yStart..yEnd) {
-                    for (nx in xStart..xEnd) {
-                        val idx = ny * width + nx
-                        val normalizedR = r[idx] / maxOf(aR, 0.001f)
-                        val normalizedG = g[idx] / maxOf(aG, 0.001f)
-                        val normalizedB = b[idx] / maxOf(aB, 0.001f)
-                        val localMin = minOf(normalizedR, normalizedG, normalizedB)
-                        if (localMin < minVal) minVal = localMin
+            val rowOffset = y * width
+            var minVal = Float.MAX_VALUE
+            // 初始化窗口 [0, 2*radius]
+            for (x in 0..minOf(2 * radius, width - 1)) {
+                if (data[rowOffset + x] < minVal) minVal = data[rowOffset + x]
+            }
+            horizontal[rowOffset] = minVal
+            // 滑动窗口
+            for (x in 1 until width) {
+                val leftOut = (x - radius - 1).coerceIn(0, width - 1)
+                val rightIn = (x + radius).coerceIn(0, width - 1)
+                // 简单滑动：如果离开的值等于当前最小值，需要重新扫描窗口
+                if (data[rowOffset + leftOut] == minVal && leftOut != rightIn) {
+                    minVal = Float.MAX_VALUE
+                    val ws = maxOf(0, x - radius)
+                    val we = minOf(width - 1, x + radius)
+                    for (wx in ws..we) {
+                        if (data[rowOffset + wx] < minVal) minVal = data[rowOffset + wx]
                     }
+                } else if (data[rowOffset + rightIn] < minVal) {
+                    minVal = data[rowOffset + rightIn]
                 }
-
-                transmission[y * width + x] = 1f - omega * minVal
+                horizontal[rowOffset + x] = minVal
             }
         }
 
-        return transmission
+        // 垂直方向最小值滤波
+        val result = FloatArray(width * height)
+        for (x in 0 until width) {
+            var minVal = Float.MAX_VALUE
+            for (y in 0..minOf(2 * radius, height - 1)) {
+                if (horizontal[y * width + x] < minVal) minVal = horizontal[y * width + x]
+            }
+            result[x] = minVal
+            for (y in 1 until height) {
+                val topOut = (y - radius - 1).coerceIn(0, height - 1)
+                val botIn = (y + radius).coerceIn(0, height - 1)
+                if (horizontal[topOut * width + x] == minVal && topOut != botIn) {
+                    minVal = Float.MAX_VALUE
+                    val ys = maxOf(0, y - radius)
+                    val ye = minOf(height - 1, y + radius)
+                    for (wy in ys..ye) {
+                        if (horizontal[wy * width + x] < minVal) minVal = horizontal[wy * width + x]
+                    }
+                } else if (horizontal[botIn * width + x] < minVal) {
+                    minVal = horizontal[botIn * width + x]
+                }
+                result[y * width + x] = minVal
+            }
+        }
+
+        return result
     }
 
     /**

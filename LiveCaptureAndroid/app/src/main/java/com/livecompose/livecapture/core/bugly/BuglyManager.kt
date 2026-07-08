@@ -12,9 +12,15 @@ object BuglyManager {
 
     private const val TAG = "BuglyManager"
 
-    // Bugly AppID（需在 bugly.qq.com 注册获取）
-    // 正式发布前替换为真实 AppID
-    private const val BUGLY_APP_ID = "YOUR_BUGLY_APP_ID"
+    // Bugly AppID（从 BuildConfig 读取，在 build.gradle.kts 中配置）
+    private val BUGLY_APP_ID: String by lazy {
+        try {
+            BuildConfig.BUGLY_APP_ID
+        } catch (_: Exception) {
+            Log.w(TAG, "BUGLY_APP_ID 未在 BuildConfig 中配置，崩溃上报不可用")
+            ""
+        }
+    }
 
     private var isInitialized = false
 
@@ -24,6 +30,10 @@ object BuglyManager {
      */
     fun init(application: Application) {
         if (isInitialized) return
+        if (BUGLY_APP_ID.isBlank()) {
+            Log.w(TAG, "Bugly AppID 未配置，跳过初始化")
+            return
+        }
         try {
             val strategy = CrashReport.UserStrategy(application).apply {
                 // 设置渠道（配合多渠道包）
@@ -31,7 +41,7 @@ object BuglyManager {
                 // 延迟初始化，避免启动卡顿
                 appReportDelay = 3000
                 // 开发阶段设置为测试设备，不上报
-                isBuglyDev = BuildConfig.DEBUG
+                setIsDevelopmentDevice(BuildConfig.DEBUG)
             }
 
             CrashReport.initCrashReport(application, BUGLY_APP_ID, BuildConfig.DEBUG, strategy)

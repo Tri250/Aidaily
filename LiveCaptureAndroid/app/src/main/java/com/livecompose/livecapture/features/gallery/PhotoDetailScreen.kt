@@ -13,6 +13,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
+import androidx.compose.foundation.Image
 import com.livecompose.livecapture.core.metadata.ExifData
 import com.livecompose.livecapture.core.metadata.ExifReader
 import com.livecompose.livecapture.core.storage.PhotoRecord
@@ -52,9 +54,13 @@ fun PhotoDetailScreen(
     viewModel: HomeViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val bitmap = remember(photoId) { viewModel.getFullPhoto(photoId) }
-    val record = remember(photoId) {
-        viewModel.records.collectAsState().value.find { it.id == photoId }
+    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(photoId) {
+        bitmap = viewModel.getFullPhoto(photoId)
+    }
+    val records by viewModel.records.collectAsState()
+    val record = remember(photoId, records) {
+        records.find { it.id == photoId }
     }
     val photoFile = remember(photoId) {
         viewModel.let { vm ->
@@ -123,8 +129,8 @@ fun PhotoDetailScreen(
                 contentAlignment = Alignment.Center
             ) {
                 if (bitmap != null) {
-                    AsyncImage(
-                        model = bitmap.asImageBitmap(),
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit

@@ -11,6 +11,8 @@ import android.os.VibratorManager
  */
 object HapticManager {
     private var vibrator: Vibrator? = null
+    private val pendingRunnables = mutableListOf<android.os.Handler>()
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
 
     fun init(context: Context) {
         vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -20,6 +22,14 @@ object HapticManager {
             @Suppress("DEPRECATION")
             context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         }
+    }
+
+    /**
+     * 取消所有待执行的延迟振动，应在 Activity.onDestroy 中调用
+     */
+    fun cancelPending() {
+        pendingRunnables.forEach { it.removeCallbacksAndMessages(null) }
+        pendingRunnables.clear()
     }
 
     private fun vibrate(effect: VibrationEffect) {
@@ -78,18 +88,20 @@ object HapticManager {
         medium()
         // 延迟后轻触
         vibrator?.let { v ->
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            val runnable = Runnable {
                 v.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
-            }, 50)
+            }
+            handler.postDelayed(runnable, 50)
         }
     }
 
     fun focusLock() {
         soft()
         vibrator?.let { v ->
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            val runnable = Runnable {
                 v.vibrate(VibrationEffect.createOneShot(8, 50))
-            }, 80)
+            }
+            handler.postDelayed(runnable, 80)
         }
     }
 

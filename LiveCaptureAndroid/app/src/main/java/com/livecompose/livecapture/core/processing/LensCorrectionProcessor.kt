@@ -71,9 +71,50 @@ class LensCorrectionProcessor {
         for (y in 0 until height) {
             for (x in 0 until width) {
                 val idx = y * width + x
-                val srcX = lutX[idx].toInt().coerceIn(0, width - 1)
-                val srcY = lutY[idx].toInt().coerceIn(0, height - 1)
-                outputPixels[idx] = pixels[srcY * width + srcX]
+                val srcXf = lutX[idx]
+                val srcYf = lutY[idx]
+
+                // 双线性插值
+                val x0 = srcXf.toInt().coerceIn(0, width - 2)
+                val y0 = srcYf.toInt().coerceIn(0, height - 2)
+                val x1 = x0 + 1
+                val y1 = y0 + 1
+                val fx = srcXf - x0
+                val fy = srcYf - y0
+
+                val p00 = pixels[y0 * width + x0]
+                val p10 = pixels[y0 * width + x1]
+                val p01 = pixels[y1 * width + x0]
+                val p11 = pixels[y1 * width + x1]
+
+                val a00 = (p00 shr 24) and 0xFF
+                val r00 = (p00 shr 16) and 0xFF
+                val g00 = (p00 shr 8) and 0xFF
+                val b00 = p00 and 0xFF
+                val a10 = (p10 shr 24) and 0xFF
+                val r10 = (p10 shr 16) and 0xFF
+                val g10 = (p10 shr 8) and 0xFF
+                val b10 = p10 and 0xFF
+                val a01 = (p01 shr 24) and 0xFF
+                val r01 = (p01 shr 16) and 0xFF
+                val g01 = (p01 shr 8) and 0xFF
+                val b01 = p01 and 0xFF
+                val a11 = (p11 shr 24) and 0xFF
+                val r11 = (p11 shr 16) and 0xFF
+                val g11 = (p11 shr 8) and 0xFF
+                val b11 = p11 and 0xFF
+
+                val w00 = (1 - fx) * (1 - fy)
+                val w10 = fx * (1 - fy)
+                val w01 = (1 - fx) * fy
+                val w11 = fx * fy
+
+                val a = (a00 * w00 + a10 * w10 + a01 * w01 + a11 * w11).toInt().coerceIn(0, 255)
+                val r = (r00 * w00 + r10 * w10 + r01 * w01 + r11 * w11).toInt().coerceIn(0, 255)
+                val g = (g00 * w00 + g10 * w10 + g01 * w01 + g11 * w11).toInt().coerceIn(0, 255)
+                val b = (b00 * w00 + b10 * w10 + b01 * w01 + b11 * w11).toInt().coerceIn(0, 255)
+
+                outputPixels[idx] = (a shl 24) or (r shl 16) or (g shl 8) or b
             }
         }
 

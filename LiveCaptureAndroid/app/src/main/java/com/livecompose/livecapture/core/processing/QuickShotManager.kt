@@ -102,8 +102,10 @@ class QuickShotManager {
     }
 
     fun addBurstFrame(jpegData: ByteArray): ByteArray {
-        _burstCount.value = _burstCount.value + 1
-        captureTimestamps.add(System.currentTimeMillis())
+        synchronized(frameBuffer) {
+            _burstCount.value = _burstCount.value + 1
+            captureTimestamps.add(System.currentTimeMillis())
+        }
         return jpegData
     }
 

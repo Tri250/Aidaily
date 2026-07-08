@@ -22,7 +22,7 @@ class WXEntryActivity : Activity(), IWXAPIEventHandler {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         try {
-            WeChatShareHelper.handleIntent(this)
+            WeChatShareHelper.handleIntent(intent)
         } catch (e: Exception) {
             Log.e(TAG, "微信回调处理失败", e)
         } finally {

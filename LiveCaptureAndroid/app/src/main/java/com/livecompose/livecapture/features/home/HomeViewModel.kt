@@ -8,8 +8,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.livecompose.livecapture.core.storage.PhotoRecord
 import com.livecompose.livecapture.core.storage.PhotoStorageService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * 图库 ViewModel
@@ -41,8 +43,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         ids.forEach { storage.deleteRecord(it) }
     }
 
-    fun getThumbnail(id: String): Bitmap? {
-        return try {
+    suspend fun getThumbnail(id: String): Bitmap? = withContext(Dispatchers.IO) {
+        try {
             storage.getThumbnail(id)
         } catch (e: Exception) {
             Log.e(TAG, "获取缩略图失败: $id", e)
@@ -50,8 +52,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun getFullPhoto(id: String): Bitmap? {
-        return try {
+    suspend fun getFullPhoto(id: String): Bitmap? = withContext(Dispatchers.IO) {
+        try {
             val file = storage.getPhotoFile(id)
             if (file.exists()) BitmapFactory.decodeFile(file.absolutePath) else null
         } catch (e: Exception) {

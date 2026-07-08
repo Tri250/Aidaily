@@ -17,6 +17,11 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // Bugly AppID（需在 bugly.qq.com 注册获取，通过 -PBUGLY_APP_ID=xxx 传入）
+        buildConfigField("String", "BUGLY_APP_ID", "\"${project.findProperty("BUGLY_APP_ID") as? String ?: ""}\"")
+        // 微信 AppID（需在 open.weixin.qq.com 注册获取，通过 -PWECHAT_APP_ID=xxx 传入）
+        buildConfigField("String", "WECHAT_APP_ID", "\"${project.findProperty("WECHAT_APP_ID") as? String ?: ""}\"")
+
         ndk {
             abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
         }
@@ -25,9 +30,15 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("keystore/release.jks")
-            storePassword = project.findProperty("RELEASE_STORE_PASSWORD") as? String ?: "livecapture2026"
-            keyAlias = project.findProperty("RELEASE_KEY_ALIAS") as? String ?: "livecapture"
-            keyPassword = project.findProperty("RELEASE_KEY_PASSWORD") as? String ?: "livecapture2026"
+            storePassword = project.findProperty("RELEASE_STORE_PASSWORD") as? String
+                ?: System.getenv("RELEASE_STORE_PASSWORD")
+                ?: ""
+            keyAlias = project.findProperty("RELEASE_KEY_ALIAS") as? String
+                ?: System.getenv("RELEASE_KEY_ALIAS")
+                ?: "livecapture"
+            keyPassword = project.findProperty("RELEASE_KEY_PASSWORD") as? String
+                ?: System.getenv("RELEASE_KEY_PASSWORD")
+                ?: ""
         }
     }
 

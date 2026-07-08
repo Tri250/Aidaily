@@ -14,6 +14,18 @@ class AppContainer(context: Context) {
 
     companion object {
         private const val TAG = "AppContainer"
+
+        @Volatile
+        private var instance: AppContainer? = null
+
+        /**
+         * 获取应用级单例，如果不存在则创建
+         */
+        fun getInstance(context: Context): AppContainer {
+            return instance ?: synchronized(this) {
+                instance ?: AppContainer(context.applicationContext).also { instance = it }
+            }
+        }
     }
 
     private val applicationContext = context.applicationContext ?: throw IllegalArgumentException("Application context is required")

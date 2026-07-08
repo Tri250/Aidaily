@@ -5,10 +5,16 @@ import android.graphics.Color as AndroidColor
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlin.math.sqrt
 
 /**
@@ -25,9 +31,17 @@ fun FocusPeakingOverlay(
     transparency: Float = 0.6f,
     downscaleFactor: Int = 4
 ) {
-    val peakPoints = remember(previewBitmap, sensitivity, downscaleFactor) {
-        if (previewBitmap == null) return@remember emptyList<PeakPoint>()
-        computeEdgePoints(previewBitmap, sensitivity, downscaleFactor)
+    var peakPoints by remember { mutableStateOf(emptyList<PeakPoint>()) }
+
+    LaunchedEffect(previewBitmap, sensitivity, downscaleFactor) {
+        if (previewBitmap == null) {
+            peakPoints = emptyList()
+            return@LaunchedEffect
+        }
+        val bitmap = previewBitmap
+        peakPoints = withContext(Dispatchers.Default) {
+            computeEdgePoints(bitmap, sensitivity, downscaleFactor)
+        }
     }
 
     val paintColor = when (peakColor) {
@@ -128,6 +142,9 @@ private fun computeEdgePoints(
         }
     }
 
-    scaled.recycle()
+    // 仅当 scaled 是新创建的临时 Bitmap 时回收，避免误回收原始 previewBitmap
+    if (scaled !== bitmap) {
+        scaled.recycle()
+    }
     return points
 }

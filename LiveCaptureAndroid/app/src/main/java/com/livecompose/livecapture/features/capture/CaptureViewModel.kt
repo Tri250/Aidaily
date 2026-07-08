@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
  */
 class CaptureViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val appContainer = AppContainer(application.applicationContext)
+    private val appContainer = AppContainer.getInstance(application.applicationContext)
 
     val camera = appContainer.cameraManager
     private val motion = appContainer.motionMonitor
@@ -103,7 +103,7 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
     val focalLengthText: String get() = "${_zoomState.value.focalLength}mm"
 
     private val alignmentTolerance = 15.0f
-    private var detectionInProgress = false
+    @Volatile private var detectionInProgress = false
     private var autoCaptureJob: kotlinx.coroutines.Job? = null
     private val detectionMode: DetectionMode
 

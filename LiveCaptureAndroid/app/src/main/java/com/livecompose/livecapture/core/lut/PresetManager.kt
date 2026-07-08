@@ -385,7 +385,10 @@ class PresetManager(private val context: Context) {
             thumbFile.outputStream().use { out ->
                 val scaled = Bitmap.createScaledBitmap(bitmap, 200, 200, true)
                 scaled.compress(Bitmap.CompressFormat.JPEG, 80, out)
-                scaled.recycle()
+                // 仅当 createScaledBitmap 返回新实例时才回收，避免误回收调用者传入的 bitmap
+                if (scaled !== bitmap) {
+                    scaled.recycle()
+                }
             }
         } catch (e: Exception) {
             // 缩略图保存失败不影响主流程

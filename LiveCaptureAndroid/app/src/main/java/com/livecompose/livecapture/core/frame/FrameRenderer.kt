@@ -77,10 +77,19 @@ object FrameRenderer {
 
         // 应用水印
         val withWatermark = applyWatermark(output, watermarkInfo)
+        // 如果水印产生了新 Bitmap，回收原始 output
+        if (withWatermark !== output) {
+            output.recycle()
+        }
 
         // 时间戳
         if (addTimestamp || frame.id == "timestamp") {
-            return applyTimestamp(withWatermark)
+            val withTimestamp = applyTimestamp(withWatermark)
+            // 如果时间戳产生了新 Bitmap，回收 withWatermark
+            if (withTimestamp !== withWatermark) {
+                withWatermark.recycle()
+            }
+            return withTimestamp
         }
 
         return withWatermark

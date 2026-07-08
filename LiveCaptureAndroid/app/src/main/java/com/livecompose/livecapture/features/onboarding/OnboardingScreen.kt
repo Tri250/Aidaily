@@ -248,10 +248,8 @@ private fun OnboardingPageContent(pageData: OnboardingPageData) {
     }
 }
 
-private fun android.content.Context.edit(
+private suspend fun android.content.Context.edit(
     transform: suspend (androidx.datastore.preferences.core.MutablePreferences) -> Unit
 ) {
-    kotlinx.coroutines.runBlocking {
-        dataStore.edit(transform)
-    }
+    dataStore.edit(transform)
 }

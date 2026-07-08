@@ -23,7 +23,7 @@ data class Album(
     val name: String,
     val description: String = "",
     val createdAt: Long = System.currentTimeMillis(),
-    val photoIds: MutableList<String> = mutableListOf(),
+    val photoIds: List<String> = emptyList(),
     val coverPhotoId: String? = null
 ) {
     val photoCount: Int get() = photoIds.size
@@ -121,11 +121,9 @@ class AlbumManager(private val context: Context) {
     suspend fun addPhotoToAlbum(albumId: String, photoId: String): Boolean {
         val updated = _albums.value.map { album ->
             if (album.id == albumId) {
-                val photoIds = album.photoIds.toMutableList()
-                if (!photoIds.contains(photoId)) {
-                    photoIds.add(photoId)
+                if (!album.photoIds.contains(photoId)) {
                     album.copy(
-                        photoIds = photoIds,
+                        photoIds = album.photoIds + photoId,
                         coverPhotoId = album.coverPhotoId ?: photoId
                     )
                 } else {
@@ -146,11 +144,10 @@ class AlbumManager(private val context: Context) {
     suspend fun removePhotoFromAlbum(albumId: String, photoId: String): Boolean {
         val updated = _albums.value.map { album ->
             if (album.id == albumId) {
-                val photoIds = album.photoIds.toMutableList()
-                photoIds.remove(photoId)
+                val newPhotoIds = album.photoIds.filter { it != photoId }
                 album.copy(
-                    photoIds = photoIds,
-                    coverPhotoId = if (album.coverPhotoId == photoId) photoIds.firstOrNull() else album.coverPhotoId
+                    photoIds = newPhotoIds,
+                    coverPhotoId = if (album.coverPhotoId == photoId) newPhotoIds.firstOrNull() else album.coverPhotoId
                 )
             } else {
                 album

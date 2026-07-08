@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.io.FileWriter
 import java.io.PrintWriter
@@ -49,11 +50,8 @@ class CrashHandler private constructor(private val context: Context) :
     }
 
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
-        // 保存崩溃信息
+        // 保存崩溃信息（包含崩溃标记）
         saveCrashInfo(thread, throwable)
-
-        // 标记崩溃状态
-        markCrashOccurred()
 
         // 写入日志文件
         writeCrashLog(thread, throwable)
@@ -64,6 +62,7 @@ class CrashHandler private constructor(private val context: Context) :
 
     /**
      * 保存崩溃信息到 DataStore
+     * 使用带超时的 runBlocking 防止死锁
      */
     private fun saveCrashInfo(thread: Thread, throwable: Throwable) {
         try {
@@ -76,31 +75,19 @@ class CrashHandler private constructor(private val context: Context) :
             )
 
             runBlocking {
-                store.edit { preferences ->
-                    preferences[CRASH_TIMESTAMP_KEY] = crashInfo.timestamp
-                    preferences[CRASH_MESSAGE_KEY] = crashInfo.exceptionMessage
-                    preferences[CRASH_STACK_KEY] = crashInfo.stackTrace
-                    preferences[CRASH_THREAD_KEY] = crashInfo.threadName
-                    preferences[CRASH_DEVICE_KEY] = crashInfo.deviceInfo
-                    preferences[CRASH_OCCURRED_KEY] = true
+                withTimeoutOrNull(2000L) {
+                    store.edit { preferences ->
+                        preferences[CRASH_TIMESTAMP_KEY] = crashInfo.timestamp
+                        preferences[CRASH_MESSAGE_KEY] = crashInfo.exceptionMessage
+                        preferences[CRASH_STACK_KEY] = crashInfo.stackTrace
+                        preferences[CRASH_THREAD_KEY] = crashInfo.threadName
+                        preferences[CRASH_DEVICE_KEY] = crashInfo.deviceInfo
+                        preferences[CRASH_OCCURRED_KEY] = true
+                    }
                 }
             }
         } catch (_: Exception) {
             // 保存崩溃信息失败不影响主流程
-        }
-    }
-
-    /**
-     * 标记崩溃已发生
-     */
-    private fun markCrashOccurred() {
-        try {
-            runBlocking {
-                store.edit { preferences ->
-                    preferences[CRASH_OCCURRED_KEY] = true
-                }
-            }
-        } catch (_: Exception) {
         }
     }
 

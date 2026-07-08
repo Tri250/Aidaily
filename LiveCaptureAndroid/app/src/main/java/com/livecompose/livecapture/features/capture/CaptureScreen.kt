@@ -74,7 +74,7 @@ fun CaptureScreen(
     val debugMessage by viewModel.debugMessage.collectAsState()
     val motionStable by viewModel.motionIsStable.collectAsState()
     val detectionReady by viewModel.detectionReady.collectAsState()
-    val isFrontCamera by remember { mutableStateOf(false) }
+    val isFrontCamera = viewModel.camera.isFrontCamera
 
     // 相机错误状态
     var cameraError by remember { mutableStateOf<CameraErrorType?>(null) }
@@ -86,7 +86,7 @@ fun CaptureScreen(
     ) { granted ->
         if (granted) {
             cameraError = null
-            viewModel.camera.openCamera("0")
+            viewModel.camera.openCamera()
         } else {
             cameraError = CameraErrorType.PERMISSION_DENIED
         }
@@ -149,7 +149,7 @@ fun CaptureScreen(
                     cameraErrorRetryCounter++
                     cameraError = null
                     if (viewModel.camera.hasCameraPermission()) {
-                        viewModel.camera.openCamera("0")
+                        viewModel.camera.openCamera()
                     } else {
                         permissionLauncher.launch(android.Manifest.permission.CAMERA)
                     }

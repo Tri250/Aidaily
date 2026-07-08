@@ -121,11 +121,13 @@ class MultiFrameStacker {
             val refPixels = IntArray(width * height)
             reference.getPixels(refPixels, 0, width, 0, 0, width, height)
 
-            // 对齐所有帧
+            // 对齐所有帧，并预提取像素数据
             val alignedFrames = frames.mapIndexed { index, frame ->
                 val alignment = alignFrames(reference, frame)
                 onProgress((index + 1).toFloat() / frames.size * 0.5f)
-                Triple(frame, alignment.offsetX, alignment.offsetY)
+                val pixels = IntArray(frame.width * frame.height)
+                frame.getPixels(pixels, 0, frame.width, 0, 0, frame.width, frame.height)
+                Triple(pixels, frame.width, Triple(alignment.offsetX, alignment.offsetY, frame.height))
             }
 
             // 逐像素平均
@@ -144,12 +146,15 @@ class MultiFrameStacker {
                     sumB += refPixel and 0xFF
                     count++
 
-                    // 其他帧
-                    for ((frame, dx, dy) in alignedFrames) {
+                    // 其他帧（使用预提取的像素数组，避免逐像素 getPixel 调用）
+                    for ((pixels, frameWidth, offsets) in alignedFrames) {
+                        val dx = offsets.first
+                        val dy = offsets.second
+                        val frameHeight = offsets.third
                         val fx = x + dx
                         val fy = y + dy
-                        if (fx in 0 until frame.width && fy in 0 until frame.height) {
-                            val pixel = frame.getPixel(fx, fy)
+                        if (fx in 0 until frameWidth && fy in 0 until frameHeight) {
+                            val pixel = pixels[fy * frameWidth + fx]
                             sumR += (pixel shr 16) and 0xFF
                             sumG += (pixel shr 8) and 0xFF
                             sumB += pixel and 0xFF

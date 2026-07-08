@@ -46,26 +46,35 @@ fun PhotoAdjustScreen(
     val scope = rememberCoroutineScope()
 
     // 加载原图
-    val originalBitmap = remember(photoId) { viewModel.getFullPhoto(photoId) }
+    var originalBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(photoId) {
+        originalBitmap = withContext(Dispatchers.IO) { viewModel.getFullPhoto(photoId) }
+    }
 
     // 调整参数
     var brightness by remember { mutableFloatStateOf(0f) }     // -100 ~ 100
     var contrast by remember { mutableFloatStateOf(1f) }       // 0.5 ~ 2.0
     var saturation by remember { mutableFloatStateOf(1f) }     // 0 ~ 2
 
-    // 实时计算调整后的 Bitmap
-    val adjustedBitmap by remember {
-        derivedStateOf {
-            val src = originalBitmap ?: return@derivedStateOf null
-            if (brightness == 0f && contrast == 1f && saturation == 1f) {
-                src
-            } else {
+    // 判断是否有调整
+    val hasChanges by remember {
+        derivedStateOf { brightness != 0f || contrast != 1f || saturation != 1f }
+    }
+
+    // 在后台线程计算调整后的 Bitmap
+    var adjustedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(originalBitmap, brightness, contrast, saturation) {
+        val src = originalBitmap
+        if (src == null) {
+            adjustedBitmap = null
+        } else if (!hasChanges) {
+            adjustedBitmap = src
+        } else {
+            adjustedBitmap = withContext(Dispatchers.Default) {
                 applyAdjustments(src, brightness, contrast, saturation)
             }
         }
     }
-
-    val hasChanges = brightness != 0f || contrast != 1f || saturation != 1f
 
     // 保存调整后的照片
     fun saveAdjustment() {

@@ -5,12 +5,18 @@ import android.graphics.Color as AndroidColor
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -30,9 +36,17 @@ fun ZebraOverlay(
     stripeWidth: Float = 8f, // 条纹宽度
     downscaleFactor: Int = 4
 ) {
-    val zebraRegions = remember(previewBitmap, threshold, downscaleFactor) {
-        if (previewBitmap == null) return@remember emptyList<ZebraRegion>()
-        detectOverexposedRegions(previewBitmap, threshold, downscaleFactor)
+    var zebraRegions by remember { mutableStateOf(emptyList<ZebraRegion>()) }
+
+    LaunchedEffect(previewBitmap, threshold, downscaleFactor) {
+        if (previewBitmap == null) {
+            zebraRegions = emptyList()
+            return@LaunchedEffect
+        }
+        val bitmap = previewBitmap
+        zebraRegions = withContext(Dispatchers.Default) {
+            detectOverexposedRegions(bitmap, threshold, downscaleFactor)
+        }
     }
 
     Canvas(modifier = modifier.fillMaxSize()) {
@@ -136,7 +150,10 @@ private fun detectOverexposedRegions(
         }
     }
 
-    scaled.recycle()
+    // 仅当 scaled 是新创建的临时 Bitmap 时回收，避免误回收原始 previewBitmap
+    if (scaled !== bitmap) {
+        scaled.recycle()
+    }
     return regions
 }
 

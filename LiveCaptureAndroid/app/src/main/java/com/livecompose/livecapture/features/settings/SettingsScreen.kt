@@ -274,7 +274,7 @@ fun SettingsScreen() {
                 modifier = Modifier.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.PhotoFrame, contentDescription = "相框样式", tint = DesignSystem.Colors.primary)
+                Icon(Icons.Default.PhotoAlbum, contentDescription = "相框样式", tint = DesignSystem.Colors.primary)
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text("边框样式", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())

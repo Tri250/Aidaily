@@ -25,8 +25,11 @@ object CryptoHelper {
     private const val PBKDF2_ITERATIONS = 10000
     private const val SALT_LENGTH = 16
 
-    // 应用级密钥派生盐（每个应用唯一）
+    // 应用级密钥派生盐（每个应用唯一，与密码不同）
     private const val APP_SALT = "LiveCapture2026SecuritySalt"
+
+    // 应用级默认密码（与盐值不同，用于无用户密码时的本地加密）
+    private const val APP_DEFAULT_PASSWORD = "LCAuth2026XkPq9zWm"
 
     /**
      * 加密数据
@@ -36,7 +39,7 @@ object CryptoHelper {
      */
     fun encrypt(plaintext: String, password: String? = null): String? {
         return try {
-            val key = deriveKey(password ?: APP_SALT)
+            val key = deriveKey(password ?: APP_DEFAULT_PASSWORD)
             val cipher = Cipher.getInstance(ALGORITHM)
 
             // 生成随机 IV
@@ -66,7 +69,7 @@ object CryptoHelper {
      */
     fun decrypt(cipherText: String, password: String? = null): String? {
         return try {
-            val key = deriveKey(password ?: APP_SALT)
+            val key = deriveKey(password ?: APP_DEFAULT_PASSWORD)
             val combined = Base64.decode(cipherText, Base64.NO_WRAP)
 
             // 提取 IV

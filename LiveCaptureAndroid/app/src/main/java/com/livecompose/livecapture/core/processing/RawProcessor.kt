@@ -42,7 +42,8 @@ object RawProcessor {
         blackLevel: Int = 0,
         whiteLevel: Int = 1023,
         exposureCompensation: Float = 1.0f,
-        toneMapping: ToneMappingMode = ToneMappingMode.FILMIC
+        toneMapping: ToneMappingMode = ToneMappingMode.FILMIC,
+        rotationDegrees: Int = 0
     ): Bitmap = withContext(Dispatchers.Default) {
         require(image.format == ImageFormat.RAW_SENSOR) { "Expected RAW_SENSOR format" }
 
@@ -77,11 +78,10 @@ object RawProcessor {
         // Step 6: 伽马编码 + 生成 Bitmap
         val bitmap = rawToBitmap(toneMappedData, width, height)
 
-        // 旋转（根据 EXIF 方向）
-        val rotation = image.rotationInfo
-        if (rotation != 0) {
+        // 旋转（根据 Camera2 CaptureResult 的传感器方向）
+        if (rotationDegrees != 0) {
             val matrix = Matrix()
-            matrix.postRotate(rotation.toFloat())
+            matrix.postRotate(rotationDegrees.toFloat())
             val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
             bitmap.recycle()
             rotated

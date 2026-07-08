@@ -53,7 +53,10 @@ class MultipleExposure {
                 layer
             }
 
+            val previousResult = result
             result = blendTwoBitmaps(result, scaledLayer, blendMode, opacity)
+            // 回收旧的中间结果 Bitmap
+            previousResult.recycle()
             onProgress(layerIdx.toFloat() / bitmaps.size)
 
             if (scaledLayer !== layer) scaledLayer.recycle()
