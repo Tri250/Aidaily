@@ -1,7 +1,7 @@
 package com.livecompose.livecapture.core.bugly
 
 import android.app.Application
-import android.util.Log
+import com.livecompose.livecapture.core.logger.AppLogger
 import com.tencent.bugly.crashreport.CrashReport
 
 /**
@@ -17,7 +17,7 @@ object BuglyManager {
         try {
             BuildConfig.BUGLY_APP_ID
         } catch (_: Exception) {
-            Log.w(TAG, "BUGLY_APP_ID 未在 BuildConfig 中配置，崩溃上报不可用")
+            AppLogger.w(TAG, "BUGLY_APP_ID 未在 BuildConfig 中配置，崩溃上报不可用")
             ""
         }
     }
@@ -31,7 +31,7 @@ object BuglyManager {
     fun init(application: Application) {
         if (isInitialized) return
         if (BUGLY_APP_ID.isBlank()) {
-            Log.w(TAG, "Bugly AppID 未配置，跳过初始化")
+            AppLogger.w(TAG, "Bugly AppID 未配置，跳过初始化")
             return
         }
         try {
@@ -46,9 +46,9 @@ object BuglyManager {
 
             CrashReport.initCrashReport(application, BUGLY_APP_ID, BuildConfig.DEBUG, strategy)
             isInitialized = true
-            Log.i(TAG, "Bugly 崩溃上报已初始化")
+            AppLogger.i(TAG, "Bugly 崩溃上报已初始化")
         } catch (e: Exception) {
-            Log.e(TAG, "Bugly 初始化失败", e)
+            AppLogger.e(TAG, "Bugly 初始化失败", e)
         }
     }
 
@@ -59,7 +59,7 @@ object BuglyManager {
         try {
             CrashReport.setUserId(userId)
         } catch (e: Exception) {
-            Log.w(TAG, "设置用户ID失败", e)
+            AppLogger.w(TAG, "设置用户ID失败", e)
         }
     }
 
@@ -70,7 +70,7 @@ object BuglyManager {
         try {
             CrashReport.setUserTag(tag)
         } catch (e: Exception) {
-            Log.w(TAG, "设置用户标签失败", e)
+            AppLogger.w(TAG, "设置用户标签失败", e)
         }
     }
 
@@ -81,7 +81,7 @@ object BuglyManager {
         try {
             CrashReport.putCustomData(key, value)
         } catch (e: Exception) {
-            Log.w(TAG, "添加自定义数据失败", e)
+            AppLogger.w(TAG, "添加自定义数据失败", e)
         }
     }
 
@@ -92,7 +92,7 @@ object BuglyManager {
         try {
             CrashReport.postException(throwable)
         } catch (e: Exception) {
-            Log.w(TAG, "上报异常失败", e)
+            AppLogger.w(TAG, "上报异常失败", e)
         }
     }
 
@@ -103,7 +103,7 @@ object BuglyManager {
         try {
             CrashReport.putCustomData("channel", channel)
         } catch (e: Exception) {
-            Log.w(TAG, "设置渠道信息失败", e)
+            AppLogger.w(TAG, "设置渠道信息失败", e)
         }
     }
 }

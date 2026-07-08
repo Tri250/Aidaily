@@ -1,7 +1,7 @@
 package com.livecompose.livecapture.core.security
 
 import android.util.Base64
-import android.util.Log
+import com.livecompose.livecapture.core.logger.AppLogger
 import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
@@ -56,7 +56,7 @@ object CryptoHelper {
 
             Base64.encodeToString(combined, Base64.NO_WRAP)
         } catch (e: Exception) {
-            Log.e(TAG, "加密失败", e)
+            AppLogger.e(TAG, "加密失败", e)
             null
         }
     }
@@ -83,7 +83,7 @@ object CryptoHelper {
             val decrypted = cipher.doFinal(encrypted)
             String(decrypted, Charsets.UTF_8)
         } catch (e: Exception) {
-            Log.e(TAG, "解密失败", e)
+            AppLogger.e(TAG, "解密失败", e)
             null
         }
     }

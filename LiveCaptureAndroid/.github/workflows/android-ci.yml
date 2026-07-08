@@ -2,22 +2,35 @@ name: Android CI/CD
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
+    paths:
+      - "LiveCaptureAndroid/**"
+      - ".github/workflows/android-ci.yml"
   pull_request:
-    branches: [ main ]
+    branches: [main]
+    paths:
+      - "LiveCaptureAndroid/**"
+      - ".github/workflows/android-ci.yml"
+
+concurrency:
+  group: android-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
-    name: 单元测试
+  lint:
+    name: 代码检查
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: LiveCaptureAndroid
     steps:
       - uses: actions/checkout@v4
 
       - name: 设置 JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: "17"
+          distribution: "temurin"
 
       - name: 缓存 Gradle
         uses: actions/cache@v4
@@ -25,7 +38,44 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('**/*.gradle.kts') }}
+          key: gradle-${{ hashFiles('LiveCaptureAndroid/**/*.gradle.kts') }}
+          restore-keys: gradle-
+
+      - name: 授予执行权限
+        run: chmod +x gradlew
+
+      - name: 运行 Lint 检查
+        run: ./gradlew lintOfficialDebug --stacktrace
+
+      - name: 上传 Lint 报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-reports
+          path: LiveCaptureAndroid/app/build/reports/lint-results-*.html
+
+  test:
+    name: 单元测试
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: LiveCaptureAndroid
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 设置 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: 缓存 Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('LiveCaptureAndroid/**/*.gradle.kts') }}
           restore-keys: gradle-
 
       - name: 授予执行权限
@@ -39,52 +89,48 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-reports
-          path: app/build/reports/tests/
-
-  lint:
-    name: 代码检查
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: 设置 JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: 运行 Lint
-        run: ./gradlew lintOfficialDebug
-
-      - name: 上传 Lint 报告
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lint-reports
-          path: app/build/reports/lint-results-*.html
+          path: |
+            LiveCaptureAndroid/app/build/reports/tests/
+            LiveCaptureAndroid/app/build/test-results/
 
   build:
-    name: 构建发布包
+    name: 构建发布包 (${{ matrix.channel }})
     needs: [test, lint]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     strategy:
+      fail-fast: false
       matrix:
         channel: [huawei, xiaomi, oppo, vivo, tencent, official]
+    defaults:
+      run:
+        working-directory: LiveCaptureAndroid
     steps:
       - uses: actions/checkout@v4
 
       - name: 设置 JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: 缓存 Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('LiveCaptureAndroid/**/*.gradle.kts') }}
+          restore-keys: gradle-
+
+      - name: 授予执行权限
+        run: chmod +x gradlew
 
       - name: 解码签名密钥
         run: |
           echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > app/keystore/release.jks
 
-      - name: 构建 ${{ matrix.channel }} 渠道包
+      - name: 构建 ${{ matrix.channel }} 渠道 APK
         env:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
@@ -95,4 +141,54 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-${{ matrix.channel }}-release
-          path: app/build/outputs/apk/${{ matrix.channel }}Release/*.apk
+          path: LiveCaptureAndroid/app/build/outputs/apk/${{ matrix.channel }}Release/*.apk
+
+  aab:
+    name: 构建 AAB (${{ matrix.channel }})
+    needs: [test, lint]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [huawei, xiaomi, oppo, vivo, tencent, official]
+    defaults:
+      run:
+        working-directory: LiveCaptureAndroid
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 设置 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: 缓存 Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('LiveCaptureAndroid/**/*.gradle.kts') }}
+          restore-keys: gradle-
+
+      - name: 授予执行权限
+        run: chmod +x gradlew
+
+      - name: 解码签名密钥
+        run: |
+          echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > app/keystore/release.jks
+
+      - name: 构建 ${{ matrix.channel }} 渠道 AAB
+        env:
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew bundle${{ matrix.channel }}Release
+
+      - name: 上传 AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.channel }}-release
+          path: LiveCaptureAndroid/app/build/outputs/bundle/${{ matrix.channel }}Release/*.aab

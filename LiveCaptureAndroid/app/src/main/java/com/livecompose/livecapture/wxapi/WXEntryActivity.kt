@@ -7,7 +7,7 @@ import com.tencent.mm.opensdk.modelbase.BaseReq
 import com.tencent.mm.opensdk.modelbase.BaseResp
 import com.tencent.mm.opensdk.openapi.IWXAPIEventHandler
 import com.livecompose.livecapture.features.share.WeChatShareHelper
-import android.util.Log
+import com.livecompose.livecapture.core.logger.AppLogger
 
 /**
  * 微信分享回调 Activity
@@ -24,7 +24,7 @@ class WXEntryActivity : Activity(), IWXAPIEventHandler {
         try {
             WeChatShareHelper.handleIntent(intent)
         } catch (e: Exception) {
-            Log.e(TAG, "微信回调处理失败", e)
+            AppLogger.e(TAG, "微信回调处理失败", e)
         } finally {
             finish()
         }
@@ -39,13 +39,13 @@ class WXEntryActivity : Activity(), IWXAPIEventHandler {
             ConstantsAPI.COMMAND_SENDMESSAGE_TO_WX -> {
                 when (resp.errCode) {
                     BaseResp.ErrCode.ERR_OK -> {
-                        Log.i(TAG, "微信分享成功")
+                        AppLogger.i(TAG, "微信分享成功")
                     }
                     BaseResp.ErrCode.ERR_USER_CANCEL -> {
-                        Log.i(TAG, "用户取消微信分享")
+                        AppLogger.i(TAG, "用户取消微信分享")
                     }
                     else -> {
-                        Log.w(TAG, "微信分享失败: ${resp.errCode} - ${resp.errStr}")
+                        AppLogger.w(TAG, "微信分享失败: ${resp.errCode} - ${resp.errStr}")
                     }
                 }
             }

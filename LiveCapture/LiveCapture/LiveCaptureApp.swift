@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import AppTrackingTransparency
+import AdSupport
 
 #if os(iOS)
 
@@ -16,6 +18,7 @@ private let prewarmedCamera = CameraManager()
 struct LiveCaptureApp: App {
 	@State private var showSplash = true
 	@State private var splashOpacity: Double = 1.0
+	@State private var privacyConsentGiven = false
 
 	var body: some Scene {
 		WindowGroup {
@@ -34,6 +37,7 @@ struct LiveCaptureApp: App {
 			}
 			.onAppear {
 				prewarmCamera()
+				requestATTAuthorization()
 				// 目标 < 0.8s 进入相机就绪状态
 				DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
 					withAnimation(.easeOut(duration: 0.3)) {
@@ -42,6 +46,29 @@ struct LiveCaptureApp: App {
 				}
 				DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
 					showSplash = false
+				}
+			}
+		}
+	}
+
+	/// 请求 App Tracking Transparency 授权
+	/// iOS 14+ 必须调用才能获取 IDFA 或进行跨应用追踪
+	private func requestATTAuthorization() {
+		if #available(iOS 14, *) {
+			DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+				ATTrackingManager.requestTrackingAuthorization { status in
+					switch status {
+					case .authorized:
+						LiveCaptureLogger.shared.info("ATT 授权: 已授权")
+					case .denied:
+						LiveCaptureLogger.shared.info("ATT 授权: 被拒绝")
+					case .restricted:
+						LiveCaptureLogger.shared.info("ATT 授权: 受限")
+					case .notDetermined:
+						LiveCaptureLogger.shared.info("ATT 授权: 未决定")
+					@unknown default:
+						break
+					}
 				}
 			}
 		}

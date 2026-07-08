@@ -16,6 +16,7 @@ import android.os.HandlerThread
 import android.util.Size
 import android.view.Surface
 import androidx.annotation.RequiresApi
+import com.livecompose.livecapture.core.logger.AppLogger
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
@@ -109,29 +110,29 @@ class DngCaptureManager(private val context: Context) {
                     cameraCharacteristics = try {
                         systemCameraManager.getCameraCharacteristics(cameraId)
                     } catch (e: Exception) {
-                        Log.e(TAG, "获取相机特性失败", e)
+                        AppLogger.e(TAG, "获取相机特性失败", e)
                         null
                     }
                 }
 
                 override fun onDisconnected(device: CameraDevice) {
-                    Log.w(TAG, "相机断开连接")
+                    AppLogger.w(TAG, "相机断开连接")
                     device.close()
                     cameraDevice = null
                 }
 
                 override fun onError(device: CameraDevice, error: Int) {
-                    Log.e(TAG, "相机打开失败, 错误码: $error")
+                    AppLogger.e(TAG, "相机打开失败, 错误码: $error")
                     device.close()
                     cameraDevice = null
                     onError?.invoke("相机打开失败: $error")
                 }
             }, dngHandler)
         } catch (e: SecurityException) {
-            Log.e(TAG, "相机权限不足", e)
+            AppLogger.e(TAG, "相机权限不足", e)
             onError?.invoke("相机权限不足")
         } catch (e: Exception) {
-            Log.e(TAG, "相机打开异常", e)
+            AppLogger.e(TAG, "相机打开异常", e)
             onError?.invoke("相机打开异常: ${e.message}")
         }
     }
@@ -316,7 +317,7 @@ class DngCaptureManager(private val context: Context) {
 
             onDngSaved?.invoke(dngFile.absolutePath)
         } catch (e: Exception) {
-            Log.e(TAG, "DNG 保存失败", e)
+            AppLogger.e(TAG, "DNG 保存失败", e)
             onError?.invoke("DNG 保存失败: ${e.message}")
         } finally {
             try {
@@ -412,25 +413,25 @@ class DngCaptureManager(private val context: Context) {
         try {
             captureSession?.close()
         } catch (e: Exception) {
-            Log.w(TAG, "关闭会话异常", e)
+            AppLogger.w(TAG, "关闭会话异常", e)
         }
         captureSession = null
         try {
             cameraDevice?.close()
         } catch (e: Exception) {
-            Log.w(TAG, "关闭相机异常", e)
+            AppLogger.w(TAG, "关闭相机异常", e)
         }
         cameraDevice = null
         try {
             rawImageReader?.close()
         } catch (e: Exception) {
-            Log.w(TAG, "关闭 RAW ImageReader 异常", e)
+            AppLogger.w(TAG, "关闭 RAW ImageReader 异常", e)
         }
         rawImageReader = null
         try {
             jpegImageReader?.close()
         } catch (e: Exception) {
-            Log.w(TAG, "关闭 JPEG ImageReader 异常", e)
+            AppLogger.w(TAG, "关闭 JPEG ImageReader 异常", e)
         }
         jpegImageReader = null
     }
@@ -442,7 +443,7 @@ class DngCaptureManager(private val context: Context) {
             dngThread.quitSafely()
             dngThread.join(3000)
         } catch (e: Exception) {
-            Log.w(TAG, "DNG线程关闭异常", e)
+            AppLogger.w(TAG, "DNG线程关闭异常", e)
         }
     }
 }

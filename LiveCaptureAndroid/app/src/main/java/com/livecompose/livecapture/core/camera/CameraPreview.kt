@@ -1,7 +1,7 @@
 package com.livecompose.livecapture.core.camera
 
 import android.graphics.SurfaceTexture
-import android.util.Log
+import com.livecompose.livecapture.core.logger.AppLogger
 import android.view.Surface
 import android.view.TextureView
 import androidx.compose.runtime.*
@@ -28,7 +28,7 @@ fun CameraPreview(
                             val surface = Surface(surface)
                             cameraManager.setPreviewSurface(surface)
                         } catch (e: Exception) {
-                            Log.e("CameraPreview", "设置预览 Surface 失败", e)
+                            AppLogger.e("CameraPreview", "设置预览 Surface 失败", e)
                         }
                     }
 

@@ -1,7 +1,7 @@
 package com.livecompose.livecapture.di
 
 import android.content.Context
-import android.util.Log
+import com.livecompose.livecapture.core.logger.AppLogger
 import com.livecompose.livecapture.core.camera.CameraManager
 import com.livecompose.livecapture.core.motion.MotionStabilityMonitor
 import com.livecompose.livecapture.core.storage.PhotoStorageService
@@ -60,7 +60,7 @@ class AppContainer(context: Context) {
                 cameraManager.destroy()
             }
         } catch (e: Exception) {
-            Log.w(TAG, "清理资源时发生异常", e)
+            AppLogger.w(TAG, "清理资源时发生异常", e)
         }
     }
 }

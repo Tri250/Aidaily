@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.util.Log
+import com.livecompose.livecapture.core.logger.AppLogger
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import java.io.File
@@ -37,7 +37,7 @@ class ShareManager(private val context: Context) {
             chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(chooser)
         } catch (e: Exception) {
-            Log.e(TAG, "分享图片失败", e)
+            AppLogger.e(TAG, "分享图片失败", e)
             Toast.makeText(context, "分享失败", Toast.LENGTH_SHORT).show()
         }
     }
@@ -204,7 +204,7 @@ class ShareManager(private val context: Context) {
         try {
             WeChatShareHelper.shareImage(bitmap, scene)
         } catch (e: Exception) {
-            Log.e(TAG, "微信 SDK 分享失败，降级到系统分享", e)
+            AppLogger.e(TAG, "微信 SDK 分享失败，降级到系统分享", e)
             val tempFile = java.io.File(context.cacheDir, "share_wechat_${System.currentTimeMillis()}.jpg")
             tempFile.outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, it) }
             val uri = fileToUri(tempFile)
@@ -242,7 +242,7 @@ class ShareManager(private val context: Context) {
                 file
             )
         } catch (e: Exception) {
-            Log.e(TAG, "FileProvider URI 转换失败: ${file.absolutePath}", e)
+            AppLogger.e(TAG, "FileProvider URI 转换失败: ${file.absolutePath}", e)
             throw IllegalStateException("无法生成分享 URI，请检查文件路径", e)
         }
     }

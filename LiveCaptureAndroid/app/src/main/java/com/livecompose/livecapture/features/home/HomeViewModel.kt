@@ -3,7 +3,7 @@ package com.livecompose.livecapture.features.home
 import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.util.Log
+import com.livecompose.livecapture.core.logger.AppLogger
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.livecompose.livecapture.core.storage.PhotoRecord
@@ -47,7 +47,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         try {
             storage.getThumbnail(id)
         } catch (e: Exception) {
-            Log.e(TAG, "获取缩略图失败: $id", e)
+            AppLogger.e(TAG, "获取缩略图失败: $id", e)
             null
         }
     }
@@ -57,7 +57,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val file = storage.getPhotoFile(id)
             if (file.exists()) BitmapFactory.decodeFile(file.absolutePath) else null
         } catch (e: Exception) {
-            Log.e(TAG, "获取原图失败: $id", e)
+            AppLogger.e(TAG, "获取原图失败: $id", e)
             null
         }
     }

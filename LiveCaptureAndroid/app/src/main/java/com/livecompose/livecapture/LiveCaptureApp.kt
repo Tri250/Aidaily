@@ -1,9 +1,10 @@
 package com.livecompose.livecapture
 
 import android.app.Application
-import android.util.Log
 import com.livecompose.livecapture.core.CrashHandler
 import com.livecompose.livecapture.core.bugly.BuglyManager
+import com.livecompose.livecapture.core.logger.AppLogger
+import com.livecompose.livecapture.core.push.PushManager
 import com.livecompose.livecapture.features.share.WeChatShareHelper
 import com.livecompose.livecapture.utilities.HapticManager
 
@@ -27,7 +28,7 @@ class LiveCaptureApp : Application() {
         try {
             CrashHandler.initialize(this)
         } catch (e: Exception) {
-            Log.e(TAG, "崩溃处理器初始化失败", e)
+            AppLogger.e(TAG, "崩溃处理器初始化失败", e)
         }
 
         // 2. Bugly 远程崩溃上报
@@ -41,32 +42,40 @@ class LiveCaptureApp : Application() {
                 BuglyManager.putCustomData("versionCode", BuildConfig.VERSION_CODE.toString())
             } catch (_: Exception) {}
         } catch (e: Exception) {
-            Log.e(TAG, "Bugly 初始化失败", e)
+            AppLogger.e(TAG, "Bugly 初始化失败", e)
         }
 
         // 3. 微信分享 SDK
         try {
             WeChatShareHelper.init(this)
         } catch (e: Exception) {
-            Log.e(TAG, "微信 SDK 初始化失败", e)
+            AppLogger.e(TAG, "微信 SDK 初始化失败", e)
         }
 
         // 4. 触觉反馈管理器
         try {
             HapticManager.init(this)
         } catch (e: Exception) {
-            Log.e(TAG, "触觉管理器初始化失败", e)
+            AppLogger.e(TAG, "触觉管理器初始化失败", e)
+        }
+
+        // 5. 推送服务（根据渠道自动选择厂商推送）
+        try {
+            PushManager.init(this)
+            PushManager.registerPush()
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "推送服务初始化失败", e)
         }
 
         // 检查上次是否崩溃
         val crashHandler = CrashHandler.getInstance()
         if (crashHandler != null && crashHandler.wasLastSessionCrashed()) {
             val crashInfo = crashHandler.getLastCrashInfo()
-            Log.w(TAG, "上次会话发生崩溃: ${crashInfo?.formattedTime} - ${crashInfo?.exceptionMessage}")
+            AppLogger.w(TAG, "上次会话发生崩溃: ${crashInfo?.formattedTime} - ${crashInfo?.exceptionMessage}")
             crashHandler.clearCrashState()
             crashHandler.cleanOldCrashLogs()
         }
 
-        Log.i(TAG, "LiveCapture v${BuildConfig.VERSION_NAME} (${BuildConfig.CHANNEL}) 启动完成")
+        AppLogger.i(TAG, "LiveCapture v${BuildConfig.VERSION_NAME} (${BuildConfig.CHANNEL}) 启动完成")
     }
 }

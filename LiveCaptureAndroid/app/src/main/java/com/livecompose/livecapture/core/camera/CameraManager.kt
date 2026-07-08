@@ -22,7 +22,7 @@ import android.os.HandlerThread
 import android.util.Size
 import android.view.Surface
 import androidx.core.content.ContextCompat
-import android.util.Log
+import com.livecompose.livecapture.core.logger.AppLogger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -109,7 +109,7 @@ class CameraManager(private val context: Context) {
                     cameraCharacteristics = try {
                         systemCameraManager.getCameraCharacteristics(cameraId)
                     } catch (e: Exception) {
-                        Log.e(TAG, "获取相机特性失败", e)
+                        AppLogger.e(TAG, "获取相机特性失败", e)
                         null
                     }
                     configureZoomCapabilities()
@@ -117,21 +117,21 @@ class CameraManager(private val context: Context) {
                 }
 
                 override fun onDisconnected(device: CameraDevice) {
-                    Log.w(TAG, "相机断开连接")
+                    AppLogger.w(TAG, "相机断开连接")
                     device.close()
                     cameraDevice = null
                 }
 
                 override fun onError(device: CameraDevice, error: Int) {
-                    Log.e(TAG, "相机打开失败, 错误码: $error")
+                    AppLogger.e(TAG, "相机打开失败, 错误码: $error")
                     device.close()
                     cameraDevice = null
                 }
             }, backgroundHandler)
         } catch (e: SecurityException) {
-            Log.e(TAG, "相机权限不足", e)
+            AppLogger.e(TAG, "相机权限不足", e)
         } catch (e: Exception) {
-            Log.e(TAG, "相机打开异常", e)
+            AppLogger.e(TAG, "相机打开异常", e)
         }
     }
 
@@ -168,7 +168,7 @@ class CameraManager(private val context: Context) {
             imageReader?.close()
             imageReader = null
         } catch (e: Exception) {
-            Log.w(TAG, "关闭旧会话失败", e)
+            AppLogger.w(TAG, "关闭旧会话失败", e)
         }
 
         // 设置 ImageReader 用于帧分析
@@ -179,7 +179,7 @@ class CameraManager(private val context: Context) {
         try {
             imageReader = ImageReader.newInstance(previewSize.width, previewSize.height, ImageFormat.YUV_420_888, 2)
         } catch (e: Exception) {
-            Log.e(TAG, "创建 ImageReader 失败", e)
+            AppLogger.e(TAG, "创建 ImageReader 失败", e)
             return
         }
         imageReader?.setOnImageAvailableListener({ reader ->
@@ -188,7 +188,7 @@ class CameraManager(private val context: Context) {
                 try {
                     onSampleBuffer?.invoke(image)
                 } catch (e: Exception) {
-                    Log.w(TAG, "帧处理异常", e)
+                    AppLogger.w(TAG, "帧处理异常", e)
                 } finally {
                     image.close()
                 }
@@ -212,17 +212,17 @@ class CameraManager(private val context: Context) {
                         session.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
                         _isSessionRunning.value = true
                     } catch (e: Exception) {
-                        Log.e(TAG, "预览请求创建失败", e)
+                        AppLogger.e(TAG, "预览请求创建失败", e)
                     }
                 }
 
                 override fun onConfigureFailed(session: CameraCaptureSession) {
-                    Log.e(TAG, "相机会话配置失败")
+                    AppLogger.e(TAG, "相机会话配置失败")
                     _isSessionRunning.value = false
                 }
             }, backgroundHandler)
         } catch (e: Exception) {
-            Log.e(TAG, "创建相机会话异常", e)
+            AppLogger.e(TAG, "创建相机会话异常", e)
         }
     }
 
@@ -252,7 +252,7 @@ class CameraManager(private val context: Context) {
                 onPhotoDataReady?.invoke(cropped ?: bytes)
                 _lastPhotoSaved.value = true
             } catch (e: Exception) {
-                Log.e(TAG, "照片数据处理失败", e)
+                AppLogger.e(TAG, "照片数据处理失败", e)
                 _lastPhotoSaved.value = false
             } finally {
                 image.close()
@@ -267,7 +267,7 @@ class CameraManager(private val context: Context) {
             requestBuilder.set(CaptureRequest.JPEG_ORIENTATION, 90)
             captureSession?.capture(requestBuilder.build(), null, backgroundHandler)
         } catch (e: Exception) {
-            Log.e(TAG, "拍照请求失败", e)
+            AppLogger.e(TAG, "拍照请求失败", e)
             _lastPhotoSaved.value = false
             photoReader.close()
         }
@@ -382,7 +382,7 @@ class CameraManager(private val context: Context) {
         try {
             captureSession?.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
         } catch (e: Exception) {
-            Log.w(TAG, "应用变焦失败", e)
+            AppLogger.w(TAG, "应用变焦失败", e)
         }
         val lens = when {
             isFrontCamera -> LensKind.FRONT
@@ -417,7 +417,7 @@ class CameraManager(private val context: Context) {
             backgroundThread.quitSafely()
             backgroundThread.join(3000)
         } catch (e: Exception) {
-            Log.w(TAG, "后台线程关闭异常", e)
+            AppLogger.w(TAG, "后台线程关闭异常", e)
         }
     }
 }

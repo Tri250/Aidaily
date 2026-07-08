@@ -181,19 +181,21 @@ fun CaptureScreen(
                 onSetCaptureDelay = { viewModel.setCaptureDelay(it) }
             )
 
-            // 调试面板
-            AnimatedVisibility(visible = showDebugInfo) {
-                DebugPanel(
-                    debugMessage = debugMessage,
-                    motionIsStable = motionStable,
-                    boxCenterInView = boxCenter,
-                    distanceToCenter = distanceToCenter,
-                    detectionReady = detectionReady,
-                    zoomDisplayText = viewModel.zoomDisplayText,
-                    focalLengthText = viewModel.focalLengthText,
-                    isAligned = isAligned,
-                    onClose = { showDebugInfo = false }
-                )
+            // 调试面板（仅在 DEBUG 构建中可用）
+            if (com.livecompose.livecapture.BuildConfig.DEBUG) {
+                AnimatedVisibility(visible = showDebugInfo) {
+                    DebugPanel(
+                        debugMessage = debugMessage,
+                        motionIsStable = motionStable,
+                        boxCenterInView = boxCenter,
+                        distanceToCenter = distanceToCenter,
+                        detectionReady = detectionReady,
+                        zoomDisplayText = viewModel.zoomDisplayText,
+                        focalLengthText = viewModel.focalLengthText,
+                        isAligned = isAligned,
+                        onClose = { showDebugInfo = false }
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.weight(1f))

@@ -1,0 +1,135 @@
+name: iOS CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "LiveCapture/**"
+      - ".github/workflows/ios-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "LiveCapture/**"
+      - ".github/workflows/ios-ci.yml"
+
+concurrency:
+  group: ios-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: 构建
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: LiveCapture
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 选择 Xcode 版本
+        run: sudo xcode-select -s /Applications/Xcode_16.0.app
+
+      - name: 显示 Xcode 版本
+        run: xcodebuild -version
+
+      - name: 显示可用 SDK
+        run: xcodebuild -showsdks
+
+      - name: 显示构建目标
+        run: xcodebuild -list
+
+      - name: 构建项目
+        run: |
+          xcodebuild build \
+            -scheme LiveCapture \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.0' \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath build/ \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            | xcpretty --color --simple || xcodebuild build \
+            -scheme LiveCapture \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.0' \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath build/ \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+  test:
+    name: 测试
+    needs: build
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: LiveCapture
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 选择 Xcode 版本
+        run: sudo xcode-select -s /Applications/Xcode_16.0.app
+
+      - name: 运行单元测试
+        run: |
+          xcodebuild test \
+            -scheme LiveCapture \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.0' \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath build/ \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            | xcpretty --color --test || xcodebuild test \
+            -scheme LiveCapture \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.0' \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath build/ \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: 上传测试结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-results
+          path: LiveCapture/TestResults.xcresult
+
+  archive:
+    name: 归档
+    needs: test
+    runs-on: macos-14
+    if: github.ref == 'refs/heads/main'
+    defaults:
+      run:
+        working-directory: LiveCapture
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 选择 Xcode 版本
+        run: sudo xcode-select -s /Applications/Xcode_16.0.app
+
+      - name: 归档构建
+        run: |
+          xcodebuild archive \
+            -scheme LiveCapture \
+            -destination 'generic/platform=iOS' \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath build/LiveCapture.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: 上传归档文件
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-archive
+          path: LiveCapture/build/LiveCapture.xcarchive

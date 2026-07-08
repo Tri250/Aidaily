@@ -632,6 +632,107 @@ fun SettingsScreen() {
             }
         }
 
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ====== 关于与合规 ======
+        Text("关于与合规", style = DesignSystem.Typography.title3, color = DesignSystem.Colors.textPrimary())
+        Spacer(modifier = Modifier.height(8.dp))
+        Card(
+            shape = DesignSystem.mediumRoundedShape,
+            colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.backgroundSecondary())
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                // 版本信息
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Info, contentDescription = "版本信息", tint = DesignSystem.Colors.primary)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("版本信息", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
+                        Text("构妙 LiveCapture v${BuildConfig.VERSION_NAME}", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
+                    }
+                }
+                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                // ICP备案号
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.VerifiedUser, contentDescription = "ICP备案号", tint = DesignSystem.Colors.primary)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("ICP备案号", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
+                        Text("待备案（请前往工信部ICP备案系统完成备案）", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
+                    }
+                }
+                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                // 隐私政策
+                Card(
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.primary.copy(alpha = 0.1f)),
+                    onClick = {
+                        val intent = android.content.Intent(context, com.livecompose.livecapture.features.compliance.ComplianceHostActivity::class.java).apply {
+                            putExtra("compliance_page", "privacy")
+                        }
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.PrivacyTip, contentDescription = "隐私政策", tint = DesignSystem.Colors.primary)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("隐私政策", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.primary)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.ChevronRight, contentDescription = "查看", tint = DesignSystem.Colors.primary)
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                // 用户协议
+                Card(
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.primary.copy(alpha = 0.1f)),
+                    onClick = {
+                        val intent = android.content.Intent(context, com.livecompose.livecapture.features.compliance.ComplianceHostActivity::class.java).apply {
+                            putExtra("compliance_page", "agreement")
+                        }
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Description, contentDescription = "用户协议", tint = DesignSystem.Colors.primary)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("用户服务协议", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.primary)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.ChevronRight, contentDescription = "查看", tint = DesignSystem.Colors.primary)
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                // 第三方SDK清单
+                Card(
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.primary.copy(alpha = 0.1f)),
+                    onClick = {
+                        val intent = android.content.Intent(context, com.livecompose.livecapture.features.compliance.ComplianceHostActivity::class.java).apply {
+                            putExtra("compliance_page", "sdk_list")
+                        }
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.ListAlt, contentDescription = "SDK清单", tint = DesignSystem.Colors.primary)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("第三方SDK清单", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.primary)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.ChevronRight, contentDescription = "查看", tint = DesignSystem.Colors.primary)
+                    }
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(32.dp))
     }
 

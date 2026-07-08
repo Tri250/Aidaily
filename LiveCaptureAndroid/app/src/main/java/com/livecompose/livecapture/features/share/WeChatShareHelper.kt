@@ -2,7 +2,7 @@ package com.livecompose.livecapture.features.share
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.util.Log
+import com.livecompose.livecapture.core.logger.AppLogger
 import com.tencent.mm.opensdk.constants.ConstantsAPI
 import com.tencent.mm.opensdk.modelmsg.SendMessageToWX
 import com.tencent.mm.opensdk.modelmsg.WXImageObject
@@ -26,7 +26,7 @@ object WeChatShareHelper {
         try {
             com.livecompose.livecapture.BuildConfig.WECHAT_APP_ID
         } catch (_: Exception) {
-            Log.w(TAG, "WECHAT_APP_ID 未在 BuildConfig 中配置，微信分享不可用")
+            AppLogger.w(TAG, "WECHAT_APP_ID 未在 BuildConfig 中配置，微信分享不可用")
             ""
         }
     }
@@ -39,15 +39,15 @@ object WeChatShareHelper {
      */
     fun init(context: Context) {
         if (WECHAT_APP_ID.isBlank()) {
-            Log.w(TAG, "微信 AppID 未配置，跳过初始化")
+            AppLogger.w(TAG, "微信 AppID 未配置，跳过初始化")
             return
         }
         try {
             wxApi = WXAPIFactory.createWXAPI(context, WECHAT_APP_ID, true)
             wxApi?.registerApp(WECHAT_APP_ID)
-            Log.i(TAG, "微信 SDK 已初始化")
+            AppLogger.i(TAG, "微信 SDK 已初始化")
         } catch (e: Exception) {
-            Log.e(TAG, "微信 SDK 初始化失败", e)
+            AppLogger.e(TAG, "微信 SDK 初始化失败", e)
         }
     }
 
@@ -59,7 +59,7 @@ object WeChatShareHelper {
             val api = wxApi ?: WXAPIFactory.createWXAPI(context, WECHAT_APP_ID, false)
             api.isWXAppInstalled
         } catch (e: Exception) {
-            Log.w(TAG, "检查微信安装状态失败", e)
+            AppLogger.w(TAG, "检查微信安装状态失败", e)
             false
         }
     }
@@ -75,7 +75,7 @@ object WeChatShareHelper {
     ) {
         try {
             val api = wxApi ?: run {
-                Log.w(TAG, "微信 API 未初始化")
+                AppLogger.w(TAG, "微信 API 未初始化")
                 return
             }
 
@@ -104,9 +104,9 @@ object WeChatShareHelper {
             }
 
             api.sendReq(request)
-            Log.i(TAG, "微信分享请求已发送")
+            AppLogger.i(TAG, "微信分享请求已发送")
         } catch (e: Exception) {
-            Log.e(TAG, "微信分享失败", e)
+            AppLogger.e(TAG, "微信分享失败", e)
         }
     }
 
@@ -142,7 +142,7 @@ object WeChatShareHelper {
 
             api.sendReq(request)
         } catch (e: Exception) {
-            Log.e(TAG, "微信网页分享失败", e)
+            AppLogger.e(TAG, "微信网页分享失败", e)
         }
     }
 

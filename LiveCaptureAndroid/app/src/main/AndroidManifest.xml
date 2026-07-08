@@ -113,5 +113,11 @@
             android:exported="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:launchMode="singleTop" />
+
+        <!-- 合规页面（隐私政策、用户协议、SDK清单） -->
+        <activity
+            android:name=".features.compliance.ComplianceHostActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LiveCapture" />
     </application>
 </manifest>

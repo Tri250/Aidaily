@@ -3,7 +3,7 @@ package com.livecompose.livecapture.core.storage
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.util.Log
+import com.livecompose.livecapture.core.logger.AppLogger
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.livecompose.livecapture.core.security.CryptoHelper
@@ -49,7 +49,7 @@ class PhotoStorageService(context: Context) {
                 _records.value = loaded
             }
         } catch (e: Exception) {
-            Log.e("PhotoStorage", "加载记录失败", e)
+            AppLogger.e("PhotoStorage", "加载记录失败", e)
             _records.value = emptyList()
         }
         isLoaded = true
@@ -95,7 +95,7 @@ class PhotoStorageService(context: Context) {
                 _records.value = updated
                 persist(updated)
             } catch (e: Exception) {
-                Log.e("PhotoStorage", "保存照片失败", e)
+                AppLogger.e("PhotoStorage", "保存照片失败", e)
             }
         }
     }
@@ -139,7 +139,7 @@ class PhotoStorageService(context: Context) {
                 val encrypted = CryptoHelper.encrypt(json) ?: json
                 recordsFile.writeText(encrypted)
             } catch (e: Exception) {
-                Log.e("PhotoStorage", "持久化记录失败", e)
+                AppLogger.e("PhotoStorage", "持久化记录失败", e)
             }
         }
     }

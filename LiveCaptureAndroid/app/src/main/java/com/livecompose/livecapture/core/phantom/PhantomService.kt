@@ -16,7 +16,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.provider.MediaStore
-import android.util.Log
+import com.livecompose.livecapture.core.logger.AppLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -102,7 +102,7 @@ class PhantomService : Service() {
             isRunning = true
             startForeground(NOTIFICATION_ID, createNotification())
             registerContentObserver()
-            Log.d(TAG, "幻影模式已启动")
+            AppLogger.d(TAG, "幻影模式已启动")
         }
         return START_STICKY
     }
@@ -111,7 +111,7 @@ class PhantomService : Service() {
         unregisterContentObserver()
         serviceScope.cancel()
         isRunning = false
-        Log.d(TAG, "幻影模式已停止")
+        AppLogger.d(TAG, "幻影模式已停止")
         super.onDestroy()
     }
 
@@ -196,7 +196,7 @@ class PhantomService : Service() {
                 applyPhantomProcessing(uri, name, width, height)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "处理新照片失败", e)
+            AppLogger.e(TAG, "处理新照片失败", e)
         }
     }
 
@@ -212,7 +212,7 @@ class PhantomService : Service() {
             inputStream.close()
 
             if (originalBitmap == null) {
-                Log.w(TAG, "无法解码照片: $name")
+                AppLogger.w(TAG, "无法解码照片: $name")
                 return
             }
 
@@ -247,9 +247,9 @@ class PhantomService : Service() {
                         overwriteOriginal(processedBitmap, uri)
                     }
 
-                    Log.d(TAG, "幻影模式处理完成: $name")
+                    AppLogger.d(TAG, "幻影模式处理完成: $name")
                 } catch (e: Exception) {
-                    Log.e(TAG, "色彩处理失败: $name", e)
+                    AppLogger.e(TAG, "色彩处理失败: $name", e)
                 } finally {
                     processedBitmap?.recycle()
                     capturedOriginal.recycle()
@@ -259,7 +259,7 @@ class PhantomService : Service() {
             originalBitmap = null
         } catch (e: Exception) {
             originalBitmap?.recycle()
-            Log.e(TAG, "处理新照片失败: $name", e)
+            AppLogger.e(TAG, "处理新照片失败: $name", e)
         }
     }
 
