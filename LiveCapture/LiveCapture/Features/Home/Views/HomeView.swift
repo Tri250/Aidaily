@@ -7,50 +7,61 @@ struct GalleryView: View {
     @State private var selectedIDs: Set<UUID> = []
     @State private var showFilterSheet = false
     @State private var showBatchActions = false
+    @State private var isLoading = false
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 // 搜索栏
                 searchBar
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
+                    .padding(.horizontal, DesignSystem.Spacing.Padding.container)
+                    .padding(.top, DesignSystem.Spacing.xxSmall)
 
                 // 分组模式选择器
                 groupingModeSelector
-                    .padding(.vertical, 8)
+                    .padding(.vertical, DesignSystem.Spacing.xxSmall)
 
                 // 批量编辑工具栏
                 if isSelectionMode {
                     batchEditToolbar
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, DesignSystem.Spacing.Padding.container)
+                        .padding(.vertical, DesignSystem.Spacing.xxSmall)
                 }
 
                 // 主内容区
-                ScrollView {
-                    VStack(spacing: 0) {
-                        // 顶部标题栏
-                        headerBar
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 12)
+                if isLoading {
+                    SkeletonView()
+                } else {
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            // 顶部标题栏 - 增加呼吸感留白
+                            headerBar
+                                .padding(.horizontal, DesignSystem.Spacing.Padding.container)
+                                .padding(.bottom, DesignSystem.Spacing.xxSmall)
+                                .padding(.top, DesignSystem.Spacing.xxSmall)
 
-                        if !isSelectionMode && !viewModel.filteredRecords.isEmpty {
-                            guidanceBanner
-                                .padding(.horizontal, 20)
-                                .padding(.bottom, 12)
-                        }
+                            if !isSelectionMode && !viewModel.filteredRecords.isEmpty {
+                                guidanceBanner
+                                    .padding(.horizontal, DesignSystem.Spacing.Padding.container)
+                                    .padding(.bottom, DesignSystem.Spacing.xxSmall)
+                            }
 
-                        if viewModel.filteredRecords.isEmpty {
-                            emptyStateView
-                        } else {
-                            groupedPhotoGrid
-                                .padding(.horizontal, 2)
+                            if viewModel.filteredRecords.isEmpty {
+                                emptyStateView
+                                    .padding(.top, 80)
+                            } else {
+                                groupedPhotoGrid
+                                    .padding(.horizontal, DesignSystem.Spacing.Gap.minimal)
+                            }
                         }
+                    }
+                    .refreshable {
+                        // 下拉刷新
+                        await refreshData()
                     }
                 }
             }
-            .background(Color(uiColor: .systemBackground))
+            .background(DesignSystem.Colors.backgroundPrimary)
             .navigationBarHidden(true)
             .navigationDestination(item: $selectedPhotoIndex) { index in
                 PhotoBrowserView(
@@ -65,7 +76,7 @@ struct GalleryView: View {
                 filterSheetView
             }
             .confirmationDialog("批量操作", isPresented: $showBatchActions, titleVisibility: .visible) {
-                Button("批量删除") {
+                Button("批量删除", role: .destructive) {
                     viewModel.batchDeleteSelected()
                 }
                 Button("自动增强") {
@@ -78,6 +89,22 @@ struct GalleryView: View {
             } message: {
                 Text("已选择 \(selectedIDs.count) 张照片")
             }
+        }
+        .onAppear {
+            isLoading = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                withAnimation(DesignSystem.Animation.easeOut) {
+                    isLoading = false
+                }
+            }
+        }
+    }
+
+    private func refreshData() async {
+        isLoading = true
+        try? await Task.sleep(nanoseconds: 500_000_000)
+        withAnimation(DesignSystem.Animation.easeOut) {
+            isLoading = false
         }
     }
 
@@ -291,8 +318,8 @@ struct GalleryView: View {
             ForEach(viewModel.groupedRecords, id: \.title) { group in
                 Section {
                     LazyVGrid(
-                        columns: Array(repeating: .init(.flexible(), spacing: 2), count: 3),
-                        spacing: 2
+                        columns: Array(repeating: .init(.flexible(), spacing: DesignSystem.Spacing.Gap.minimal), count: 3),
+                        spacing: DesignSystem.Spacing.Gap.minimal
                     ) {
                         ForEach(group.records) { record in
                             photoGridItem(record)
@@ -392,30 +419,20 @@ struct GalleryView: View {
     // MARK: - Empty State
 
     private var emptyStateView: some View {
-        VStack(spacing: DesignSystem.Spacing.large) {
-            Spacer().frame(height: 60)
-
-            if viewModel.searchQuery.isEmpty {
-                Image(systemName: "photo.on.rectangle")
-                    .font(.system(size: 56))
-                    .foregroundColor(DesignSystem.Colors.textTertiary)
-                Text("暂无照片")
-                    .font(DesignSystem.Typography.title3)
-                    .foregroundColor(DesignSystem.Colors.textSecondary)
-                Text("使用下方拍摄按钮开始创作")
-                    .font(DesignSystem.Typography.subheadline)
-                    .foregroundColor(DesignSystem.Colors.textTertiary)
-            } else {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 56))
-                    .foregroundColor(DesignSystem.Colors.textTertiary)
-                Text("未找到匹配的照片")
-                    .font(DesignSystem.Typography.title3)
-                    .foregroundColor(DesignSystem.Colors.textSecondary)
-                Text("尝试其他关键词")
-                    .font(DesignSystem.Typography.subheadline)
-                    .foregroundColor(DesignSystem.Colors.textTertiary)
-            }
+        if viewModel.searchQuery.isEmpty {
+            EmptyStateView(
+                icon: "photo.on.rectangle",
+                title: "暂无照片",
+                message: "使用下方拍摄按钮开始创作",
+                actionTitle: "开始拍摄",
+                action: { /* 切换到相机 */ }
+            )
+        } else {
+            EmptyStateView(
+                icon: "magnifyingglass",
+                title: "未找到匹配的照片",
+                message: "尝试其他关键词"
+            )
         }
     }
 

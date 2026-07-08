@@ -73,6 +73,7 @@ struct CaptureButton: View {
 		.scaleEffect(isPressed ? 0.92 : 1.0)
 		.animation(DesignSystem.Animation.shutterPress, value: isPressed)
 		.contentShape(Circle())
+		.rippleEffect(color: Color.white.opacity(0.15))
 		.onLongPressGesture(
 			minimumDuration: 0.4,
 			maximumDistance: 20

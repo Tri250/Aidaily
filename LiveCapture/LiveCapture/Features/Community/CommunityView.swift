@@ -48,15 +48,35 @@ struct CommunityView: View {
                 switch selectedTab {
                 case .challenges:
                     ChallengeListView(manager: challengeManager)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: shouldSlideRight(old: .challenges, new: .challenges) ? .trailing : .leading).combined(with: .opacity),
+                            removal: .move(edge: shouldSlideRight(old: .challenges, new: selectedTab) ? .leading : .trailing).combined(with: .opacity)
+                        ))
                 case .filters:
                     FilterCommunityListView(manager: filterCommunity)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: shouldSlideRight(old: .challenges, new: .filters) ? .trailing : .leading).combined(with: .opacity),
+                            removal: .move(edge: shouldSlideRight(old: .filters, new: selectedTab) ? .leading : .trailing).combined(with: .opacity)
+                        ))
                 case .locations:
                     LocationListView(manager: locationRecommender)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
                 }
             }
             .navigationTitle("社区")
             .navigationBarTitleDisplayMode(.inline)
+            .animation(DesignSystem.Animation.modeSlide, value: selectedTab)
         }
+    }
+
+    private func shouldSlideRight(old: CommunityTab, new: CommunityTab) -> Bool {
+        let allTabs = CommunityTab.allCases
+        guard let oldIdx = allTabs.firstIndex(of: old),
+              let newIdx = allTabs.firstIndex(of: new) else { return false }
+        return newIdx > oldIdx
     }
 }
 

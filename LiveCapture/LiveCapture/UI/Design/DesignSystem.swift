@@ -2,320 +2,264 @@
 //  DesignSystem.swift
 //  LiveCapture
 //
-//  统一的设计系统
-//
-//  ## 文件作用
-//  定义应用的所有视觉设计规范
-//  包括颜色、字体、动画、圆角等常量
-//  确保整个应用的视觉一致性
-//
-//  ## 主要枚举
-//
-//  ### Colors 颜色系统
-//  
-//  #### 主色调
-//  - primary: Color - 清新蓝色 (0.0, 0.48, 1.0)
-//  - secondary: Color - 紫罗兰 (0.35, 0.34, 0.84)
-//  - accent: Color - 活力橙 (1.0, 0.58, 0.0)
-//
-//  #### 语义化颜色
-//  - success: Color - 成功绿 (0.2, 0.78, 0.35)
-//  - warning: Color - 警告黄 (1.0, 0.8, 0.0)
-//  - error: Color - 错误红 (1.0, 0.23, 0.19)
-//  - info: Color - 信息蓝 (0.35, 0.78, 0.98)
-//
-//  #### 文字颜色
-//  - textPrimary: Color - 主文字（白色）
-//  - textSecondary: Color - 次要文字（80% 白色）
-//  - textTertiary: Color - 三级文字（60% 白色）
-//
-//  #### 背景颜色
-//  - backgroundPrimary: Color - 主背景（黑色）
-//  - backgroundSecondary: Color - 次背景（10% 白色）
-//  - backgroundTertiary: Color - 三级背景（5% 白色）
-//
-//  #### 渐变色
-//  - primaryGradient: LinearGradient - 主色调渐变
-//  - accentGradient: LinearGradient - 强调色渐变
-//  - successGradient: LinearGradient - 成功色渐变
-//  - warningGradient: LinearGradient - 警告色渐变
-//  - errorGradient: LinearGradient - 错误色渐变
-//
-//  ### Typography 字体系统
-//  
-//  #### 标题
-//  - largeTitle: Font - 大标题 (34pt, bold, rounded)
-//  - title1: Font - 一级标题 (28pt, bold, rounded)
-//  - title2: Font - 二级标题 (22pt, bold, rounded)
-//  - title3: Font - 三级标题 (20pt, semibold, rounded)
-//
-//  #### 正文
-//  - headline: Font - 标题文字 (17pt, semibold, rounded)
-//  - body: Font - 正文 (17pt, regular, rounded)
-//  - callout: Font - 提示文字 (16pt, regular, rounded)
-//  - subheadline: Font - 子标题 (15pt, regular, rounded)
-//  - footnote: Font - 脚注 (13pt, regular, rounded)
-//  - caption1: Font - 说明文字1 (12pt, regular, rounded)
-//  - caption2: Font - 说明文字2 (11pt, regular, rounded)
-//
-//  ### Spacing 间距系统
-//  标准化的间距值：
-//  - xxSmall: CGFloat = 4
-//  - xSmall: CGFloat = 8
-//  - small: CGFloat = 12
-//  - medium: CGFloat = 16
-//  - large: CGFloat = 24
-//  - xLarge: CGFloat = 32
-//  - xxLarge: CGFloat = 48
-//
-//  ### CornerRadius 圆角系统
-//  标准化的圆角值：
-//  - small: CGFloat = 8
-//  - medium: CGFloat = 12
-//  - large: CGFloat = 16
-//  - xLarge: CGFloat = 24
-//  - circle: CGFloat = .infinity
-//
-//  ### Shadow 阴影系统
-//  预定义的阴影效果：
-//  - small: (color, radius, x, y)
-//    轻微阴影，用于卡片
-//  - medium: (color, radius, x, y)
-//    中等阴影，用于浮动元素
-//  - large: (color, radius, x, y)
-//    深度阴影，用于模态对话框
-//
-//  ### Animation 动画系统
-//  标准化的动画配置：
-//  - quick: Animation - 快速动画 (0.2s, easeOut)
-//  - smooth: Animation - 平滑动画 (0.3s, easeInOut)
-//  - bouncy: Animation - 弹性动画 (spring, 0.5s, 0.7)
-//  - gentle: Animation - 柔和动画 (spring, 0.6s, 0.8)
-//
-//  ## 使用示例
-//  ```swift
-//  Text("标题")
-//      .font(DesignSystem.Typography.title1)
-//      .foregroundColor(DesignSystem.Colors.textPrimary)
-//  
-//  Rectangle()
-//      .fill(DesignSystem.Colors.primaryGradient)
-//      .cornerRadius(DesignSystem.CornerRadius.large)
-//  
-//  withAnimation(DesignSystem.Animation.smooth) {
-//      // 动画代码
-//  }
-//  ```
-//
-//  ## 设计原则
-//  - 一致性：统一的视觉语言
-//  - 可访问性：清晰的颜色对比
-//  - 可维护性：集中管理设计参数
-//  - 灵活性：易于调整和扩展
+//  统一设计系统 - 魅族极简风格
+//  严格遵循魅族 Flyme 设计语言：低饱和、大留白、纤细字体、克制动效
 //
 
 #if os(iOS)
 import SwiftUI
+import UIKit
 
-/// 设计系统 - 统一的 UI 规范
+// MARK: - 设计系统
+
 enum DesignSystem {
-    
-    // MARK: - Colors
-    
+
+    // MARK: - Colors（魅族极简色板）
+
     enum Colors {
-        // 主色调
-        static let primary = Color(red: 0.0, green: 0.48, blue: 1.0) // 清新蓝色
-        static let secondary = Color(red: 0.35, green: 0.34, blue: 0.84) // 紫罗兰
-        static let accent = Color(red: 1.0, green: 0.58, blue: 0.0) // 活力橙
-        
-        // 语义化颜色
-        static let success = Color(red: 0.2, green: 0.78, blue: 0.35) // 成功绿
-        static let warning = Color(red: 1.0, green: 0.8, blue: 0.0) // 警告黄
-        static let error = Color(red: 1.0, green: 0.23, blue: 0.19) // 错误红
-        static let info = Color(red: 0.35, green: 0.78, blue: 0.98) // 信息蓝
-        
-        // 中性色（自适应深色/浅色模式）
-        static let textPrimary = Color(uiColor: UIColor { trait in
-            trait.userInterfaceStyle == .dark ? .white : .black
+        // 品牌色 - 低饱和清新蓝（魅族 Flyme 风格）
+        static let primary = Color(red: 0.23, green: 0.51, blue: 0.96)      // #3B82F6
+        static let primaryLight = Color(red: 0.58, green: 0.76, blue: 0.99)  // 亮变体
+        static let secondary = Color(red: 0.39, green: 0.40, blue: 0.93)     // #6366F1 Indigo
+        static let accent = Color(red: 0.96, green: 0.58, blue: 0.30)       // 柔和橙
+
+        // 语义色 - 低饱和版
+        static let success = Color(red: 0.28, green: 0.72, blue: 0.44)       // 柔和绿
+        static let successBg = Color(red: 0.28, green: 0.72, blue: 0.44).opacity(0.12)
+        static let warning = Color(red: 0.96, green: 0.70, blue: 0.24)       // 柔和琥珀
+        static let warningBg = Color(red: 0.96, green: 0.70, blue: 0.24).opacity(0.12)
+        static let error = Color(red: 0.94, green: 0.35, blue: 0.35)         // 柔和红
+        static let errorBg = Color(red: 0.94, green: 0.35, blue: 0.35).opacity(0.12)
+        static let info = Color(red: 0.35, green: 0.70, blue: 0.94)          // 柔和天蓝
+
+        // 中性色阶 - 7 级灰度（魅族极简核心）
+        static let gray0 = Color(uiColor: UIColor { trait in   // 最浅 - 背景
+            trait.userInterfaceStyle == .dark ? UIColor(white: 0.08, alpha: 1) : UIColor(white: 0.98, alpha: 1)
         })
-        static let textSecondary = Color(uiColor: UIColor { trait in
-            trait.userInterfaceStyle == .dark ? UIColor.white.withAlphaComponent(0.8) : UIColor.black.withAlphaComponent(0.65)
+        static let gray1 = Color(uiColor: UIColor { trait in   // 次级背景
+            trait.userInterfaceStyle == .dark ? UIColor(white: 0.12, alpha: 1) : UIColor(white: 0.94, alpha: 1)
         })
-        static let textTertiary = Color(uiColor: UIColor { trait in
-            trait.userInterfaceStyle == .dark ? UIColor.white.withAlphaComponent(0.6) : UIColor.black.withAlphaComponent(0.45)
+        static let gray2 = Color(uiColor: UIColor { trait in   // 卡片/Surface
+            trait.userInterfaceStyle == .dark ? UIColor(white: 0.16, alpha: 1) : UIColor(white: 0.90, alpha: 1)
+        })
+        static let gray3 = Color(uiColor: UIColor { trait in   // 分割线
+            trait.userInterfaceStyle == .dark ? UIColor(white: 0.22, alpha: 1) : UIColor(white: 0.82, alpha: 1)
+        })
+        static let gray4 = Color(uiColor: UIColor { trait in   // 禁用/占位
+            trait.userInterfaceStyle == .dark ? UIColor(white: 0.35, alpha: 1) : UIColor(white: 0.55, alpha: 1)
+        })
+        static let gray5 = Color(uiColor: UIColor { trait in   // 次要文字
+            trait.userInterfaceStyle == .dark ? UIColor(white: 0.55, alpha: 1) : UIColor(white: 0.35, alpha: 1)
+        })
+        static let gray6 = Color(uiColor: UIColor { trait in   // 主要文字
+            trait.userInterfaceStyle == .dark ? UIColor(white: 0.92, alpha: 1) : UIColor(white: 0.08, alpha: 1)
         })
 
-        // 背景色（自适应深色/浅色模式）
-        static let backgroundPrimary = Color(uiColor: .systemBackground)
-        static let backgroundSecondary = Color(uiColor: UIColor { trait in
-            trait.userInterfaceStyle == .dark ? UIColor.white.withAlphaComponent(0.1) : UIColor.black.withAlphaComponent(0.06)
-        })
-        static let backgroundTertiary = Color(uiColor: UIColor { trait in
-            trait.userInterfaceStyle == .dark ? UIColor.white.withAlphaComponent(0.05) : UIColor.black.withAlphaComponent(0.03)
-        })
-        
-        // 渐变色
-        static let primaryGradient = LinearGradient(
-            colors: [primary, secondary],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        
-        static let accentGradient = LinearGradient(
-            colors: [accent, Color(red: 1.0, green: 0.4, blue: 0.4)],
-            startPoint: .leading,
-            endPoint: .trailing
-        )
-        
-        static let successGradient = LinearGradient(
-            colors: [success, Color(red: 0.4, green: 0.9, blue: 0.6)],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        
-        // MARK: Minimalist Palette
-        
-        /// 极简设计 - 纯白
-        static let minimalWhite = Color.white
-        /// 极简设计 - 半透明白色（用于覆盖层）
-        static let minimalOverlay = Color.white.opacity(0.12)
-        /// 极简设计 - 高亮白色边框
-        static let minimalBorder = Color.white.opacity(0.35)
-        /// 极简设计 - 激活状态边框
-        static let minimalActiveBorder = Color.white
-        /// 极简设计 - 暗色背景
+        // 语义化文字颜色（兼容旧代码）
+        static let textPrimary = gray6
+        static let textSecondary = gray5
+        static let textTertiary = gray4
+
+        // 语义化背景颜色（兼容旧代码）
+        static let backgroundPrimary = gray0
+        static let backgroundSecondary = gray1
+        static let backgroundTertiary = gray2
+
+        // 极简相机专属色
         static let minimalBackground = Color.black
-        /// 极简设计 - 半透明暗色覆盖
-        static let minimalDarkOverlay = Color.black.opacity(0.45)
-        /// 极简设计 - 标签文字颜色
-        static let minimalLabel = Color.white.opacity(0.9)
-        /// 极简设计 - 次级文字
-        static let minimalSecondaryLabel = Color.white.opacity(0.55)
-        /// 极简设计 - 快门按钮描边
+        static let minimalOverlay = Color.white.opacity(0.08)
+        static let minimalBorder = Color.white.opacity(0.20)
+        static let minimalActiveBorder = Color.white.opacity(0.85)
+        static let minimalLabel = Color.white.opacity(0.92)
+        static let minimalSecondaryLabel = Color.white.opacity(0.50)
+        static let minimalDarkOverlay = Color.black.opacity(0.40)
         static let shutterStroke = Color.white
-        /// 极简设计 - 快门按钮内圈
         static let shutterInner = Color.white.opacity(0.95)
     }
-    
-    // MARK: - Typography
-    
+
+    // MARK: - Typography（魅族级字体系统）
+
     enum Typography {
-        static let largeTitle = Font.system(size: 34, weight: .bold, design: .rounded)
-        static let title1 = Font.system(size: 28, weight: .bold, design: .rounded)
-        static let title2 = Font.system(size: 22, weight: .bold, design: .rounded)
-        static let title3 = Font.system(size: 20, weight: .semibold, design: .rounded)
-        static let headline = Font.system(size: 17, weight: .semibold, design: .rounded)
-        static let body = Font.system(size: 17, weight: .regular, design: .default)
-        static let callout = Font.system(size: 16, weight: .regular, design: .default)
+        // 字体族
+        // 统一使用系统字体 SF Pro（苹方），不再混用 .rounded 和 .default
+        // 标题保留 .rounded 设计风格，正文统一 .default
+
+        // 标题 - Rounded 设计风格
+        static let largeTitle  = Font.system(size: 34, weight: .bold, design: .rounded)
+        static let title1      = Font.system(size: 28, weight: .bold, design: .rounded)
+        static let title2      = Font.system(size: 22, weight: .bold, design: .rounded)
+        static let title3      = Font.system(size: 20, weight: .semibold, design: .rounded)
+
+        // 正文 - 统一 Default 设计风格
+        static let headline    = Font.system(size: 17, weight: .semibold, design: .default)
+        static let body        = Font.system(size: 17, weight: .regular, design: .default)
+        static let callout     = Font.system(size: 16, weight: .regular, design: .default)
         static let subheadline = Font.system(size: 15, weight: .regular, design: .default)
-        static let footnote = Font.system(size: 13, weight: .regular, design: .default)
-        static let caption1 = Font.system(size: 12, weight: .regular, design: .default)
-        static let caption2 = Font.system(size: 11, weight: .regular, design: .default)
-        
-        // 单等宽字体
-        static let monoBody = Font.system(size: 17, weight: .regular, design: .monospaced)
+        static let footnote    = Font.system(size: 13, weight: .regular, design: .default)
+        static let caption1    = Font.system(size: 12, weight: .regular, design: .default)
+        static let caption2    = Font.system(size: 11, weight: .regular, design: .default)
+
+        // 等宽数字（用于 EXIF 数据、计时器）
+        static let monoBody    = Font.system(size: 17, weight: .regular, design: .monospaced)
         static let monoCaption = Font.system(size: 13, weight: .medium, design: .monospaced)
-        
-        // MARK: Minimalist Typography
-        
-        /// 极简模式标签 - 11pt medium
-        static let minimalModeLabel = Font.system(size: 11, weight: .medium, design: .default)
-        /// 极简滤镜名称 - 10pt medium
-        static let minimalFilterName = Font.system(size: 10, weight: .medium, design: .default)
-        /// 极简控制图标标签 - 13pt medium
-        static let minimalControlLabel = Font.system(size: 13, weight: .medium, design: .default)
-        /// 极简计时器 - 14pt monospaced medium
-        static let minimalTimer = Font.system(size: 14, weight: .medium, design: .monospaced)
-        /// 极简变焦指示 - 12pt monospaced
+        static let monoDigit   = Font.system(size: 12, weight: .regular, design: .monospaced)
+
+        // 行高（Line Height）- 基于字体大小的 1.4 倍
+        static func lineHeight(for size: CGFloat) -> CGFloat { size * 1.4 }
+
+        // 字间距（Kerning）
+        // 标题：轻微负字间距提升紧凑感
+        static let titleKerning: CGFloat = -0.3
+        // 正文：保持默认
+        static let bodyKerning: CGFloat = 0
+        // 说明文字：轻微正字间距提升可读性
+        static let captionKerning: CGFloat = 0.2
+
+        // 极简模式专用字体
+        static let minimalModeLabel     = Font.system(size: 11, weight: .medium, design: .default)
+        static let minimalFilterName    = Font.system(size: 10, weight: .medium, design: .default)
+        static let minimalControlLabel  = Font.system(size: 13, weight: .medium, design: .default)
+        static let minimalTimer         = Font.system(size: 14, weight: .medium, design: .monospaced)
         static let minimalZoomIndicator = Font.system(size: 12, weight: .regular, design: .monospaced)
     }
-    
-    // MARK: - Spacing
-    
+
+    // MARK: - Spacing（严格 4pt 基准网格）
+
     enum Spacing {
-        static let xxxSmall: CGFloat = 2
-        static let xxSmall: CGFloat = 4
-        static let xSmall: CGFloat = 8
-        static let small: CGFloat = 12
-        static let medium: CGFloat = 16
-        static let large: CGFloat = 24
-        static let xLarge: CGFloat = 32
-        static let xxLarge: CGFloat = 48
+        // 所有间距值为 4 的倍数
+        static let xxxSmall: CGFloat = 4
+        static let xxSmall: CGFloat  = 8
+        static let xSmall: CGFloat   = 12
+        static let small: CGFloat    = 16
+        static let medium: CGFloat   = 20
+        static let large: CGFloat    = 24
+        static let xLarge: CGFloat   = 32
+        static let xxLarge: CGFloat  = 48
         static let xxxLarge: CGFloat = 64
+
+        // 水平间距规范
+        enum Horizontal {
+            static let tight: CGFloat   = 4
+            static let compact: CGFloat = 8
+            static let standard: CGFloat = 12
+            static let relaxed: CGFloat = 16
+            static let loose: CGFloat   = 24
+        }
+
+        // 垂直间距规范
+        enum Vertical {
+            static let tight: CGFloat   = 4
+            static let compact: CGFloat = 8
+            static let standard: CGFloat = 12
+            static let relaxed: CGFloat = 16
+            static let loose: CGFloat   = 24
+        }
+
+        // 内边距规范
+        enum Padding {
+            static let inline: CGFloat  = 16
+            static let block: CGFloat   = 20
+            static let container: CGFloat = 24
+        }
+
+        // 元素间距规范
+        enum Gap {
+            static let minimal: CGFloat = 4
+            static let tight: CGFloat   = 8
+            static let standard: CGFloat = 12
+            static let relaxed: CGFloat = 16
+        }
     }
-    
-    // MARK: - Corner Radius
-    
+
+    // MARK: - Corner Radius（统一圆角系统）
+
     enum CornerRadius {
-        static let small: CGFloat = 8
+        // 从小到大的圆角层级
+        static let micro: CGFloat  = 4
+        static let small: CGFloat  = 8
         static let medium: CGFloat = 12
-        static let large: CGFloat = 16
-        static let xLarge: CGFloat = 24
-        static let xxLarge: CGFloat = 32
+        static let large: CGFloat  = 16
+        static let xLarge: CGFloat = 20
+        static let xxLarge: CGFloat = 24
         static let circle: CGFloat = 999
+
+        // 嵌套圆角规则：内层 = 外层 - 差值
+        // 差值默认 4pt
+        static func nested(outer: CGFloat) -> CGFloat {
+            max(outer - 4, 4)
+        }
     }
-    
-    // MARK: - Shadows
-    
+
+    // MARK: - Shadows（柔和阴影系统）
+
     enum Shadows {
-        static func small(color: Color = .black) -> (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
-            (color.opacity(0.1), 4, 0, 2)
+        // 轻微阴影 - 卡片
+        static func subtle() -> (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
+            (Color.black.opacity(0.06), 8, 0, 2)
         }
-        
-        static func medium(color: Color = .black) -> (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
-            (color.opacity(0.2), 8, 0, 4)
+        // 中等阴影 - 浮动元素
+        static func elevated() -> (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
+            (Color.black.opacity(0.10), 16, 0, 4)
         }
-        
-        static func large(color: Color = .black) -> (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
-            (color.opacity(0.3), 16, 0, 8)
+        // 深度阴影 - 模态
+        static func modal() -> (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
+            (Color.black.opacity(0.15), 24, 0, 8)
         }
-        
+        // 发光效果
         static func glow(color: Color) -> (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
-            (color.opacity(0.6), 12, 0, 0)
+            (color.opacity(0.4), 12, 0, 0)
         }
     }
-    
-    // MARK: - Animation
-    
+
+    // MARK: - Stroke（描边系统）
+
+    enum Stroke {
+        static let subtle = Color.white.opacity(0.10)
+        static let standard = Color.white.opacity(0.20)
+        static let prominent = Color.white.opacity(0.35)
+        static let active = Color.white.opacity(0.85)
+
+        static let widthThin: CGFloat = 0.5
+        static let widthStandard: CGFloat = 1.0
+        static let widthThick: CGFloat = 1.5
+        static let widthHeavy: CGFloat = 2.0
+    }
+
+    // MARK: - Animation（魅族级别克制动效）
+
     enum Animation {
-        static let quick = SwiftUI.Animation.spring(response: 0.25, dampingFraction: 0.8)
-        static let smooth = SwiftUI.Animation.spring(response: 0.35, dampingFraction: 0.75)
-        static let bouncy = SwiftUI.Animation.spring(response: 0.4, dampingFraction: 0.6)
-        static let gentle = SwiftUI.Animation.spring(response: 0.5, dampingFraction: 0.9)
-        
-        static let easeIn = SwiftUI.Animation.easeIn(duration: 0.2)
-        static let easeOut = SwiftUI.Animation.easeOut(duration: 0.2)
-        static let easeInOut = SwiftUI.Animation.easeInOut(duration: 0.3)
-        
-        // MARK: Minimalist Animation Curves
-        
-        /// 快门按下动画 - 快速弹性
-        static let shutterPress = SwiftUI.Animation.spring(response: 0.15, dampingFraction: 0.55)
-        /// 快门释放动画 - 快速回弹
-        static let shutterRelease = SwiftUI.Animation.spring(response: 0.25, dampingFraction: 0.65)
-        /// 覆盖层淡入淡出
-        static let overlayFade = SwiftUI.Animation.easeInOut(duration: 0.25)
-        /// 模式切换滑动
-        static let modeSlide = SwiftUI.Animation.spring(response: 0.35, dampingFraction: 0.8)
-        /// 滤镜条出现
-        static let filterStripReveal = SwiftUI.Animation.spring(response: 0.3, dampingFraction: 0.75)
-        /// 变焦指示弹入
-        static let zoomPop = SwiftUI.Animation.spring(response: 0.2, dampingFraction: 0.6)
-        /// 自动隐藏延迟
+        // 基础缓动
+        static let easeIn    = SwiftUI.Animation.easeIn(duration: 0.2)
+        static let easeOut   = SwiftUI.Animation.easeOut(duration: 0.2)
+        static let easeInOut = SwiftUI.Animation.easeInOut(duration: 0.25)
+
+        // 弹簧动画 - 魅族偏好柔软弹性
+        static let quick     = SwiftUI.Animation.spring(response: 0.25, dampingFraction: 0.75)
+        static let smooth    = SwiftUI.Animation.spring(response: 0.35, dampingFraction: 0.72)
+        static let bouncy    = SwiftUI.Animation.spring(response: 0.40, dampingFraction: 0.65)
+        static let gentle    = SwiftUI.Animation.spring(response: 0.50, dampingFraction: 0.85)
+
+        // 相机专用弹簧动画
+        static let shutterPress   = SwiftUI.Animation.spring(response: 0.18, dampingFraction: 0.65)
+        static let shutterRelease = SwiftUI.Animation.spring(response: 0.28, dampingFraction: 0.70)
+        static let overlayFade    = SwiftUI.Animation.easeInOut(duration: 0.25)
+        static let modeSlide      = SwiftUI.Animation.spring(response: 0.35, dampingFraction: 0.78)
+        static let filterReveal   = SwiftUI.Animation.spring(response: 0.32, dampingFraction: 0.72)
+        static let zoomPop        = SwiftUI.Animation.spring(response: 0.22, dampingFraction: 0.65)
+        static let snappy         = SwiftUI.Animation.spring(response: 0.22, dampingFraction: 0.72)
+
+        // 自动隐藏延迟
         static let autoHideDelay: Double = 3.0
-        /// 快节奏弹性
-        static let snappy = SwiftUI.Animation.spring(response: 0.2, dampingFraction: 0.7)
     }
 }
 
-// MARK: - View Modifiers
+// MARK: - View Modifiers（核心视觉修饰器）
 
-/// 玻璃态效果
+// MARK: 毛玻璃效果
 struct GlassmorphismModifier: ViewModifier {
     var cornerRadius: CGFloat = DesignSystem.CornerRadius.medium
-    var opacity: Double = 0.15
-    var blur: CGFloat = 10
-    
+    var opacity: Double = 0.08
+
     func body(content: Content) -> some View {
         content
             .background(
@@ -329,54 +273,132 @@ struct GlassmorphismModifier: ViewModifier {
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .strokeBorder(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.3),
-                                Color.white.opacity(0.1)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
+                        DesignSystem.Stroke.subtle,
+                        lineWidth: DesignSystem.Stroke.widthThin
                     )
             )
     }
 }
 
-/// 新拟态效果
-struct NeumorphismModifier: ViewModifier {
-    var cornerRadius: CGFloat = DesignSystem.CornerRadius.medium
-    var isPressed: Bool = false
-    
+// MARK: 涟漪效果
+struct RippleModifier: ViewModifier {
+    @State private var ripples: [Ripple] = []
+    let color: Color
+
+    struct Ripple: Identifiable {
+        let id = UUID()
+        var location: CGPoint
+        var scale: CGFloat = 0
+        var opacity: Double = 0.4
+    }
+
     func body(content: Content) -> some View {
         content
-            .background(
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(Color.white.opacity(0.1))
-                    .shadow(color: .white.opacity(isPressed ? 0.1 : 0.2), radius: isPressed ? 2 : 8, x: isPressed ? 2 : -8, y: isPressed ? 2 : -8)
-                    .shadow(color: .black.opacity(isPressed ? 0.4 : 0.3), radius: isPressed ? 2 : 8, x: isPressed ? -2 : 8, y: isPressed ? -2 : 8)
+            .overlay(
+                GeometryReader { geo in
+                    ZStack {
+                        ForEach(ripples) { ripple in
+                            Circle()
+                                .fill(color)
+                                .frame(width: 20, height: 20)
+                                .position(ripple.location)
+                                .scaleEffect(ripple.scale)
+                                .opacity(ripple.opacity)
+                        }
+                    }
+                    .allowsHitTesting(false)
+                }
+            )
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onEnded { value in
+                        let location = value.location
+                        let ripple = Ripple(location: location)
+                        ripples.append(ripple)
+                        withAnimation(.easeOut(duration: 0.6)) {
+                            if let idx = ripples.firstIndex(where: { $0.id == ripple.id }) {
+                                ripples[idx].scale = 4
+                                ripples[idx].opacity = 0
+                            }
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            ripples.removeAll { $0.id == ripple.id }
+                        }
+                    }
             )
     }
 }
 
-/// 发光效果
-struct GlowModifier: ViewModifier {
-    var color: Color
-    var radius: CGFloat = 12
-    
+// MARK: 骨架屏 Shimmer
+struct ShimmerModifier: ViewModifier {
+    @State private var phase: CGFloat = -1
+
     func body(content: Content) -> some View {
         content
-            .shadow(color: color.opacity(0.6), radius: radius, x: 0, y: 0)
-            .shadow(color: color.opacity(0.3), radius: radius * 2, x: 0, y: 0)
+            .overlay(
+                GeometryReader { geo in
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0),
+                            Color.white.opacity(0.15),
+                            Color.white.opacity(0)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: geo.size.width * 3)
+                    .offset(x: phase * geo.size.width * 3)
+                }
+            )
+            .mask(content)
+            .onAppear {
+                withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                    phase = 1
+                }
+            }
     }
 }
 
-/// 脉动动画
+// MARK: 按钮按压缩放
+struct PressScaleModifier: ViewModifier {
+    let scale: CGFloat
+
+    @State private var isPressed = false
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isPressed ? scale : 1.0)
+            .animation(DesignSystem.Animation.quick, value: isPressed)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        if !isPressed { isPressed = true }
+                    }
+                    .onEnded { _ in
+                        isPressed = false
+                    }
+            )
+    }
+}
+
+// MARK: 发光效果
+struct GlowModifier: ViewModifier {
+    var color: Color
+    var radius: CGFloat = 12
+
+    func body(content: Content) -> some View {
+        content
+            .shadow(color: color.opacity(0.35), radius: radius, x: 0, y: 0)
+            .shadow(color: color.opacity(0.15), radius: radius * 2, x: 0, y: 0)
+    }
+}
+
+// MARK: 脉动动画
 struct PulseModifier: ViewModifier {
     @State private var isPulsing = false
     var color: Color
     var duration: Double = 1.5
-    
+
     func body(content: Content) -> some View {
         content
             .overlay(
@@ -396,77 +418,161 @@ struct PulseModifier: ViewModifier {
 // MARK: - View Extensions
 
 extension View {
-    /// 应用玻璃态效果
-    func glassmorphism(cornerRadius: CGFloat = DesignSystem.CornerRadius.medium, opacity: Double = 0.15) -> some View {
-        self.modifier(GlassmorphismModifier(cornerRadius: cornerRadius, opacity: opacity))
+    func glassmorphism(cornerRadius: CGFloat = DesignSystem.CornerRadius.medium, opacity: Double = 0.08) -> some View {
+        modifier(GlassmorphismModifier(cornerRadius: cornerRadius, opacity: opacity))
     }
-    
-    /// 应用新拟态效果
-    func neumorphism(cornerRadius: CGFloat = DesignSystem.CornerRadius.medium, isPressed: Bool = false) -> some View {
-        self.modifier(NeumorphismModifier(cornerRadius: cornerRadius, isPressed: isPressed))
+
+    func rippleEffect(color: Color = Color.white.opacity(0.2)) -> some View {
+        modifier(RippleModifier(color: color))
     }
-    
-    /// 应用发光效果
+
+    func shimmer() -> some View {
+        modifier(ShimmerModifier())
+    }
+
+    func pressScale(_ scale: CGFloat = 0.97) -> some View {
+        modifier(PressScaleModifier(scale: scale))
+    }
+
     func glow(color: Color, radius: CGFloat = 12) -> some View {
-        self.modifier(GlowModifier(color: color, radius: radius))
+        modifier(GlowModifier(color: color, radius: radius))
     }
-    
-    /// 应用脉动效果
+
     func pulse(color: Color, duration: Double = 1.5) -> some View {
-        self.modifier(PulseModifier(color: color, duration: duration))
+        modifier(PulseModifier(color: color, duration: duration))
     }
-    
-    /// 添加标准阴影
-    func standardShadow(style: ShadowStyle = .medium) -> some View {
-        let shadow: (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat)
-        switch style {
-        case .small:
-            shadow = DesignSystem.Shadows.small()
-        case .medium:
-            shadow = DesignSystem.Shadows.medium()
-        case .large:
-            shadow = DesignSystem.Shadows.large()
-        }
-        return self.shadow(color: shadow.color, radius: shadow.radius, x: shadow.x, y: shadow.y)
+
+    // 标准阴影
+    func subtleShadow() -> some View {
+        let s = DesignSystem.Shadows.subtle()
+        return shadow(color: s.color, radius: s.radius, x: s.x, y: s.y)
+    }
+
+    func elevatedShadow() -> some View {
+        let s = DesignSystem.Shadows.elevated()
+        return shadow(color: s.color, radius: s.radius, x: s.x, y: s.y)
+    }
+
+    func modalShadow() -> some View {
+        let s = DesignSystem.Shadows.modal()
+        return shadow(color: s.color, radius: s.radius, x: s.x, y: s.y)
+    }
+
+    // 标题字间距
+    func titleKerning() -> some View {
+        kerning(DesignSystem.Typography.titleKerning)
+    }
+
+    // 说明文字字间距
+    func captionKerning() -> some View {
+        kerning(DesignSystem.Typography.captionKerning)
+    }
+
+    // 标准行高
+    func standardLineHeight(size: CGFloat) -> some View {
+        lineSpacing(DesignSystem.Typography.lineHeight(for: size) - size)
+    }
+
+    // 页面统一内边距
+    func pagePadding() -> some View {
+        padding(.horizontal, DesignSystem.Spacing.Padding.container)
     }
 }
 
-enum ShadowStyle {
-    case small, medium, large
-}
+// MARK: - Button Styles（完整按钮体系）
 
-// MARK: - Custom Button Styles
-
-/// 主按钮样式
+// 主按钮
 struct PrimaryButtonStyle: ButtonStyle {
     var isEnabled: Bool = true
-    
+    var size: ButtonSize = .medium
+
+    enum ButtonSize {
+        case small, medium, large
+        var height: CGFloat {
+            switch self {
+            case .small: return 36
+            case .medium: return 44
+            case .large: return 52
+            }
+        }
+        var fontSize: Font {
+            switch self {
+            case .small: return DesignSystem.Typography.footnote
+            case .medium: return DesignSystem.Typography.headline
+            case .large: return DesignSystem.Typography.title3
+            }
+        }
+        var horizontalPadding: CGFloat {
+            switch self {
+            case .small: return 16
+            case .medium: return 24
+            case .large: return 32
+            }
+        }
+    }
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(DesignSystem.Typography.headline)
+            .font(size.fontSize)
             .foregroundColor(.white)
-            .padding(.horizontal, DesignSystem.Spacing.large)
-            .padding(.vertical, DesignSystem.Spacing.medium)
+            .padding(.horizontal, size.horizontalPadding)
+            .frame(height: size.height)
             .background(
                 RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large)
-                    .fill(isEnabled ? DesignSystem.Colors.primaryGradient : LinearGradient(colors: [.gray], startPoint: .leading, endPoint: .trailing))
+                    .fill(isEnabled ? DesignSystem.Colors.primary : DesignSystem.Colors.gray3)
             )
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
-            .opacity(isEnabled ? 1.0 : 0.6)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .opacity(isEnabled ? 1.0 : 0.5)
             .animation(DesignSystem.Animation.quick, value: configuration.isPressed)
     }
 }
 
-/// 次要按钮样式
+// 次要按钮
 struct SecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(DesignSystem.Typography.headline)
             .foregroundColor(DesignSystem.Colors.textPrimary)
-            .padding(.horizontal, DesignSystem.Spacing.large)
-            .padding(.vertical, DesignSystem.Spacing.medium)
+            .padding(.horizontal, 24)
+            .frame(height: 44)
             .glassmorphism()
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(DesignSystem.Animation.quick, value: configuration.isPressed)
+    }
+}
+
+// 幽灵按钮
+struct GhostButtonStyle: ButtonStyle {
+    var isDestructive: Bool = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(DesignSystem.Typography.headline)
+            .foregroundColor(isDestructive ? DesignSystem.Colors.error : DesignSystem.Colors.primary)
+            .padding(.horizontal, 16)
+            .frame(height: 44)
+            .background(
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large)
+                    .fill(isDestructive ? DesignSystem.Colors.errorBg : DesignSystem.Colors.primary.opacity(0.08))
+            )
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(DesignSystem.Animation.quick, value: configuration.isPressed)
+    }
+}
+
+// 图标按钮
+struct IconButtonStyle: ButtonStyle {
+    var size: CGFloat = 44
+    var isActive: Bool = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .frame(width: size, height: size)
+            .background(
+                Circle()
+                    .fill(isActive ? DesignSystem.Colors.primary.opacity(0.12) : Color.clear)
+            )
+            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
             .animation(DesignSystem.Animation.quick, value: configuration.isPressed)
     }
 }

@@ -19,9 +19,13 @@ struct CaptureView: View {
 	@State private var showFilterStrip = false
 	@State private var showModeSelector = false
 	@State private var showZoomIndicator = false
+	@State private var isImmersiveMode = false	// 沉浸模式：隐藏所有 UI
 	@State private var flashMode: TopControlBar.FlashMode = .auto
 	@State private var selectedCaptureMode: ModeSelectorView.CaptureMode = .photo
 	@State private var zoomLevelText: String = "1×"
+
+	// 渐进式取景框：0=全部隐藏, 1=仅中心准星, 2=准星+追踪, 3=全部显示
+	@State private var overlayProgression: Int = 3
 
 	// 动画状态
 	@State private var captureAnimationScale: CGFloat = 1.0
@@ -29,6 +33,9 @@ struct CaptureView: View {
 	@State private var cameraFlipRotation: Double = 0.0
 	@State private var pinchInitialFactor: CGFloat = 1.0
 	@State private var pinchActive = false
+
+	// 手势优先级标识
+	@State private var isGestureActive = false
 
 	// 自动隐藏计时器
 	@State private var autoHideWorkItem: DispatchWorkItem?
@@ -71,33 +78,36 @@ struct CaptureView: View {
 
 				// UI 覆盖层
 				VStack(spacing: 0) {
-					// 顶部控制栏
-					TopControlBar(
-						onFlashToggle: { cycleFlashMode() },
-						onTimerTap: { toggleTimer() },
-						onAspectRatioTap: { toggleAspectRatio() },
-						onSettingsTap: { presentSettings() },
-						flashMode: flashMode,
-						showControls: showControls
-					)
-					.padding(.top, safeInsets.top > 0 ? 0 : 8)
+					// 顶部控制栏 - 渐进式显示
+					if !isImmersiveMode {
+						TopControlBar(
+							onFlashToggle: { cycleFlashMode() },
+							onTimerTap: { toggleTimer() },
+							onAspectRatioTap: { toggleAspectRatio() },
+							onSettingsTap: { presentSettings() },
+							flashMode: flashMode,
+							showControls: showControls
+						)
+						.padding(.top, safeInsets.top > 0 ? 0 : 8)
+						.transition(.move(edge: .top).combined(with: .opacity))
+					}
 
 					Spacer()
 
 					// 变焦指示器
-					if showZoomIndicator {
+					if showZoomIndicator && !isImmersiveMode {
 						zoomIndicator
 							.transition(.scale.combined(with: .opacity))
 					}
 
 					// 模式选择器
-					if showModeSelector {
+					if showModeSelector && !isImmersiveMode {
 						ModeSelectorView(selectedMode: $selectedCaptureMode)
 							.transition(.move(edge: .bottom).combined(with: .opacity))
 					}
 
 					// 滤镜条
-					if showFilterStrip {
+					if showFilterStrip && !isImmersiveMode {
 						FilterStripView(filterManager: filterManager) { preset in
 							applyFilter(preset)
 						}
@@ -105,12 +115,38 @@ struct CaptureView: View {
 					}
 
 					// 底部控制区
-					bottomControlBar(bottomInset: max(safeInsets.bottom, 16))
-						.padding(.bottom, safeInsets.bottom > 0 ? 0 : 16)
+					if !isImmersiveMode {
+						bottomControlBar(bottomInset: max(safeInsets.bottom, 16))
+							.padding(.bottom, safeInsets.bottom > 0 ? 0 : 16)
+					}
 				}
 				.zIndex(2)
-				.opacity(showControls ? 1 : 0)
+				.opacity(showControls && !isImmersiveMode ? 1 : 0)
 				.animation(DesignSystem.Animation.overlayFade, value: showControls)
+				.animation(DesignSystem.Animation.smooth, value: isImmersiveMode)
+
+				// 沉浸模式指示器
+				if isImmersiveMode {
+					VStack {
+						HStack {
+							Spacer()
+							Text("沉浸模式")
+								.font(DesignSystem.Typography.minimalModeLabel)
+								.foregroundColor(DesignSystem.Colors.minimalSecondaryLabel)
+								.padding(.horizontal, 12)
+								.padding(.vertical, 6)
+								.background(
+									Capsule()
+										.fill(DesignSystem.Colors.minimalDarkOverlay)
+								)
+								.padding(.trailing, 16)
+								.padding(.top, 12)
+						}
+						Spacer()
+					}
+					.zIndex(2)
+					.transition(.opacity)
+				}
 			}
 		}
 		.ignoresSafeArea()
@@ -165,35 +201,11 @@ struct CaptureView: View {
 	private var gestureLayer: some View {
 		Color.clear
 			.contentShape(Rectangle())
-			.captureGestures(
-				GestureCallbacks(
-					onSwipeUp: {
-						withAnimation(DesignSystem.Animation.filterStripReveal) {
-							showFilterStrip = true
-							showModeSelector = false
-						}
-						resetAutoHideTimer()
-					},
-					onSwipeDown: {
-						withAnimation(DesignSystem.Animation.filterStripReveal) {
-							showModeSelector = true
-							showFilterStrip = false
-						}
-						resetAutoHideTimer()
-					},
-					onLongPress: { _ in
-						// 锁定对焦/曝光
-						HapticManager.shared.focusLock()
-						// 显示对焦锁定指示
-						showControls = true
-						resetAutoHideTimer()
-					},
-					onDoubleTap: {
-						triggerCameraFlipAnimation()
-						viewModel.toggleCameraPosition()
-						resetAutoHideTimer()
-					},
-					onPinch: { scale in
+			// 手势优先级：Pinch > LongPress > Swipe > DoubleTap > SingleTap
+			.gesture(
+				MagnificationGesture()
+					.onChanged { scale in
+						isGestureActive = true
 						if !pinchActive {
 							pinchInitialFactor = viewModel.zoomState.currentFactor
 							pinchActive = true
@@ -201,37 +213,68 @@ struct CaptureView: View {
 						let target = clampedZoomFactor(for: pinchInitialFactor * scale)
 						viewModel.updateZoomInteractively(to: target)
 						showZoomIndicator = true
-					},
-					onPinchEnd: { scale in
+					}
+					.onEnded { scale in
 						let target = clampedZoomFactor(for: pinchInitialFactor * scale)
 						viewModel.finalizeZoomInteractively(at: target, smooth: true)
 						pinchActive = false
+						isGestureActive = false
 						DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
 							withAnimation(DesignSystem.Animation.overlayFade) {
 								showZoomIndicator = false
 							}
 						}
-					},
-					onTap: { _ in
-						// 单击显示/隐藏控件
-						withAnimation(DesignSystem.Animation.overlayFade) {
-							showControls.toggle()
-						}
-						if showControls {
-							resetAutoHideTimer()
+					}
+			)
+			.simultaneousGesture(
+				LongPressGesture(minimumDuration: 0.5)
+					.sequenced(before: DragGesture(minimumDistance: 0))
+					.onEnded { _ in
+						HapticManager.shared.focusLock()
+						showControls = true
+						resetAutoHideTimer()
+					}
+			)
+			.simultaneousGesture(
+				// 双指下滑 → 沉浸模式
+				DragGesture(minimumDistance: 40)
+					.onEnded { value in
+						guard !isGestureActive else { return }
+						// 向下滑动进入沉浸模式
+						if value.translation.height > 60 && abs(value.translation.width) < 60 {
+							withAnimation(DesignSystem.Animation.smooth) {
+								isImmersiveMode = true
+								showControls = false
+								showFilterStrip = false
+								showModeSelector = false
+							}
+							HapticManager.shared.medium()
 						}
 					}
-				)
 			)
-			.onTapGesture { location in
-				// 单击时切换控件显示
-				withAnimation(DesignSystem.Animation.overlayFade) {
-					showControls.toggle()
-					showFilterStrip = false
-					showModeSelector = false
-				}
-				if showControls {
+			.onTapGesture(count: 2) { location in
+				// 双击切换摄像头
+				triggerCameraFlipAnimation()
+				viewModel.toggleCameraPosition()
+				resetAutoHideTimer()
+			}
+			.onTapGesture(count: 1) { location in
+				// 单击：沉浸模式下退出，否则切换控件
+				if isImmersiveMode {
+					withAnimation(DesignSystem.Animation.smooth) {
+						isImmersiveMode = false
+						showControls = true
+					}
 					resetAutoHideTimer()
+				} else {
+					withAnimation(DesignSystem.Animation.overlayFade) {
+						showControls.toggle()
+						showFilterStrip = false
+						showModeSelector = false
+					}
+					if showControls {
+						resetAutoHideTimer()
+					}
 				}
 			}
 	}
