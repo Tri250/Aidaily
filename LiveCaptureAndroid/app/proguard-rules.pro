@@ -54,3 +54,18 @@
     public static *** d(...);
     public static *** i(...);
 }
+
+# ---- Bugly ----
+-dontwarn com.tencent.bugly.**
+-keep class com.tencent.bugly.** { *; }
+-keep class android.app.Application { *; }
+
+# ---- 微信 OpenSDK ----
+-keep class com.tencent.mm.opensdk.** { *; }
+-keep class com.tencent.wxop.** { *; }
+-keep class com.tencent.mm.sdk.** { *; }
+-dontwarn com.tencent.mm.**
+
+# ---- 加密相关 ----
+-keep class javax.crypto.** { *; }
+-keep class java.security.** { *; }

@@ -150,4 +150,26 @@
     <string name="error_storage">存储空间不足</string>
     <string name="error_processing">处理失败</string>
     <string name="error_permission">权限不足</string>
+
+    <!-- 隐私协议 -->
+    <string name="privacy_title">构妙 LiveCapture 隐私保护指引</string>
+    <string name="privacy_agree">同意并继续</string>
+    <string name="privacy_disagree">不同意，退出应用</string>
+    <string name="privacy_view_full">查看完整隐私政策</string>
+    <string name="privacy_full_title">构妙隐私政策</string>
+
+    <!-- 分享渠道 -->
+    <string name="share_wechat_friend">微信好友</string>
+    <string name="share_wechat_moment">朋友圈</string>
+    <string name="share_weibo">微博</string>
+    <string name="share_system">系统分享</string>
+    <string name="share_wechat_not_installed">未安装微信</string>
+
+    <!-- 渠道名 -->
+    <string name="channel_huawei">华为应用市场</string>
+    <string name="channel_xiaomi">小米应用商店</string>
+    <string name="channel_oppo">OPPO软件商店</string>
+    <string name="channel_vivo">vivo应用商店</string>
+    <string name="channel_tencent">应用宝</string>
+    <string name="channel_official">官方渠道</string>
 </resources>

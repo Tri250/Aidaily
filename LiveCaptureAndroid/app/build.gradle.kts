@@ -13,20 +13,67 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
             abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("keystore/release.jks")
+            storePassword = project.findProperty("RELEASE_STORE_PASSWORD") as? String ?: "livecapture2026"
+            keyAlias = project.findProperty("RELEASE_KEY_ALIAS") as? String ?: "livecapture"
+            keyPassword = project.findProperty("RELEASE_KEY_PASSWORD") as? String ?: "livecapture2026"
+        }
+    }
+
     buildTypes {
+        debug {
+            isMinifyEnabled = false
+            isDebuggable = true
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
+
+    flavorDimensions += "channel"
+    productFlavors {
+        create("huawei") {
+            dimension = "channel"
+            buildConfigField("String", "CHANNEL", "\"huawei\"")
+        }
+        create("xiaomi") {
+            dimension = "channel"
+            buildConfigField("String", "CHANNEL", "\"xiaomi\"")
+        }
+        create("oppo") {
+            dimension = "channel"
+            buildConfigField("String", "CHANNEL", "\"oppo\"")
+        }
+        create("vivo") {
+            dimension = "channel"
+            buildConfigField("String", "CHANNEL", "\"vivo\"")
+        }
+        create("tencent") {
+            dimension = "channel"
+            buildConfigField("String", "CHANNEL", "\"tencent\"")
+        }
+        create("official") {
+            dimension = "channel"
+            buildConfigField("String", "CHANNEL", "\"official\"")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -36,6 +83,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -84,4 +132,21 @@ dependencies {
 
     // ExifInterface
     implementation("androidx.exifinterface:exifinterface:1.3.7")
+
+    // Bugly 崩溃上报（国内合规）
+    implementation("com.tencent.bugly:crashreport:4.1.9.3")
+    implementation("com.tencent.bugly:nativecrashreport:3.9.1")
+
+    // 微信分享 SDK
+    implementation("com.tencent.mm.opensdk:wechat-sdk-android:6.8.0")
+
+    // 测试依赖
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.mockito:mockito-core:5.14.2")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

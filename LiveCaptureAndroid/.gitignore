@@ -17,6 +17,10 @@ local.properties
 *.ap_
 *.dex
 
+# 签名密钥（安全：不提交密钥到远程仓库）
+app/keystore/*.jks
+app/keystore/*.keystore
+
 # Misc
 *.log
 *.tmp
