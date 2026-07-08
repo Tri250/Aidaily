@@ -9,10 +9,11 @@ struct PhotoBrowserView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var currentIndex: Int
     @State private var showExportSheet = false
+    @State private var showShareSheet = false
     @State private var cardImage: UIImage?
     @State private var isGenerating = false
     @State private var saveSuccess = false
-    @State private var loadedPhotos: [UUID: UIImage] = [:]
+    @State private var loadedPhotos: [UUID: UIImage] = []
 
     init(records: [PhotoRecord], initialIndex: Int, photoProvider: @escaping (UUID) -> UIImage?) {
         self.records = records
@@ -51,21 +52,35 @@ struct PhotoBrowserView: View {
 
                     Spacer()
 
-                    Button {
-                        generateExportCard()
-                    } label: {
-                        if isGenerating {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        } else {
-                            Image(systemName: "square.and.arrow.down")
+                    HStack(spacing: 8) {
+                        // Share button
+                        Button {
+                            showShareSheet = true
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.white)
                                 .padding(12)
                                 .background(Circle().fill(Color.black.opacity(0.5)))
                         }
+
+                        // Export button
+                        Button {
+                            generateExportCard()
+                        } label: {
+                            if isGenerating {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            } else {
+                                Image(systemName: "square.and.arrow.down")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .padding(12)
+                                    .background(Circle().fill(Color.black.opacity(0.5)))
+                            }
+                        }
+                        .disabled(isGenerating)
                     }
-                    .disabled(isGenerating)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -79,6 +94,19 @@ struct PhotoBrowserView: View {
                                     .resizable()
                                     .aspectRatio(contentMode: .fit)
                                     .tag(index)
+                                    .contextMenu {
+                                        Button {
+                                            showShareSheet = true
+                                        } label: {
+                                            Label("分享", systemImage: "square.and.arrow.up")
+                                        }
+
+                                        Button {
+                                            generateExportCard()
+                                        } label: {
+                                            Label("导出卡片", systemImage: "square.and.arrow.down")
+                                        }
+                                    }
                             } else {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
@@ -103,6 +131,12 @@ struct PhotoBrowserView: View {
         .navigationBarHidden(true)
         .sheet(isPresented: $showExportSheet) {
             exportPreviewView
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let currentRecord = records[safe: currentIndex],
+               let currentPhoto = loadedPhotos[currentRecord.id] {
+                ShareCardView(photo: currentPhoto, record: currentRecord)
+            }
         }
     }
 

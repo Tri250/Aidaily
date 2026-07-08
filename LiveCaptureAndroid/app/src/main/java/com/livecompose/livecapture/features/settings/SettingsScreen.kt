@@ -635,33 +635,13 @@ fun SettingsScreen() {
         Spacer(modifier = Modifier.height(24.dp))
 
         // ====== 关于与合规 ======
-        Text("关于与合规", style = DesignSystem.Typography.title3, color = DesignSystem.Colors.textPrimary())
+        Text("隐私与合规", style = DesignSystem.Typography.title3, color = DesignSystem.Colors.textPrimary())
         Spacer(modifier = Modifier.height(8.dp))
         Card(
             shape = DesignSystem.mediumRoundedShape,
             colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.backgroundSecondary())
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                // 版本信息
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Info, contentDescription = "版本信息", tint = DesignSystem.Colors.primary)
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("版本信息", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
-                        Text("构妙 LiveCapture v${BuildConfig.VERSION_NAME}", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
-                    }
-                }
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
-                // ICP备案号
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.VerifiedUser, contentDescription = "ICP备案号", tint = DesignSystem.Colors.primary)
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("ICP备案号", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
-                        Text("待备案（请前往工信部ICP备案系统完成备案）", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
-                    }
-                }
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
                 // 隐私政策
                 Card(
                     shape = RoundedCornerShape(8.dp),
@@ -708,6 +688,75 @@ fun SettingsScreen() {
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
+                // 个人信息收集清单
+                Card(
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.primary.copy(alpha = 0.1f)),
+                    onClick = {
+                        val intent = android.content.Intent(context, com.livecompose.livecapture.features.compliance.ComplianceHostActivity::class.java).apply {
+                            putExtra("compliance_page", "personal_info")
+                        }
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.ListAlt, contentDescription = "个人信息收集清单", tint = DesignSystem.Colors.primary)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("个人信息收集清单", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.primary)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.ChevronRight, contentDescription = "查看", tint = DesignSystem.Colors.primary)
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                // 账号管理
+                Card(
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.primary.copy(alpha = 0.1f)),
+                    onClick = {
+                        val intent = android.content.Intent(context, com.livecompose.livecapture.features.compliance.ComplianceHostActivity::class.java).apply {
+                            putExtra("compliance_page", "account_deletion")
+                        }
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.PersonRemove, contentDescription = "账号管理", tint = DesignSystem.Colors.primary)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("账号管理", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.primary)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.ChevronRight, contentDescription = "查看", tint = DesignSystem.Colors.primary)
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                // 青少年模式
+                Card(
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.primary.copy(alpha = 0.1f)),
+                    onClick = {
+                        val intent = android.content.Intent(context, com.livecompose.livecapture.features.compliance.ComplianceHostActivity::class.java).apply {
+                            putExtra("compliance_page", "youth_mode")
+                        }
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Security, contentDescription = "青少年模式", tint = DesignSystem.Colors.primary)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("青少年模式", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.primary)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.ChevronRight, contentDescription = "查看", tint = DesignSystem.Colors.primary)
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
                 // 第三方SDK清单
                 Card(
                     shape = RoundedCornerShape(8.dp),
@@ -728,6 +777,38 @@ fun SettingsScreen() {
                         Text("第三方SDK清单", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.primary)
                         Spacer(modifier = Modifier.weight(1f))
                         Icon(Icons.Default.ChevronRight, contentDescription = "查看", tint = DesignSystem.Colors.primary)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ====== 关于 ======
+        Text("关于", style = DesignSystem.Typography.title3, color = DesignSystem.Colors.textPrimary())
+        Spacer(modifier = Modifier.height(8.dp))
+        Card(
+            shape = DesignSystem.mediumRoundedShape,
+            colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.backgroundSecondary())
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                // 版本信息
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Info, contentDescription = "版本信息", tint = DesignSystem.Colors.primary)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("版本信息", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
+                        Text("构妙 LiveCapture v${BuildConfig.VERSION_NAME}", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
+                    }
+                }
+                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                // ICP备案号
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.VerifiedUser, contentDescription = "ICP备案号", tint = DesignSystem.Colors.primary)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("ICP备案号", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
+                        Text("待备案（请前往工信部ICP备案系统完成备案）", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
                     }
                 }
             }

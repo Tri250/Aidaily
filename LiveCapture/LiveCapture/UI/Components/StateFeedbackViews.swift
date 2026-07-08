@@ -362,6 +362,252 @@ final class ToastManager: ObservableObject {
     }
 }
 
+// MARK: - 照片网格骨架屏
+
+struct PhotoGridSkeletonView: View {
+    let columns: Int
+    let rows: Int
+    let spacing: CGFloat
+
+    init(columns: Int = 3, rows: Int = 4, spacing: CGFloat = 2) {
+        self.columns = columns
+        self.rows = rows
+        self.spacing = spacing
+    }
+
+    var body: some View {
+        VStack(spacing: spacing) {
+            ForEach(0..<rows, id: \.self) { _ in
+                HStack(spacing: spacing) {
+                    ForEach(0..<columns, id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: 0)
+                            .fill(DesignSystem.Colors.gray2)
+                            .aspectRatio(1, contentMode: .fit)
+                            .shimmer()
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 列表项骨架屏
+
+struct ListItemSkeletonView: View {
+    var body: some View {
+        HStack(spacing: DesignSystem.Spacing.small) {
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small)
+                .fill(DesignSystem.Colors.gray2)
+                .frame(width: 56, height: 56)
+                .shimmer()
+
+            VStack(alignment: .leading, spacing: 6) {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(DesignSystem.Colors.gray2)
+                    .frame(width: 120, height: 14)
+                    .shimmer()
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(DesignSystem.Colors.gray2)
+                    .frame(width: 80, height: 12)
+                    .shimmer()
+            }
+        }
+        .padding(.horizontal, DesignSystem.Spacing.Padding.container)
+        .padding(.vertical, DesignSystem.Spacing.xxSmall)
+    }
+}
+
+// MARK: - 叠加加载指示器
+
+struct OverlayLoadingView: View {
+    let message: String
+
+    init(_ message: String = "处理中...") {
+        self.message = message
+    }
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.3)
+                .ignoresSafeArea()
+
+            VStack(spacing: DesignSystem.Spacing.small) {
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .tint(.white)
+
+                Text(message)
+                    .font(DesignSystem.Typography.subheadline)
+                    .foregroundColor(.white)
+            }
+            .padding(DesignSystem.Spacing.large)
+            .background(
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large)
+                    .fill(Color.black.opacity(0.75))
+            )
+        }
+    }
+}
+
+// MARK: - 图片处理进度指示器
+
+struct ImageProcessingProgressView: View {
+    let progress: Float
+    let stage: ImageProcessingStage
+
+    enum ImageProcessingStage: String {
+        case loading = "加载图片"
+        case analyzing = "分析图像"
+        case applyingFilter = "应用滤镜"
+        case enhancing = "增强处理"
+        case exporting = "导出中"
+
+        var icon: String {
+            switch self {
+            case .loading: return "photo"
+            case .analyzing: return "camera.metering.center.weighted"
+            case .applyingFilter: return "camera.filters"
+            case .enhancing: return "wand.and.stars"
+            case .exporting: return "square.and.arrow.up"
+            }
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: DesignSystem.Spacing.medium) {
+            // 图标
+            ZStack {
+                Circle()
+                    .fill(DesignSystem.Colors.primary.opacity(0.1))
+                    .frame(width: 72, height: 72)
+
+                Image(systemName: stage.icon)
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundColor(DesignSystem.Colors.primary)
+            }
+
+            // 阶段文字
+            Text(stage.rawValue)
+                .font(DesignSystem.Typography.headline)
+                .foregroundColor(DesignSystem.Colors.textPrimary)
+
+            // 进度条
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(DesignSystem.Colors.gray2)
+                        .frame(height: 6)
+
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(DesignSystem.Colors.primary)
+                        .frame(width: max(geo.size.width * CGFloat(progress), 6), height: 6)
+                        .animation(DesignSystem.Animation.smooth, value: progress)
+                }
+            }
+            .frame(height: 6)
+            .padding(.horizontal, 40)
+
+            // 百分比
+            Text("\(Int(progress * 100))%")
+                .font(DesignSystem.Typography.monoCaption)
+                .foregroundColor(DesignSystem.Colors.textTertiary)
+        }
+        .padding(DesignSystem.Spacing.large)
+        .background(
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large)
+                .fill(DesignSystem.Colors.backgroundSecondary)
+        )
+        .subtleShadow()
+        .padding(.horizontal, 40)
+    }
+}
+
+// MARK: - 操作反馈 Toast 叠加层
+
+struct ToastOverlay: View {
+    @ObservedObject var toastManager = ToastManager.shared
+
+    var body: some View {
+        Group {
+            if toastManager.showToast {
+                VStack {
+                    Spacer()
+                    ToastView(
+                        message: toastManager.toastMessage,
+                        icon: toastManager.toastIcon,
+                        style: toastManager.toastStyle
+                    )
+                    .padding(.bottom, 40)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .animation(DesignSystem.Animation.bouncy, value: toastManager.showToast)
+            }
+        }
+    }
+}
+
+// MARK: - View 扩展：加载状态
+
+extension View {
+
+    /// 骨架屏加载修饰器
+    func skeletonLoading(_ isLoading: Bool) -> some View {
+        self.overlay(
+            Group {
+                if isLoading {
+                    SkeletonView()
+                }
+            }
+        )
+    }
+
+    /// 照片网格骨架屏加载修饰器
+    func photoGridSkeleton(_ isLoading: Bool, columns: Int = 3, rows: Int = 4) -> some View {
+        self.overlay(
+            Group {
+                if isLoading {
+                    PhotoGridSkeletonView(columns: columns, rows: rows)
+                }
+            }
+        )
+    }
+
+    /// 叠加加载指示器
+    func overlayLoading(_ isLoading: Bool, message: String = "处理中...") -> some View {
+        self.overlay(
+            Group {
+                if isLoading {
+                    OverlayLoadingView(message)
+                }
+            }
+            .animation(DesignSystem.Animation.overlayFade, value: isLoading)
+        )
+    }
+
+    /// Toast 消息叠加层
+    func toastOverlay() -> some View {
+        self.overlay(ToastOverlay())
+    }
+}
+
+// MARK: - 便捷 Toast 调用
+
+func showSuccessToast(_ message: String) {
+    ToastManager.shared.success(message)
+}
+
+func showErrorToast(_ message: String) {
+    ToastManager.shared.error(message)
+}
+
+func showWarningToast(_ message: String) {
+    ToastManager.shared.warning(message)
+}
+
+func showInfoToast(_ message: String) {
+    ToastManager.shared.info(message)
+}
+
 // MARK: - 操作确认弹窗
 
 struct ConfirmationAlert: View {

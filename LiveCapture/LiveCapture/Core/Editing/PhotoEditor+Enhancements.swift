@@ -28,7 +28,7 @@ extension PhotoEditor {
         saturation = analysis.suggestedSaturation
         exposure = analysis.suggestedExposure
         sharpness = analysis.suggestedSharpness
-        vignette = analysis.suggestedVignette
+        vignetteIntensity = analysis.suggestedVignette
 
         isEdited = true
         saveState()

@@ -391,6 +391,7 @@ struct YouthModeView: View {
                             Spacer()
                             Picker("", selection: $youthManager.dailyTimeLimit) {
                                 Text("30分钟").tag(30)
+                                Text("40分钟").tag(40)
                                 Text("45分钟").tag(45)
                                 Text("60分钟").tag(60)
                                 Text("90分钟").tag(90)
@@ -401,8 +402,15 @@ struct YouthModeView: View {
                         HStack {
                             Text("今日使用")
                             Spacer()
-                            Text(formattedUsage)
+                            Text(youthManager.todayUsageFormatted)
                                 .foregroundColor(youthManager.isDailyLimitExceeded ? .red : .secondary)
+                        }
+
+                        HStack {
+                            Text("今日剩余")
+                            Spacer()
+                            Text(youthManager.remainingTimeFormatted)
+                                .foregroundColor(youthManager.remainingSeconds < 600 ? .orange : .green)
                         }
                     }
 
@@ -431,6 +439,42 @@ struct YouthModeView: View {
                         if youthManager.isInNightBanPeriod {
                             Label("当前处于夜间禁用时段", systemImage: "moon.zzz.fill")
                                 .foregroundColor(.orange)
+                        }
+                    }
+
+                    // 功能限制
+                    Section("功能限制") {
+                        HStack {
+                            Image(systemName: "person.3.fill")
+                                .foregroundColor(.gray)
+                            Text("社区功能")
+                            Spacer()
+                            Text("已禁用")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        HStack {
+                            Image(systemName: "square.and.arrow.up")
+                                .foregroundColor(.gray)
+                            Text("分享功能")
+                            Spacer()
+                            Text("已禁用")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    // 使用历史
+                    Section("使用记录") {
+                        ForEach(youthManager.recentUsageHistory(), id: \.date) { record in
+                            HStack {
+                                Text(record.date)
+                                    .font(.caption)
+                                Spacer()
+                                Text(record.seconds > 0 ? formatSeconds(record.seconds) : "未使用")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
                 }
@@ -462,8 +506,8 @@ struct YouthModeView: View {
         }
     }
 
-    private var formattedUsage: String {
-        let minutes = Int(youthManager.todayUsageSeconds / 60)
+    private func formatSeconds(_ seconds: TimeInterval) -> String {
+        let minutes = Int(seconds / 60)
         if minutes < 60 {
             return "\(minutes) 分钟"
         } else {
@@ -543,39 +587,6 @@ private struct PasswordSheetView: View {
                 }
             }
         }
-    }
-}
-
-// MARK: - ICP 备案展示
-
-struct ICPFilingView: View {
-    let info = ICPFilingInfo.fromBundle()
-
-    var body: some View {
-        VStack(spacing: 12) {
-            if !info.icpNumber.isEmpty {
-                Link(destination: URL(string: info.icpLink) ?? URL(string: "https://beian.miit.gov.cn")!) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "shield.checkered")
-                            .font(.system(size: 10))
-                        Text(info.icpNumber)
-                            .font(.caption2)
-                    }
-                    .foregroundColor(.secondary)
-                }
-            }
-
-            if let nsNumber = info.networkSecurityNumber, !nsNumber.isEmpty {
-                HStack(spacing: 4) {
-                    Image(systemName: "lock.shield")
-                        .font(.system(size: 10))
-                    Text(nsNumber)
-                        .font(.caption2)
-                }
-                .foregroundColor(.secondary)
-            }
-        }
-        .padding(.vertical, 8)
     }
 }
 

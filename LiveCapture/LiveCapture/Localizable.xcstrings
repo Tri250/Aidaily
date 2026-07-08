@@ -1,0 +1,3405 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Capture": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拍摄"
+          }
+        }
+      }
+    },
+    "Gallery": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图库"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置"
+          }
+        }
+      }
+    },
+    "Community": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "社区"
+          }
+        }
+      }
+    },
+    "LiveCompose": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "构妙"
+          }
+        }
+      }
+    },
+    "Flash.Auto": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动"
+          }
+        }
+      }
+    },
+    "Flash.On": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启"
+          }
+        }
+      }
+    },
+    "Flash.Off": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭"
+          }
+        }
+      }
+    },
+    "Timer": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "计时器"
+          }
+        }
+      }
+    },
+    "AspectRatio": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画幅"
+          }
+        }
+      }
+    },
+    "Grid": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网格"
+          }
+        }
+      }
+    },
+    "Exposure": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "曝光"
+          }
+        }
+      }
+    },
+    "FocusLock": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对焦锁定"
+          }
+        }
+      }
+    },
+    "ImmersiveMode": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沉浸模式"
+          }
+        }
+      }
+    },
+    "SwitchCamera": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换摄像头"
+          }
+        }
+      }
+    },
+    "FlipCamera": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻转摄像头"
+          }
+        }
+      }
+    },
+    "Zoom": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "变焦"
+          }
+        }
+      }
+    },
+    "Mode.Photo": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片"
+          }
+        }
+      }
+    },
+    "Mode.Portrait": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人像"
+          }
+        }
+      }
+    },
+    "Mode.Video": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频"
+          }
+        }
+      }
+    },
+    "Mode.SlowMotion": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "慢动作"
+          }
+        }
+      }
+    },
+    "Mode.Timelapse": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "延时摄影"
+          }
+        }
+      }
+    },
+    "Filter.Category.Portrait": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人像"
+          }
+        }
+      }
+    },
+    "Filter.Category.Film": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "胶片"
+          }
+        }
+      }
+    },
+    "Filter.Category.Vintage": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复古"
+          }
+        }
+      }
+    },
+    "Filter.Category.Nature": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自然"
+          }
+        }
+      }
+    },
+    "Filter.Category.Food": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "美食"
+          }
+        }
+      }
+    },
+    "Filter.Category.BW": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "黑白"
+          }
+        }
+      }
+    },
+    "Filter.Category.Creative": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "创意"
+          }
+        }
+      }
+    },
+    "Filter.Category.All": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部"
+          }
+        }
+      }
+    },
+    "Filter.Original": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原始"
+          }
+        }
+      }
+    },
+    "Filter.NoFilter": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无滤镜"
+          }
+        }
+      }
+    },
+    "Filter.DokaPortrait": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doka 人像"
+          }
+        }
+      }
+    },
+    "Filter.KodakPortra160": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "柯达 Portra 160"
+          }
+        }
+      }
+    },
+    "Filter.AgfaVista400": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agfa Vista 400"
+          }
+        }
+      }
+    },
+    "Filter.FujiPro400H": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuji Pro 400H"
+          }
+        }
+      }
+    },
+    "Filter.IlfordHP5": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilford HP5"
+          }
+        }
+      }
+    },
+    "Filter.Cinestill800T": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cinestill 800T"
+          }
+        }
+      }
+    },
+    "Filter.LeicaClassic": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "徕卡经典"
+          }
+        }
+      }
+    },
+    "Filter.HasselbladNatural": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "哈苏自然"
+          }
+        }
+      }
+    },
+    "Filter.RicohPositive": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "理光正片"
+          }
+        }
+      }
+    },
+    "Filter.Polaroid": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "宝丽来"
+          }
+        }
+      }
+    },
+    "Filter.FadedMemory": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "褪色记忆"
+          }
+        }
+      }
+    },
+    "Filter.JapaneseAiry": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日系透明感"
+          }
+        }
+      }
+    },
+    "Beauty": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "美颜"
+          }
+        }
+      }
+    },
+    "Beauty.SkinSmoothing": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磨皮"
+          }
+        }
+      }
+    },
+    "Beauty.SkinWhitening": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "美白"
+          }
+        }
+      }
+    },
+    "Beauty.FaceSlimming": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "瘦脸"
+          }
+        }
+      }
+    },
+    "Beauty.EyeBrightening": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "亮眼"
+          }
+        }
+      }
+    },
+    "Beauty.TeethWhitening": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "牙齿美白"
+          }
+        }
+      }
+    },
+    "Beauty.BlemishRemoval": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "祛痘"
+          }
+        }
+      }
+    },
+    "Beauty.PortraitBlur": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人像虚化"
+          }
+        }
+      }
+    },
+    "PortraitLighting.Natural": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自然光"
+          }
+        }
+      }
+    },
+    "PortraitLighting.StudioLight": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "摄影室灯光"
+          }
+        }
+      }
+    },
+    "PortraitLighting.ContourLight": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轮廓光"
+          }
+        }
+      }
+    },
+    "PortraitLighting.StageLight": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "舞台光"
+          }
+        }
+      }
+    },
+    "PortraitLighting.StageLightMono": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "舞台光黑白"
+          }
+        }
+      }
+    },
+    "Edit.Crop": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "裁剪"
+          }
+        }
+      }
+    },
+    "Edit.Brightness": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "亮度"
+          }
+        }
+      }
+    },
+    "Edit.Contrast": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对比度"
+          }
+        }
+      }
+    },
+    "Edit.Saturation": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "饱和度"
+          }
+        }
+      }
+    },
+    "Edit.Temperature": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "色温"
+          }
+        }
+      }
+    },
+    "Edit.Sharpness": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "锐度"
+          }
+        }
+      }
+    },
+    "Edit.Curve": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "曲线"
+          }
+        }
+      }
+    },
+    "Edit.HSL": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HSL"
+          }
+        }
+      }
+    },
+    "Edit.Grain": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "颗粒"
+          }
+        }
+      }
+    },
+    "Edit.Fade": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "褪色"
+          }
+        }
+      }
+    },
+    "Edit.Vignette": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暗角"
+          }
+        }
+      }
+    },
+    "Edit.Undo": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "撤销"
+          }
+        }
+      }
+    },
+    "Edit.Redo": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重做"
+          }
+        }
+      }
+    },
+    "Edit.AutoEnhance": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一键增强"
+          }
+        }
+      }
+    },
+    "Watermark": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "水印"
+          }
+        }
+      }
+    },
+    "Watermark.Text": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字水印"
+          }
+        }
+      }
+    },
+    "Watermark.Date": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日期水印"
+          }
+        }
+      }
+    },
+    "Watermark.Logo": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logo水印"
+          }
+        }
+      }
+    },
+    "Watermark.Position": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "位置"
+          }
+        }
+      }
+    },
+    "Watermark.Opacity": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "透明度"
+          }
+        }
+      }
+    },
+    "Watermark.EXIF": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EXIF信息"
+          }
+        }
+      }
+    },
+    "Share": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分享"
+          }
+        }
+      }
+    },
+    "Share.WeChat": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "微信好友"
+          }
+        }
+      }
+    },
+    "Share.Moments": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "朋友圈"
+          }
+        }
+      }
+    },
+    "Share.Weibo": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "微博"
+          }
+        }
+      }
+    },
+    "Share.Xiaohongshu": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "小红书"
+          }
+        }
+      }
+    },
+    "Share.SaveImage": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存图片"
+          }
+        }
+      }
+    },
+    "Share.ShareCard": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分享卡片"
+          }
+        }
+      }
+    },
+    "Share.SaveToAlbum": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存到相册"
+          }
+        }
+      }
+    },
+    "Share.Saved": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已保存"
+          }
+        }
+      }
+    },
+    "Share.ExportPreview": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出预览"
+          }
+        }
+      }
+    },
+    "Share.GeneratingCard": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在生成分享卡片…"
+          }
+        }
+      }
+    },
+    "Share.SaveHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图片将保存到系统相册"
+          }
+        }
+      }
+    },
+    "Settings.Title": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置"
+          }
+        }
+      }
+    },
+    "Settings.Subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "定制你的拍摄体验"
+          }
+        }
+      }
+    },
+    "Settings.Theme": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "主题模式"
+          }
+        }
+      }
+    },
+    "Settings.Theme.System": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随系统"
+          }
+        }
+      }
+    },
+    "Settings.Theme.Light": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "浅色"
+          }
+        }
+      }
+    },
+    "Settings.Theme.Dark": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "深色"
+          }
+        }
+      }
+    },
+    "Settings.AutoCapture": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动拍摄"
+          }
+        }
+      }
+    },
+    "Settings.AutoCaptureAI": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 自动拍摄"
+          }
+        }
+      }
+    },
+    "Settings.AutoCaptureDesc": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当构图对齐中心时自动拍摄"
+          }
+        }
+      }
+    },
+    "Settings.CaptureDelay": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拍照延迟"
+          }
+        }
+      }
+    },
+    "Settings.CaptureDelayDesc": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对齐中心后等待此时间再自动拍摄"
+          }
+        }
+      }
+    },
+    "Settings.CompositionEngine": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "构图引擎"
+          }
+        }
+      }
+    },
+    "Settings.GridMode": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网格模式"
+          }
+        }
+      }
+    },
+    "Settings.DetectionMode": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检测模式"
+          }
+        }
+      }
+    },
+    "Settings.Frame": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相框"
+          }
+        }
+      }
+    },
+    "Settings.Lighting": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "光效"
+          }
+        }
+      }
+    },
+    "Settings.QuickCapture": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速拍摄"
+          }
+        }
+      }
+    },
+    "Settings.ImageProcessing": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图像处理"
+          }
+        }
+      }
+    },
+    "Settings.WatermarkSettings": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "水印设置"
+          }
+        }
+      }
+    },
+    "Settings.DisplayExport": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示与导出"
+          }
+        }
+      }
+    },
+    "Settings.AboutCompliance": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关于与合规"
+          }
+        }
+      }
+    },
+    "Settings.Appearance": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观"
+          }
+        }
+      }
+    },
+    "Settings.PrivacyCompliance": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐私与合规"
+          }
+        }
+      }
+    },
+    "Settings.PrivacyPolicy": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐私政策"
+          }
+        }
+      }
+    },
+    "Settings.UserAgreement": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用户协议"
+          }
+        }
+      }
+    },
+    "Settings.PersonalInfo": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "个人信息收集清单"
+          }
+        }
+      }
+    },
+    "Settings.Account": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "账号管理"
+          }
+        }
+      }
+    },
+    "Settings.YouthMode": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "青少年模式"
+          }
+        }
+      }
+    },
+    "Settings.About": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关于"
+          }
+        }
+      }
+    },
+    "Settings.Version": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本"
+          }
+        }
+      }
+    },
+    "Error.CameraDenied": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相机权限被拒绝"
+          }
+        }
+      }
+    },
+    "Error.CameraBusy": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相机被占用"
+          }
+        }
+      }
+    },
+    "Error.NoCamera": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无可用相机"
+          }
+        }
+      }
+    },
+    "Error.CameraFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相机打开失败"
+          }
+        }
+      }
+    },
+    "Error.StorageFull": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储空间不足"
+          }
+        }
+      }
+    },
+    "Error.ProcessingFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "处理失败"
+          }
+        }
+      }
+    },
+    "Error.NetworkFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网络连接失败"
+          }
+        }
+      }
+    },
+    "Error.CameraStartFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相机启动失败"
+          }
+        }
+      }
+    },
+    "Error.CannotProcessFrame": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法处理画面"
+          }
+        }
+      }
+    },
+    "Error.DetectionFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目标识别失败，等待重试…"
+          }
+        }
+      }
+    },
+    "Error.Generic": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发生错误，请重试"
+          }
+        }
+      }
+    },
+    "Error.Title": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "出错了"
+          }
+        }
+      }
+    },
+    "Onboarding.Welcome": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "欢迎使用 构妙"
+          }
+        }
+      }
+    },
+    "Onboarding.WelcomeDesc": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 智能摄影助手，让每张照片都是艺术品"
+          }
+        }
+      }
+    },
+    "Onboarding.AIComposition": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 智能构图"
+          }
+        }
+      }
+    },
+    "Onboarding.AICompositionDesc": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "基于 CoreML 的实时构图分析，引导你找到最佳拍摄角度"
+          }
+        }
+      }
+    },
+    "Onboarding.ProFilters": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "专业滤镜"
+          }
+        }
+      }
+    },
+    "Onboarding.ProFiltersDesc": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "12 款经典胶片滤镜 + AI 场景推荐，一键出片"
+          }
+        }
+      }
+    },
+    "Onboarding.VideoRecording": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频录制"
+          }
+        }
+      }
+    },
+    "Onboarding.VideoRecordingDesc": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持普通视频、慢动作和延时摄影，记录每一个精彩瞬间"
+          }
+        }
+      }
+    },
+    "Onboarding.AIEditing": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 编辑工具"
+          }
+        }
+      }
+    },
+    "Onboarding.AIEditingDesc": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "物体移除、天空替换、风格迁移，创意无限"
+          }
+        }
+      }
+    },
+    "Onboarding.Skip": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跳过"
+          }
+        }
+      }
+    },
+    "Onboarding.Start": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始使用"
+          }
+        }
+      }
+    },
+    "Onboarding.Next": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续"
+          }
+        }
+      }
+    },
+    "Onboarding.AgreeContinue": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续即表示同意"
+          }
+        }
+      }
+    },
+    "Onboarding.PrivacyAnd": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "和"
+          }
+        }
+      }
+    },
+    "Onboarding.PrivacyConsent": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐私与协议"
+          }
+        }
+      }
+    },
+    "Onboarding.PrivacyConsentDesc": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请阅读并同意以下协议，我们将严格保护您的隐私和数据安全。\n\n您的照片和视频仅在设备本地处理，不会上传到云端。"
+          }
+        }
+      }
+    },
+    "Onboarding.AgreeAndContinue": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同意并继续"
+          }
+        }
+      }
+    },
+    "Onboarding.ViewPrivacy": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看隐私政策"
+          }
+        }
+      }
+    },
+    "Onboarding.ViewAgreement": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看用户协议"
+          }
+        }
+      }
+    },
+    "Privacy.Title": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐私政策"
+          }
+        }
+      }
+    },
+    "Privacy.LastUpdated": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最后更新日期：2025年1月1日"
+          }
+        }
+      }
+    },
+    "Agreement.Title": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用户协议"
+          }
+        }
+      }
+    },
+    "Account.Deletion": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "账号注销"
+          }
+        }
+      }
+    },
+    "Account.DeletionRequested": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注销请求已提交"
+          }
+        }
+      }
+    },
+    "Account.DeletionPending": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "冷静期剩余 %d 天"
+          }
+        }
+      }
+    },
+    "Account.DeletionDesc": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注销后将永久删除您的所有数据"
+          }
+        }
+      }
+    },
+    "Account.DeletionGuide": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注销须知"
+          }
+        }
+      }
+    },
+    "Account.DeletionGuide1": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注销后所有照片数据将被永久删除"
+          }
+        }
+      }
+    },
+    "Account.DeletionGuide2": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注销后有 %d 天冷静期，期间可取消"
+          }
+        }
+      }
+    },
+    "Account.DeletionGuide3": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "冷静期结束后自动执行数据删除"
+          }
+        }
+      }
+    },
+    "Account.DeletionGuide4": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除后数据无法恢复，请提前备份"
+          }
+        }
+      }
+    },
+    "Account.RequestDeletion": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请求注销账号"
+          }
+        }
+      }
+    },
+    "Account.CancelDeletion": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消注销请求"
+          }
+        }
+      }
+    },
+    "Account.ExecuteDeletion": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "立即执行数据删除"
+          }
+        }
+      }
+    },
+    "Account.ConfirmDeletion": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确认注销"
+          }
+        }
+      }
+    },
+    "Account.ConfirmDeletionMsg": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注销后将进入 %d 天冷静期，冷静期结束后所有数据将被永久删除。"
+          }
+        }
+      }
+    },
+    "Account.ConfirmDelete": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确认删除"
+          }
+        }
+      }
+    },
+    "Account.ConfirmDeleteMsg": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此操作不可撤销！所有照片、设置和缓存数据将被永久删除。"
+          }
+        }
+      }
+    },
+    "Account.ExportData": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出个人数据"
+          }
+        }
+      }
+    },
+    "Account.DataExport": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数据导出"
+          }
+        }
+      }
+    },
+    "Account.Management": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "账号管理"
+          }
+        }
+      }
+    },
+    "YouthMode.Title": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "青少年模式"
+          }
+        }
+      }
+    },
+    "YouthMode.Enabled": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已开启"
+          }
+        }
+      }
+    },
+    "YouthMode.Disabled": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已关闭"
+          }
+        }
+      }
+    },
+    "YouthMode.DailyLimit": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每日使用时长限制"
+          }
+        }
+      }
+    },
+    "YouthMode.DurationLimit": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "时长限制"
+          }
+        }
+      }
+    },
+    "YouthMode.TodayUsage": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日使用"
+          }
+        }
+      }
+    },
+    "YouthMode.NightBan": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "夜间禁用时段"
+          }
+        }
+      }
+    },
+    "YouthMode.NightStart": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始时间"
+          }
+        }
+      }
+    },
+    "YouthMode.NightEnd": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结束时间"
+          }
+        }
+      }
+    },
+    "YouthMode.NightActive": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前处于夜间禁用时段"
+          }
+        }
+      }
+    },
+    "YouthMode.SetPassword": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置/修改密码"
+          }
+        }
+      }
+    },
+    "YouthMode.PasswordHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密码用于保护青少年模式设置，请妥善保管"
+          }
+        }
+      }
+    },
+    "YouthMode.SetPasswordTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置密码"
+          }
+        }
+      }
+    },
+    "YouthMode.EnterPassword": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入密码"
+          }
+        }
+      }
+    },
+    "YouthMode.ConfirmPassword": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请确认密码"
+          }
+        }
+      }
+    },
+    "YouthMode.PasswordError": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密码错误或两次密码不一致"
+          }
+        }
+      }
+    },
+    "PersonalInfo.Title": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "个人信息收集清单"
+          }
+        }
+      }
+    },
+    "PersonalInfo.Desc": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我们收集以下个人信息以提供更好的服务"
+          }
+        }
+      }
+    },
+    "PersonalInfo.Footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标记为\"必要\"的权限是应用核心功能所需的，标记为\"可选\"的权限您可以自由选择是否授权。"
+          }
+        }
+      }
+    },
+    "PersonalInfo.Required": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "必要"
+          }
+        }
+      }
+    },
+    "PersonalInfo.Optional": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可选"
+          }
+        }
+      }
+    },
+    "Common.OK": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确定"
+          }
+        }
+      }
+    },
+    "Common.Cancel": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消"
+          }
+        }
+      }
+    },
+    "Common.Close": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭"
+          }
+        }
+      }
+    },
+    "Common.Save": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存"
+          }
+        }
+      }
+    },
+    "Common.Done": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成"
+          }
+        }
+      }
+    },
+    "Common.Back": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返回"
+          }
+        }
+      }
+    },
+    "Common.Share": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分享"
+          }
+        }
+      }
+    },
+    "Common.Delete": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除"
+          }
+        }
+      }
+    },
+    "Common.Edit": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编辑"
+          }
+        }
+      }
+    },
+    "Common.Retry": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重试"
+          }
+        }
+      }
+    },
+    "Common.Confirm": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确认"
+          }
+        }
+      }
+    },
+    "Common.SelectAll": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全选"
+          }
+        }
+      }
+    },
+    "Common.Selected": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已选"
+          }
+        }
+      }
+    },
+    "Common.Download": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载"
+          }
+        }
+      }
+    },
+    "Pipeline.CompositionEnabled": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "构图流水线已开启"
+          }
+        }
+      }
+    },
+    "Pipeline.TapToEnable": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击魔术棒开启智能构图"
+          }
+        }
+      }
+    },
+    "Pipeline.WaitingForCamera": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待相机启动…"
+          }
+        }
+      }
+    },
+    "Pipeline.StartingCamera": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在启动相机"
+          }
+        }
+      }
+    },
+    "Pipeline.PleaseStayStable": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请保持稳定"
+          }
+        }
+      }
+    },
+    "Pipeline.DetectingBestComposition": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在识别最佳构图…"
+          }
+        }
+      }
+    },
+    "Pipeline.MoveToCenter": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请将圆点移动到画面中心"
+          }
+        }
+      }
+    },
+    "Pipeline.CaptureSoon": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "即将拍照，请保持稳定"
+          }
+        }
+      }
+    },
+    "Pipeline.Capturing": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在拍照…"
+          }
+        }
+      }
+    },
+    "Pipeline.PhotoSaved": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片已保存"
+          }
+        }
+      }
+    },
+    "Pipeline.WaitingForStability": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待设备稳定…"
+          }
+        }
+      }
+    },
+    "Pipeline.SwitchingLens": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换镜头，等待稳定"
+          }
+        }
+      }
+    },
+    "Pipeline.DeviceStable": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设备已稳定，开始识别目标区域…"
+          }
+        }
+      }
+    },
+    "Pipeline.TargetLocked": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目标已锁定，移动设备对齐中心圆"
+          }
+        }
+      }
+    },
+    "Pipeline.Aligned": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对准成功，准备拍照…"
+          }
+        }
+      }
+    },
+    "Pipeline.Realign": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请重新对准中心点"
+          }
+        }
+      }
+    },
+    "Pipeline.PhotoSavedToAlbum": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片已保存到相册"
+          }
+        }
+      }
+    },
+    "Community.Title": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "社区"
+          }
+        }
+      }
+    },
+    "Community.Challenges": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "挑战"
+          }
+        }
+      }
+    },
+    "Community.Filters": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "滤镜"
+          }
+        }
+      }
+    },
+    "Community.Locations": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "地点"
+          }
+        }
+      }
+    },
+    "Community.WeeklyChallenge": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本周挑战"
+          }
+        }
+      }
+    },
+    "Community.Upcoming": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "即将到来"
+          }
+        }
+      }
+    },
+    "Community.Past": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "往期挑战"
+          }
+        }
+      }
+    },
+    "Community.NoChallenges": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无挑战"
+          }
+        }
+      }
+    },
+    "Community.NoChallengesHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新挑战即将到来，敬请期待"
+          }
+        }
+      }
+    },
+    "Community.SubmitEntry": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提交作品"
+          }
+        }
+      }
+    },
+    "Community.EntryTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作品标题"
+          }
+        }
+      }
+    },
+    "Community.EntryPlaceholder": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "给你的作品起个名字…"
+          }
+        }
+      }
+    },
+    "Community.Submit": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提交"
+          }
+        }
+      }
+    },
+    "Community.Leaderboard": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "排行榜"
+          }
+        }
+      }
+    },
+    "Community.ChallengeDetail": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "挑战详情"
+          }
+        }
+      }
+    },
+    "Community.NoEntries": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无作品"
+          }
+        }
+      }
+    },
+    "Community.NoEntriesHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "成为第一个提交作品的人吧！"
+          }
+        }
+      }
+    },
+    "Community.PopularFilters": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "热门滤镜"
+          }
+        }
+      }
+    },
+    "Community.AllFilters": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部滤镜"
+          }
+        }
+      }
+    },
+    "Community.FilterDetail": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "滤镜详情"
+          }
+        }
+      }
+    },
+    "Community.DownloadFilter": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载滤镜"
+          }
+        }
+      }
+    },
+    "Community.RemoveDownload": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除下载"
+          }
+        }
+      }
+    },
+    "Community.MyFilters": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我的滤镜"
+          }
+        }
+      }
+    },
+    "Community.NoFilters": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有滤镜"
+          }
+        }
+      }
+    },
+    "Community.NoFiltersHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "浏览社区滤镜并下载你喜欢的"
+          }
+        }
+      }
+    },
+    "Community.Downloaded": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已下载"
+          }
+        }
+      }
+    },
+    "Community.MyCreated": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我创建的"
+          }
+        }
+      }
+    },
+    "Community.Located": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已定位，显示附近拍摄点"
+          }
+        }
+      }
+    },
+    "Community.Locating": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在获取位置…"
+          }
+        }
+      }
+    },
+    "Community.LocationDenied": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "定位权限未开启，显示全部拍摄点"
+          }
+        }
+      }
+    },
+    "Community.TapToLocate": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击获取位置推荐"
+          }
+        }
+      }
+    },
+    "Community.NoLocations": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无拍摄点"
+          }
+        }
+      }
+    },
+    "Community.NoLocationsHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该标签下暂无拍摄点推荐"
+          }
+        }
+      }
+    },
+    "Community.LocationDetail": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拍摄点详情"
+          }
+        }
+      }
+    },
+    "Community.Difficulty": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拍摄难度"
+          }
+        }
+      }
+    },
+    "Gallery.Title": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图库"
+          }
+        }
+      }
+    },
+    "Gallery.Search": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索照片…"
+          }
+        }
+      }
+    },
+    "Gallery.NoPhotos": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无照片"
+          }
+        }
+      }
+    },
+    "Gallery.NoPhotosHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用下方拍摄按钮开始创作"
+          }
+        }
+      }
+    },
+    "Gallery.StartCapture": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始拍摄"
+          }
+        }
+      }
+    },
+    "Gallery.NoMatch": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未找到匹配的照片"
+          }
+        }
+      }
+    },
+    "Gallery.NoMatchHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尝试其他关键词"
+          }
+        }
+      }
+    },
+    "Gallery.SelectFilter": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择滤镜"
+          }
+        }
+      }
+    },
+    "Gallery.BatchOperations": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "批量操作"
+          }
+        }
+      }
+    },
+    "Gallery.BatchDelete": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "批量删除"
+          }
+        }
+      }
+    },
+    "Gallery.AutoEnhance": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动增强"
+          }
+        }
+      }
+    },
+    "Gallery.ApplyFilter": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用滤镜"
+          }
+        }
+      }
+    },
+    "Gallery.GuidanceBanner": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击照片浏览 · 长按多选删除 · 进入照片可导出精美卡片"
+          }
+        }
+      }
+    },
+    "Gallery.PhotoCount": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 张照片"
+          }
+        }
+      }
+    },
+    "Gallery.SelectedCount": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已选 %lld 张"
+          }
+        }
+      }
+    },
+    "LiveCompose.Tagline": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "让每一次快门，都定格最美的瞬间"
+          }
+        }
+      }
+    },
+    "LiveCompose.AboutUs": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关于我们"
+          }
+        }
+      }
+    },
+    "LiveCompose.Projects": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "项目仓库"
+          }
+        }
+      }
+    },
+    "LiveCompose.Links": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "资源链接"
+          }
+        }
+      }
+    },
+    "LiveCompose.Tech": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "核心技术"
+          }
+        }
+      }
+    },
+    "LiveCompose.Developers": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "核心开发者"
+          }
+        }
+      }
+    },
+    "LiveCompose.ProjectLead": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "项目负责人"
+          }
+        }
+      }
+    },
+    "LiveCompose.CoreDev": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "核心开发者"
+          }
+        }
+      }
+    },
+    "Accessibility.Capture": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拍摄"
+          }
+        }
+      }
+    },
+    "Accessibility.Album": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图库"
+          }
+        }
+      }
+    },
+    "Accessibility.Settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置"
+          }
+        }
+      }
+    },
+    "Accessibility.Community": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "社区"
+          }
+        }
+      }
+    },
+    "Accessibility.LiveCompose": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关于构妙"
+          }
+        }
+      }
+    },
+    "Accessibility.FlashMode": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "闪光灯模式"
+          }
+        }
+      }
+    },
+    "Accessibility.Timer": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "计时器"
+          }
+        }
+      }
+    },
+    "Accessibility.AspectRatio": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画幅比例"
+          }
+        }
+      }
+    },
+    "Accessibility.SettingsButton": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置"
+          }
+        }
+      }
+    },
+    "Accessibility.CaptureButton": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拍摄按钮"
+          }
+        }
+      }
+    },
+    "Accessibility.FlipCamera": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻转摄像头"
+          }
+        }
+      }
+    },
+    "Accessibility.AlbumThumbnail": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相册"
+          }
+        }
+      }
+    },
+    "Accessibility.CloseButton": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭"
+          }
+        }
+      }
+    },
+    "Accessibility.BackButton": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返回"
+          }
+        }
+      }
+    },
+    "Accessibility.ThemeSelector": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "主题模式选择"
+          }
+        }
+      }
+    },
+    "Accessibility.CompositionEngineSelector": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "构图引擎模式选择"
+          }
+        }
+      }
+    },
+    "Accessibility.CaptureDelay": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拍照延迟"
+          }
+        }
+      }
+    },
+    "Accessibility.ToggleOn": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已开启"
+          }
+        }
+      }
+    },
+    "Accessibility.ToggleOff": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已关闭"
+          }
+        }
+      }
+    },
+    "Accessibility.TapToView": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击查看"
+          }
+        }
+      }
+    },
+    "Toast.PhotoSaved": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片已保存"
+          }
+        }
+      }
+    },
+    "Toast.SaveFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存失败"
+          }
+        }
+      }
+    },
+    "Toast.Deleted": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已删除"
+          }
+        }
+      }
+    },
+    "Toast.FilterApplied": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "滤镜已应用"
+          }
+        }
+      }
+    },
+    "Toast.Enhanced": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "增强完成"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

@@ -425,7 +425,9 @@ struct GalleryView: View {
                 title: "暂无照片",
                 message: "使用下方拍摄按钮开始创作",
                 actionTitle: "开始拍摄",
-                action: { /* 切换到相机 */ }
+                action: {
+                    NotificationCenter.default.post(name: .navigateToCamera, object: nil)
+                }
             )
         } else {
             EmptyStateView(

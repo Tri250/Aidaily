@@ -83,5 +83,13 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>构妙可使用位置信息在照片中添加位置标签，位置信息仅存储在您的设备本地。</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>weixin</string>
+		<string>weixinULAPI</string>
+		<string>weibo</string>
+		<string>sinaweibo</string>
+		<string>xhsdiscover</string>
+	</array>
 </dict>
 </plist>

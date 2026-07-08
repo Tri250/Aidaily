@@ -142,6 +142,13 @@ struct MinimalMainView: View {
 		.onAppear {
 			_ = PhotoStorageService.shared.loadRecords()
 		}
+		.onReceive(NotificationCenter.default.publisher(for: .navigateToCamera)) { _ in
+			withAnimation(DesignSystem.Animation.modeSlide) {
+				showAlbum = false
+				showSettings = false
+				showCommunity = false
+			}
+		}
 	}
 
 	// MARK: - Capture Mode Selector
@@ -290,3 +297,9 @@ struct RoundedCorner: Shape {
 }
 
 #endif
+
+// MARK: - 导航通知
+
+extension Notification.Name {
+    static let navigateToCamera = Notification.Name("com.livecapture.navigateToCamera")
+}
