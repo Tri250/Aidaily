@@ -17,6 +17,13 @@ import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Vignette
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.AutoFixHigh
+import androidx.compose.material.icons.filled.FilterDrama
+import androidx.compose.material.icons.filled.Landscape
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.BlurOn
+import androidx.compose.material.icons.filled.Gradient
+import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
