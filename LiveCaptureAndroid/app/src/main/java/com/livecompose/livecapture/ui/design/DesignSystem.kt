@@ -64,46 +64,49 @@ object DesignSystem {
     // MARK: - Colors（魅族极简色板）
 
     object Colors {
-        // 品牌色 - 低饱和清新蓝（魅族 Flyme 风格）
-        val primary = Color(0xFF3B82F6)
-        val primaryLight = Color(0xFF93C0FC)
-        val secondary = Color(0xFF6366F1)
-        val accent = Color(0xFFF5944D)
+        // 品牌色 - 典雅蓝灰（魅族 Flyme 极简风格，对标哈苏/徕卡高端摄影调性）
+        val primary = Color(0xFF5B7FA5)
+        val primaryLight = Color(0xFF8FADC4)
+        val primaryDark = Color(0xFF4A6B8A)
+        val secondary = Color(0xFF7B8FA0)
+        val accent = Color(0xFFC49B6C)
 
-        // 语义色 - 低饱和版
-        val success = Color(0xFF48B870)
-        val successBg = Color(0xFF48B870).copy(alpha = 0.12f)
-        val warning = Color(0xFFF5B23D)
-        val warningBg = Color(0xFFF5B23D).copy(alpha = 0.12f)
-        val error = Color(0xFFF05959)
-        val errorBg = Color(0xFFF05959).copy(alpha = 0.12f)
-        val info = Color(0xFF59B3F0)
+        // 语义色 - 低饱和克制
+        val success = Color(0xFF5DA87A)
+        val successBg = Color(0xFF5DA87A).copy(alpha = 0.12f)
+        val warning = Color(0xFFD4A04A)
+        val warningBg = Color(0xFFD4A04A).copy(alpha = 0.12f)
+        val error = Color(0xFFC86666)
+        val errorBg = Color(0xFFC86666).copy(alpha = 0.12f)
+        val info = Color(0xFF6BA3C7)
 
-        // 中性色阶 - 7 级灰度（魅族极简核心）
+        // 中性色阶 - 7 级灰度（Flyme 自然暖灰）
         @Composable
-        fun gray0() = if (isSystemInDarkTheme()) Color(0xFF141414) else Color(0xFFFAFAFA)
+        fun gray0() = if (isSystemInDarkTheme()) Color(0xFF1A1A19) else Color(0xFFF8F8F7)
         @Composable
-        fun gray1() = if (isSystemInDarkTheme()) Color(0xFF1F1F1F) else Color(0xFFF0F0F0)
+        fun gray1() = if (isSystemInDarkTheme()) Color(0xFF252523) else Color(0xFFF0EFEE)
         @Composable
-        fun gray2() = if (isSystemInDarkTheme()) Color(0xFF292929) else Color(0xFFE6E6E6)
+        fun gray2() = if (isSystemInDarkTheme()) Color(0xFF30302D) else Color(0xFFE6E5E3)
         @Composable
-        fun gray3() = if (isSystemInDarkTheme()) Color(0xFF383838) else Color(0xFFD1D1D1)
+        fun gray3() = if (isSystemInDarkTheme()) Color(0xFF40403D) else Color(0xFFD1CFCD)
         @Composable
-        fun gray4() = if (isSystemInDarkTheme()) Color(0xFF595959) else Color(0xFF8C8C8C)
+        fun gray4() = if (isSystemInDarkTheme()) Color(0xFF6B6966) else Color(0xFF9E9C99)
         @Composable
-        fun gray5() = if (isSystemInDarkTheme()) Color(0xFF8C8C8C) else Color(0xFF595959)
+        fun gray5() = if (isSystemInDarkTheme()) Color(0xFF9E9C99) else Color(0xFF6B6966)
         @Composable
-        fun gray6() = if (isSystemInDarkTheme()) Color(0xFFEBEBEB) else Color(0xFF141414)
+        fun gray6() = if (isSystemInDarkTheme()) Color(0xFFF0EFEE) else Color(0xFF1A1A19)
 
-        // 语义化文字颜色（兼容旧代码）
+        // 语义化文字颜色
         @Composable
         fun textPrimary() = gray6()
         @Composable
         fun textSecondary() = gray5()
         @Composable
         fun textTertiary() = gray4()
+        @Composable
+        fun textQuaternary() = if (isSystemInDarkTheme()) Color(0xFF40403D) else Color(0xFFC4C1BE)
 
-        // 语义化背景颜色（兼容旧代码）
+        // 语义化背景颜色
         @Composable
         fun backgroundPrimary() = gray0()
         @Composable
@@ -111,14 +114,14 @@ object DesignSystem {
         @Composable
         fun backgroundTertiary() = gray2()
 
-        // 极简相机专属色
+        // 极简相机专属色（纯黑背景 + 白色 UI 层级）
         val minimalBackground = Color.Black
-        val minimalOverlay = Color.White.copy(alpha = 0.08f)
-        val minimalBorder = Color.White.copy(alpha = 0.20f)
-        val minimalActiveBorder = Color.White.copy(alpha = 0.85f)
-        val minimalLabel = Color.White.copy(alpha = 0.92f)
-        val minimalSecondaryLabel = Color.White.copy(alpha = 0.50f)
-        val minimalDarkOverlay = Color.Black.copy(alpha = 0.40f)
+        val minimalOverlay = Color.White.copy(alpha = 0.06f)
+        val minimalBorder = Color.White.copy(alpha = 0.18f)
+        val minimalActiveBorder = Color.White.copy(alpha = 0.88f)
+        val minimalLabel = Color.White.copy(alpha = 0.94f)
+        val minimalSecondaryLabel = Color.White.copy(alpha = 0.48f)
+        val minimalDarkOverlay = Color.Black.copy(alpha = 0.45f)
         val shutterStroke = Color.White
         val shutterInner = Color.White.copy(alpha = 0.95f)
     }

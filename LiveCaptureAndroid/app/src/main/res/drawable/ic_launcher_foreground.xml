@@ -4,26 +4,51 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 背景圆 -->
+    <!--
+        构妙 LiveCapture 应用图标 - 哈苏极简风格
+        设计理念：暗色背景 + 精致镜头光圈环 + 哈苏标志性简约几何
+        对标哈苏 X2D / 907X 的工业设计美学
+    -->
+    <!-- 背景圆 - 深邃暗灰 -->
     <path
-        android:fillColor="#FFD4A574"
-        android:pathData="M54,54m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0" />
-    <!-- 相机机身 -->
+        android:fillColor="#FF1A1A19"
+        android:pathData="M54,54m-48,0a48,48 0,1 1,96 0a48,48 0,1 1,-96 0" />
+
+    <!-- 镜头外环 - 精致金属质感 -->
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M38,40h32c2.2,0 4,1.8 4,4v16c0,2.2 -1.8,4 -4,4H38c-2.2,0 -4,-1.8 -4,-4V44c0,-2.2 1.8,-4 4,-4z" />
-    <!-- 快门按钮 -->
-    <path
-        android:fillColor="#FFD4A574"
-        android:pathData="M54,52m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
-    <!-- 取景框 -->
-    <path
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="1.5"
         android:fillColor="#00000000"
-        android:pathData="M48,42L48,46M60,42L60,46M48,62L48,58M60,62L60,58" />
-    <!-- 闪光灯 -->
+        android:strokeColor="#FFC4BCB0"
+        android:strokeWidth="2.5"
+        android:pathData="M54,54m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0" />
+
+    <!-- 内环 - 光圈叶片 -->
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M62,42m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+        android:fillColor="#00000000"
+        android:strokeColor="#FF8FADB8"
+        android:strokeWidth="1.5"
+        android:pathData="M54,54m-22,0a22,22 0,1 1,44 0a22,22 0,1 1,-44 0" />
+
+    <!-- 光圈叶片 - 六片式 -->
+    <path
+        android:fillColor="#FF2D2D2A"
+        android:strokeColor="#FFC4BCB0"
+        android:strokeWidth="1.2"
+        android:pathData="M54,36 L62,40 L68,48 L64,56 L54,60 L44,56 L40,48 L46,40 Z" />
+
+    <!-- 中心镜片 - 高光反射 -->
+    <path
+        android:fillColor="#FF6B7F8C"
+        android:pathData="M54,54m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0" />
+
+    <!-- 镜片高光 -->
+    <path
+        android:fillColor="#FF8FADC4"
+        android:pathData="M50,50m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+
+    <!-- 哈苏风格品牌标志 - 极简 H 字符 -->
+    <path
+        android:fillColor="#FFC4BCB0"
+        android:strokeColor="#FFC4BCB0"
+        android:strokeWidth="0"
+        android:pathData="M48,70 L48,76 M48,73 L54,73 M54,70 L54,76 M56,70 L56,76 M56,70 L60,70 L60,73 L56,73 M60,73 L60,76" />
 </vector>
