@@ -71,3 +71,33 @@ enum class CameraErrorType {
     SESSION_CONFIG_FAILED,
     UNKNOWN
 }
+
+/**
+ * 闪光灯模式
+ */
+enum class FlashMode(val displayName: String) {
+    OFF("关闭"),
+    AUTO("自动"),
+    ON("打开"),
+    TORCH("常亮")
+}
+
+/**
+ * 对焦状态
+ */
+enum class FocusState {
+    IDLE,
+    FOCUSING,
+    FOCUSED,
+    FAILED
+}
+
+/**
+ * 拍摄比例
+ */
+enum class AspectRatio(val displayName: String, val ratio: Float) {
+    RATIO_3_4("3:4", 3f / 4f),
+    RATIO_9_16("9:16", 9f / 16f),
+    RATIO_1_1("1:1", 1f),
+    RATIO_FULL("全屏", 0f) // 0 = 跟随屏幕
+}

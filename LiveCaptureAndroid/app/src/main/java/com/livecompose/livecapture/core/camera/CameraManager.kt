@@ -7,7 +7,9 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
-import android.graphics.Matrix
+import android.graphics.Rect
+import android.hardware.camera2.CameraMetadata
+import android.hardware.camera2.params.MeteringRectangle
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
@@ -95,6 +97,24 @@ class CameraManager(private val context: Context) {
     var shouldBeRunning: Boolean = false
 
     private var captureRequestBuilder: CaptureRequest.Builder? = null
+
+    // 闪光灯模式
+    private val _flashMode = MutableStateFlow(FlashMode.OFF)
+    val flashMode: StateFlow<FlashMode> = _flashMode.asStateFlow()
+
+    // AE/AF 锁定
+    private val _aeLocked = MutableStateFlow(false)
+    val aeLocked: StateFlow<Boolean> = _aeLocked.asStateFlow()
+    private val _afLocked = MutableStateFlow(false)
+    val afLocked: StateFlow<Boolean> = _afLocked.asStateFlow()
+
+    // 对焦状态
+    private val _focusState = MutableStateFlow(FocusState.IDLE)
+    val focusState: StateFlow<FocusState> = _focusState.asStateFlow()
+
+    // 拍摄比例
+    private val _aspectRatio = MutableStateFlow(AspectRatio.RATIO_3_4)
+    val aspectRatio: StateFlow<AspectRatio> = _aspectRatio.asStateFlow()
 
     fun hasCameraPermission(): Boolean {
         return ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
@@ -437,6 +457,135 @@ class CameraManager(private val context: Context) {
         val width = (sensorSize.width() / zoomFactor).toInt()
         val height = (sensorSize.height() / zoomFactor).toInt()
         return android.graphics.Rect(centerX - width / 2, centerY - height / 2, centerX + width / 2, centerY + height / 2)
+    }
+
+    // ====== 对焦 / 闪光灯 / AE-AF 锁 ======
+
+    /**
+     * 点按对焦/测光
+     * @param x 归一化 X 坐标 (0..1)
+     * @param y 归一化 Y 坐标 (0..1)
+     * @param sensorSize 传感器尺寸
+     */
+    fun tapToFocus(x: Float, y: Float, sensorSize: Rect) {
+        val requestBuilder = captureRequestBuilder ?: return
+        _focusState.value = FocusState.FOCUSING
+        val meteringRect = normalizedToSensorRect(x, y, sensorSize)
+        requestBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, arrayOf(meteringRect))
+        requestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS, arrayOf(meteringRect))
+        requestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_AUTO)
+        requestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START)
+        try {
+            captureSession?.capture(requestBuilder.build(), null, backgroundHandler)
+            requestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE)
+            captureSession?.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
+            _focusState.value = FocusState.FOCUSED
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "对焦失败", e)
+            _focusState.value = FocusState.FAILED
+        }
+    }
+
+    /**
+     * 归一化坐标转传感器区域
+     */
+    private fun normalizedToSensorRect(x: Float, y: Float, sensorSize: Rect): MeteringRectangle {
+        val halfSide = 50
+        val cx = (x * sensorSize.width()).toInt().coerceIn(halfSide, sensorSize.width() - halfSide)
+        val cy = (y * sensorSize.height()).toInt().coerceIn(halfSide, sensorSize.height() - halfSide)
+        return MeteringRectangle(cx - halfSide, cy - halfSide, halfSide * 2, halfSide * 2, MeteringRectangle.METERING_WEIGHT_MAX)
+    }
+
+    /**
+     * 切换闪光灯模式
+     */
+    fun toggleFlashMode() {
+        val modes = FlashMode.entries
+        val nextIndex = (modes.indexOf(_flashMode.value) + 1) % modes.size
+        _flashMode.value = modes[nextIndex]
+        applyFlashMode()
+    }
+
+    /**
+     * 设置闪光灯模式
+     */
+    fun setFlashMode(mode: FlashMode) {
+        _flashMode.value = mode
+        applyFlashMode()
+    }
+
+    private fun applyFlashMode() {
+        val requestBuilder = captureRequestBuilder ?: return
+        when (_flashMode.value) {
+            FlashMode.OFF -> {
+                requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_ON)
+                requestBuilder.set(CaptureRequest.FLASH_MODE, CameraMetadata.FLASH_MODE_OFF)
+            }
+            FlashMode.AUTO -> {
+                requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_ON_AUTO_FLASH)
+                requestBuilder.set(CaptureRequest.FLASH_MODE, CameraMetadata.FLASH_MODE_OFF)
+            }
+            FlashMode.ON -> {
+                requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_ON_ALWAYS_FLASH)
+                requestBuilder.set(CaptureRequest.FLASH_MODE, CameraMetadata.FLASH_MODE_OFF)
+            }
+            FlashMode.TORCH -> {
+                requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_ON)
+                requestBuilder.set(CaptureRequest.FLASH_MODE, CameraMetadata.FLASH_MODE_TORCH)
+            }
+        }
+        try {
+            captureSession?.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "应用闪光模式失败", e)
+        }
+    }
+
+    /**
+     * 切换 AE 锁定
+     */
+    fun toggleAELock() {
+        _aeLocked.value = !_aeLocked.value
+        val requestBuilder = captureRequestBuilder ?: return
+        requestBuilder.set(CaptureRequest.CONTROL_AE_LOCK, _aeLocked.value)
+        try {
+            captureSession?.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "AE锁定失败", e)
+        }
+    }
+
+    /**
+     * 切换 AF 锁定
+     */
+    fun toggleAFLock() {
+        _afLocked.value = !_afLocked.value
+        if (_afLocked.value) {
+            val requestBuilder = captureRequestBuilder ?: return
+            requestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_AUTO)
+            requestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START)
+            try {
+                captureSession?.capture(requestBuilder.build(), null, backgroundHandler)
+                requestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE)
+                captureSession?.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
+            } catch (e: Exception) {
+                AppLogger.w(TAG, "AF锁定失败", e)
+            }
+        }
+    }
+
+    /**
+     * 设置拍摄比例
+     */
+    fun setAspectRatio(ratio: AspectRatio) {
+        _aspectRatio.value = ratio
+    }
+
+    /**
+     * 获取传感器尺寸
+     */
+    fun getSensorRect(): Rect? {
+        return cameraCharacteristics?.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)
     }
 
     fun destroy() {

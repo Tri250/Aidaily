@@ -24,8 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.roundToInt
 import com.livecompose.livecapture.ui.design.DesignSystem
+import kotlin.math.roundToInt
 
 /**
  * 手动模式控制参数
@@ -202,7 +202,7 @@ private fun IsoSlider(
     Column {
         Text(
             text = "ISO ${isoPresets[index]}",
-            color = Color.White,
+            color = DesignSystem.Colors.minimalLabel,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.fillMaxWidth(),
@@ -264,7 +264,7 @@ private fun ShutterSpeedSlider(
     Column {
         Text(
             text = formatShutterSpeed(shutterSpeedPresets[closestIndex]),
-            color = Color.White,
+            color = DesignSystem.Colors.minimalLabel,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.fillMaxWidth(),
@@ -384,7 +384,7 @@ private fun ColorTempSlider(
     Column {
         Text(
             text = "${value}K",
-            color = Color.White,
+            color = DesignSystem.Colors.minimalLabel,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.fillMaxWidth(),
@@ -512,7 +512,7 @@ private fun ManualFocusSlider(
 
         Text(
             text = displayText,
-            color = Color.White,
+            color = DesignSystem.Colors.minimalLabel,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.fillMaxWidth(),

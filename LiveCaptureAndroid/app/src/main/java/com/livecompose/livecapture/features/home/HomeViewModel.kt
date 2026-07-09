@@ -3,6 +3,7 @@ package com.livecompose.livecapture.features.home
 import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.LruCache
 import com.livecompose.livecapture.core.logger.AppLogger
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -23,6 +24,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private val storage = PhotoStorageService(application.applicationContext)
+
+    // 缩略图 LRU 缓存，避免重复解码
+    private val thumbnailCache = LruCache<String, Bitmap>((Runtime.getRuntime().maxMemory() / 1024 / 8).toInt())
+
+    // 原图 LRU 缓存
+    private val fullPhotoCache = LruCache<String, Bitmap>((Runtime.getRuntime().maxMemory() / 1024 / 4).toInt())
 
     private val _records = MutableStateFlow<List<PhotoRecord>>(emptyList())
     val records: StateFlow<List<PhotoRecord>> = _records.asStateFlow()
@@ -45,39 +52,34 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun getThumbnail(id: String): Bitmap? = withContext(Dispatchers.IO) {
         try {
+            // 先从缓存读取
+            thumbnailCache.get(id)?.let { return@withContext it }
             val file = storage.getPhotoFile(id)
             if (!file.exists()) return@withContext null
-            val options = BitmapFactory.Options().apply {
-                inJustDecodeBounds = true
-            }
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeFile(file.absolutePath, options)
             options.inJustDecodeBounds = false
             options.inSampleSize = calculateInSampleSize(options.outWidth, options.outHeight, 256)
-            BitmapFactory.decodeFile(file.absolutePath, options)
-        } catch (e: Exception) {
-            AppLogger.e(TAG, "获取缩略图失败: $id", e)
-            null
-        }
+            val bitmap = BitmapFactory.decodeFile(file.absolutePath, options)
+            bitmap?.let { thumbnailCache.put(id, it) }
+            bitmap
+        } catch (e: Exception) { AppLogger.e(TAG, "获取缩略图失败: $id", e); null }
     }
 
     suspend fun getFullPhoto(id: String): Bitmap? = withContext(Dispatchers.IO) {
         try {
+            fullPhotoCache.get(id)?.let { return@withContext it }
             val file = storage.getPhotoFile(id)
             if (!file.exists()) return@withContext null
-            val options = BitmapFactory.Options().apply {
-                inSampleSize = calculateInSampleSize(
-                    options.outWidth, options.outHeight, 2048
-                )
-            }
-            // First decode bounds to get dimensions
             val boundsOpts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeFile(file.absolutePath, boundsOpts)
-            options.inSampleSize = calculateInSampleSize(boundsOpts.outWidth, boundsOpts.outHeight, 2048)
-            BitmapFactory.decodeFile(file.absolutePath, options)
-        } catch (e: Exception) {
-            AppLogger.e(TAG, "获取原图失败: $id", e)
-            null
-        }
+            val options = BitmapFactory.Options().apply {
+                inSampleSize = calculateInSampleSize(boundsOpts.outWidth, boundsOpts.outHeight, 2048)
+            }
+            val bitmap = BitmapFactory.decodeFile(file.absolutePath, options)
+            bitmap?.let { fullPhotoCache.put(id, it) }
+            bitmap
+        } catch (e: Exception) { AppLogger.e(TAG, "获取原图失败: $id", e); null }
     }
 
     private fun calculateInSampleSize(width: Int, height: Int, reqSize: Int): Int {
