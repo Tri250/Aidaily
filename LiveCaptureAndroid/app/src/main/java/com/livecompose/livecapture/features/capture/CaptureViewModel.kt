@@ -43,7 +43,6 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
     private val sceneEngine = appContainer.sceneIntelligenceEngine
     private val poseEngine = appContainer.poseRecommendationEngine
     private val filterRecommender = appContainer.aiFilterRecommender
-    private val inspirationLibrary = InspirationLibrary
 
     // Published State
     private val _cropRectInView = MutableStateFlow<RectF?>(null)

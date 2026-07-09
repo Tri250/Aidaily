@@ -122,7 +122,7 @@ class SceneModelsTest {
     fun `poseRecommendationResult EMPTY has no suggestions`() {
         val empty = PoseRecommendationResult.EMPTY
         assertFalse(empty.hasRecommendations)
-        assertTrue(empty.allSuggestions.isEmpty())
+        assertTrue(empty.suggestions.isEmpty())
         assertEquals(SceneType.UNKNOWN, empty.sceneType)
         assertEquals(0f, empty.confidenceScore)
         assertNull(empty.primaryRecommendation)
@@ -137,31 +137,13 @@ class SceneModelsTest {
         )
         val result = PoseRecommendationResult(
             suggestions = listOf(suggestion),
-            adjustments = emptyList(),
-            compositions = emptyList(),
             primaryRecommendation = suggestion,
             sceneType = SceneType.PORTRAIT,
             confidenceScore = 0.9f
         )
         assertTrue(result.hasRecommendations)
-        assertEquals(1, result.allSuggestions.size)
+        assertEquals(1, result.suggestions.size)
         assertNotNull(result.primaryRecommendation)
-    }
-
-    @Test
-    fun `poseRecommendationResult allSuggestions merges all lists`() {
-        val s1 = PoseSuggestion("s1", "", "", "", emptyList(), "", 0.5f, PoseCategory.PORTRAIT_STANDING)
-        val s2 = PoseSuggestion("s2", "", "", "", emptyList(), "", 0.5f, PoseCategory.PORTRAIT_STANDING)
-        val s3 = PoseSuggestion("s3", "", "", "", emptyList(), "", 0.5f, PoseCategory.PORTRAIT_STANDING)
-        val result = PoseRecommendationResult(
-            suggestions = listOf(s1),
-            adjustments = listOf(s2),
-            compositions = listOf(s3),
-            primaryRecommendation = null,
-            sceneType = SceneType.UNKNOWN,
-            confidenceScore = 0.5f
-        )
-        assertEquals(3, result.allSuggestions.size)
     }
 
     // ====== SubjectDetection 测试 ======

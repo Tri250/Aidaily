@@ -50,35 +50,6 @@ enum class CompositionGuideType {
         }
 }
 
-// MARK: - 评分等级
-
-/**
- * 构图评分等级
- */
-enum class ScoreGrade {
-    EXCELLENT,          // 优秀
-    GOOD,               // 良好
-    AVERAGE,            // 一般
-    NEEDS_IMPROVEMENT;  // 需改进
-
-    val displayName: String
-        get() = when (this) {
-            EXCELLENT -> "优秀"
-            GOOD -> "良好"
-            AVERAGE -> "一般"
-            NEEDS_IMPROVEMENT -> "需改进"
-        }
-
-    /** ARGB 颜色值（Long，0xAARRGGBB） */
-    val color: Long
-        get() = when (this) {
-            EXCELLENT -> 0xFF4CAF50          // 绿色
-            GOOD -> 0xFF2196F3               // 蓝色
-            AVERAGE -> 0xFFFF9800            // 橙色
-            NEEDS_IMPROVEMENT -> 0xFFF44336  // 红色
-        }
-}
-
 // MARK: - 构图评分
 
 /**
@@ -98,54 +69,4 @@ data class CompositionScore(
     val centering: Int,
     val horizonLevel: Int,
     val feedback: String
-) {
-    /** 评分等级（基于综合评分） */
-    val grade: ScoreGrade
-        get() = when {
-            overall >= 90 -> ScoreGrade.EXCELLENT
-            overall >= 75 -> ScoreGrade.GOOD
-            overall >= 60 -> ScoreGrade.AVERAGE
-            else -> ScoreGrade.NEEDS_IMPROVEMENT
-        }
-}
-
-// MARK: - 姿势分类
-
-/**
- * 姿势模板分类
- */
-enum class PoseCategory {
-    SOLO,    // 单人
-    COUPLE,  // 双人
-    FRIENDS, // 朋友
-    FAMILY,  // 家庭
-    PET;     // 宠物
-
-    val displayName: String
-        get() = when (this) {
-            SOLO -> "单人"
-            COUPLE -> "双人"
-            FRIENDS -> "朋友"
-            FAMILY -> "家庭"
-            PET -> "宠物"
-        }
-}
-
-// MARK: - 姿势模板
-
-/**
- * 姿势模板
- *
- * @param id 唯一标识
- * @param name 模板名称
- * @param category 姿势分类
- * @param description 模板描述
- * @param tips 拍摄技巧列表
- */
-data class PoseTemplate(
-    val id: String,
-    val name: String,
-    val category: PoseCategory,
-    val description: String,
-    val tips: List<String>
 )

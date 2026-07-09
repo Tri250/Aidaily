@@ -181,24 +181,17 @@ data class PoseSuggestion(
 
 data class PoseRecommendationResult(
     val suggestions: List<PoseSuggestion>,
-    val adjustments: List<PoseSuggestion>,
-    val compositions: List<PoseSuggestion>,
     val primaryRecommendation: PoseSuggestion?,
     val sceneType: SceneType,
     val confidenceScore: Float,
     val generatedAt: Long = System.currentTimeMillis()
 ) {
-    val allSuggestions: List<PoseSuggestion>
-        get() = suggestions + adjustments + compositions
-
     val hasRecommendations: Boolean
         get() = primaryRecommendation != null || suggestions.isNotEmpty()
 
     companion object {
         val EMPTY = PoseRecommendationResult(
             suggestions = emptyList(),
-            adjustments = emptyList(),
-            compositions = emptyList(),
             primaryRecommendation = null,
             sceneType = SceneType.UNKNOWN,
             confidenceScore = 0.0f
@@ -368,21 +361,7 @@ data class ScenePresetParams(
 }
 
 // =============================================================================
-// 16. InspirationEntry — 灵感条目
-// =============================================================================
-
-data class InspirationEntry(
-    val id: String,
-    val scene: SceneType,
-    val style: String,
-    val title: String,
-    val description: String,
-    val tags: List<String>,
-    val photographerNote: String
-)
-
-// =============================================================================
-// 17. CompositionAnalysis — 构图分析
+// 16. CompositionAnalysis — 构图分析
 // =============================================================================
 
 data class CompositionAnalysis(
