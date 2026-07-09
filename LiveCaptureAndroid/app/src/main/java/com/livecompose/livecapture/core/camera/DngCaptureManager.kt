@@ -286,7 +286,14 @@ class DngCaptureManager(private val context: Context) {
             }
 
             captureCallback?.invoke(captureListener)
-            captureSession?.capture(requestBuilder.build(), captureListener, dngHandler)
+
+            val session = captureSession
+            if (session == null) {
+                AppLogger.w(TAG, "RAW 拍摄失败: captureSession 为 null")
+                onError?.invoke("RAW 拍摄失败: 相机会话未就绪")
+                return
+            }
+            session.capture(requestBuilder.build(), captureListener, dngHandler)
         } catch (e: Exception) {
             onError?.invoke("触发 RAW 拍摄失败: ${e.message}")
         }

@@ -279,12 +279,58 @@ class CameraManager(private val context: Context) {
      * 拍摄照片
      */
     fun capturePhoto() {
-        val device = cameraDevice ?: return
-        val characteristics = cameraCharacteristics ?: return
-        val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP) as? StreamConfigurationMap ?: return
+        val device = cameraDevice
+        if (device == null) {
+            AppLogger.w(TAG, "拍照失败: cameraDevice 为 null")
+            _lastPhotoSaved.value = false
+            return
+        }
+        val characteristics = cameraCharacteristics
+        if (characteristics == null) {
+            AppLogger.w(TAG, "拍照失败: cameraCharacteristics 为 null")
+            _lastPhotoSaved.value = false
+            return
+        }
+        val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP) as? StreamConfigurationMap
+        if (map == null) {
+            AppLogger.w(TAG, "拍照失败: StreamConfigurationMap 为 null")
+            _lastPhotoSaved.value = false
+            return
+        }
         val largestSize = map.getOutputSizes(ImageFormat.JPEG).maxByOrNull { it.width * it.height } ?: Size(1920, 1080)
 
-        val photoReader = ImageReader.newInstance(largestSize.width, largestSize.height, ImageFormat.JPEG, 1)
+        val session = captureSession
+        if (session == null) {
+            AppLogger.w(TAG, "拍照失败: captureSession 为 null，尝试重建预览会话")
+            _lastPhotoSaved.value = false
+            // 尝试重建会话后重试
+            createCameraPreviewSession()
+            // 延迟后重试
+            backgroundHandler.postDelayed({
+                val retrySession = captureSession
+                if (retrySession == null) {
+                    AppLogger.e(TAG, "拍照重试失败: captureSession 仍然为 null")
+                    _lastPhotoSaved.value = false
+                    return@postDelayed
+                }
+                doCapturePhoto(device, map, largestSize, retrySession)
+            }, 500)
+            return
+        }
+
+        doCapturePhoto(device, map, largestSize, session)
+    }
+
+    /**
+     * 执行实际的拍照操作
+     */
+    private fun doCapturePhoto(
+        device: CameraDevice,
+        map: StreamConfigurationMap,
+        photoSize: Size,
+        session: CameraCaptureSession
+    ) {
+        val photoReader = ImageReader.newInstance(photoSize.width, photoSize.height, ImageFormat.JPEG, 1)
         photoReader.setOnImageAvailableListener({ reader ->
             val image = reader.acquireNextImage()
             if (image == null) {
@@ -314,7 +360,7 @@ class CameraManager(private val context: Context) {
             requestBuilder.addTarget(photoReader.surface)
             requestBuilder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
             requestBuilder.set(CaptureRequest.JPEG_ORIENTATION, 90)
-            captureSession?.capture(requestBuilder.build(), null, backgroundHandler)
+            session.capture(requestBuilder.build(), null, backgroundHandler)
         } catch (e: Exception) {
             AppLogger.e(TAG, "拍照请求失败", e)
             _lastPhotoSaved.value = false
@@ -468,7 +514,16 @@ class CameraManager(private val context: Context) {
      * @param sensorSize 传感器尺寸
      */
     fun tapToFocus(x: Float, y: Float, sensorSize: Rect) {
-        val requestBuilder = captureRequestBuilder ?: return
+        val requestBuilder = captureRequestBuilder
+        if (requestBuilder == null) {
+            AppLogger.w(TAG, "对焦失败: captureRequestBuilder 为 null")
+            return
+        }
+        val session = captureSession
+        if (session == null) {
+            AppLogger.w(TAG, "对焦失败: captureSession 为 null")
+            return
+        }
         _focusState.value = FocusState.FOCUSING
         val meteringRect = normalizedToSensorRect(x, y, sensorSize)
         requestBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, arrayOf(meteringRect))
@@ -476,9 +531,9 @@ class CameraManager(private val context: Context) {
         requestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_AUTO)
         requestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START)
         try {
-            captureSession?.capture(requestBuilder.build(), null, backgroundHandler)
+            session.capture(requestBuilder.build(), null, backgroundHandler)
             requestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE)
-            captureSession?.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
+            session.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
             _focusState.value = FocusState.FOCUSED
         } catch (e: Exception) {
             AppLogger.w(TAG, "对焦失败", e)
@@ -561,13 +616,24 @@ class CameraManager(private val context: Context) {
     fun toggleAFLock() {
         _afLocked.value = !_afLocked.value
         if (_afLocked.value) {
-            val requestBuilder = captureRequestBuilder ?: return
+            val requestBuilder = captureRequestBuilder
+            if (requestBuilder == null) {
+                AppLogger.w(TAG, "AF锁定失败: captureRequestBuilder 为 null")
+                _afLocked.value = false
+                return
+            }
+            val session = captureSession
+            if (session == null) {
+                AppLogger.w(TAG, "AF锁定失败: captureSession 为 null")
+                _afLocked.value = false
+                return
+            }
             requestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_AUTO)
             requestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START)
             try {
-                captureSession?.capture(requestBuilder.build(), null, backgroundHandler)
+                session.capture(requestBuilder.build(), null, backgroundHandler)
                 requestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE)
-                captureSession?.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
+                session.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
             } catch (e: Exception) {
                 AppLogger.w(TAG, "AF锁定失败", e)
             }
