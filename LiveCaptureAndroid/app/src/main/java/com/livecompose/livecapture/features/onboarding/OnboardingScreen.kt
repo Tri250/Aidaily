@@ -244,8 +244,3 @@ private fun OnboardingPageContent(pageData: OnboardingPageData) {
     }
 }
 
-private suspend fun android.content.Context.edit(
-    transform: suspend (androidx.datastore.preferences.core.MutablePreferences) -> Unit
-) {
-    dataStore.edit(transform)
-}

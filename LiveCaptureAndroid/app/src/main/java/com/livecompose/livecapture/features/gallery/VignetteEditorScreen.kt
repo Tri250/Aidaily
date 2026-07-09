@@ -145,7 +145,7 @@ fun VignetteEditorScreen(
                 result.compress(Bitmap.CompressFormat.JPEG, 95, stream)
                 val data = stream.toByteArray()
                 com.livecompose.livecapture.core.storage.PhotoStorageService(context)
-                    .savePhoto(data, detectionMethod = "vignette")
+                    .updatePhoto(photoId, data, detectionMethod = "vignette")
                 stream.close()
             }
             withContext(Dispatchers.Main) { onBack() }

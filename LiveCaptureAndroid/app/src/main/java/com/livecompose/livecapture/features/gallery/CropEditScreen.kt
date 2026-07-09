@@ -99,16 +99,17 @@ fun CropEditScreen(
                         if (onSave != null) {
                             onSave(cropped)
                         } else {
-                            // 默认保存逻辑：保存到图库并返回
-                            scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            scope.launch {
                                 val stream = java.io.ByteArrayOutputStream()
                                 cropped.compress(Bitmap.CompressFormat.JPEG, 95, stream)
                                 val data = stream.toByteArray()
                                 val storage = PhotoStorageService(context)
-                                storage.savePhoto(data, detectionMethod = "crop")
+                                withContext(Dispatchers.IO) {
+                                    storage.updatePhoto(photoId, data, detectionMethod = "crop")
+                                }
                                 stream.close()
+                                onBack()
                             }
-                            onBack()
                         }
                     }
                 }) {

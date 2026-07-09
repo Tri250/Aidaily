@@ -208,7 +208,7 @@ fun CurveEditorScreen(
                 result.compress(Bitmap.CompressFormat.JPEG, 95, stream)
                 val data = stream.toByteArray()
                 com.livecompose.livecapture.core.storage.PhotoStorageService(context)
-                    .savePhoto(data, detectionMethod = "curve")
+                    .updatePhoto(photoId, data, detectionMethod = "curve")
                 stream.close()
             }
             withContext(Dispatchers.Main) {

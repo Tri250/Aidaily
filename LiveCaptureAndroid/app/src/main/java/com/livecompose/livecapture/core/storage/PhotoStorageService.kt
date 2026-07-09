@@ -100,6 +100,57 @@ class PhotoStorageService(context: Context) {
         }
     }
 
+    /**
+     * 更新已有照片的数据（覆盖原文件、重新生成缩略图、更新记录元数据）
+     *
+     * @param photoId 现有照片的 ID
+     * @param newData 新的 JPEG 字节数据
+     * @param detectionMethod 编辑方法标签（用于记录更新）
+     * @return 是否成功更新
+     */
+    suspend fun updatePhoto(photoId: String, newData: ByteArray, detectionMethod: String? = null): Boolean {
+        return try {
+            val photoFile = File(photosDir, PhotoRecord.photoFilename(photoId))
+            val thumbFile = File(thumbnailsDir, PhotoRecord.thumbnailFilename(photoId))
+
+            // 覆盖原照片文件
+            photoFile.writeBytes(newData)
+
+            // 重新生成缩略图并获取尺寸
+            val options = BitmapFactory.Options().apply { inSampleSize = 4 }
+            var imageWidth: Int? = null
+            var imageHeight: Int? = null
+
+            val bitmap = BitmapFactory.decodeByteArray(newData, 0, newData.size, options)
+            if (bitmap != null) {
+                imageWidth = bitmap.width * options.inSampleSize
+                imageHeight = bitmap.height * options.inSampleSize
+                try {
+                    val thumb = ThumbnailGenerator.generate(bitmap)
+                    thumbFile.outputStream().use { out ->
+                        thumb.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                    }
+                    thumb.recycle()
+                } finally {
+                    bitmap.recycle()
+                }
+            }
+
+            // 更新记录元数据
+            updateRecord(photoId) { record ->
+                record.copy(
+                    imageWidth = imageWidth,
+                    imageHeight = imageHeight,
+                    detectionMethod = detectionMethod ?: record.detectionMethod
+                )
+            }
+            true
+        } catch (e: Exception) {
+            AppLogger.e("PhotoStorage", "更新照片失败: $photoId", e)
+            false
+        }
+    }
+
     fun deleteRecord(id: String) {
         scope.launch {
             val photoFile = File(photosDir, PhotoRecord.photoFilename(id))

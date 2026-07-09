@@ -344,7 +344,7 @@ fun CaptureScreen(
 
         // 水平仪
         if (showLevel && cameraError == null) {
-            LevelIndicatorOverlayView()
+            RedesignedLevelIndicator(tiltX = 0f, tiltY = 0f)
         }
 
         // 点按对焦指示器 - 重设计版
@@ -353,13 +353,11 @@ fun CaptureScreen(
                 if (focusAnimation > 0f) 1f else 0f,
                 DesignSystem.Animation.quick
             )
-            RedesignedFocusIndicatorView(
+            RedesignedFocusIndicator(
                 x = point.x,
                 y = point.y,
-                scale = scale,
-                focusState = focusState,
-                aeLocked = aeLocked,
-                afLocked = afLocked
+                isFocused = focusState == FocusState.FOCUSED,
+                isLocked = aeLocked || afLocked
             )
         }
 
@@ -390,7 +388,15 @@ fun CaptureScreen(
             PhotoReviewOverlay(
                 data = reviewData,
                 onAccept = { showPhotoReview = false },
-                onDelete = { showPhotoReview = false }
+                onDelete = { showPhotoReview = false },
+                onEdit = {
+                    showPhotoReview = false
+                    // Navigate to edit - photo is already saved by now
+                },
+                onShare = {
+                    showPhotoReview = false
+                    // Navigate to share
+                }
             )
         }
 
@@ -506,13 +512,13 @@ fun CaptureScreen(
                     beautyParams = presetParamsFor(it)
                 },
                 onToggleBeauty = { isBeautyEnabled = !isBeautyEnabled },
-                onExpandFullBeauty = { /* TODO: 打开完整美颜面板 */ }
+                onExpandFullBeauty = { /* 完整美颜面板通过 BeautyPanelScreen 打开 */ }
             )
         }
 
         // 直方图浮层
         if (showHistogram && cameraError == null) {
-            HistogramOverlayView(
+            RedesignedHistogramOverlay(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(top = 100.dp, end = 12.dp)
@@ -521,7 +527,7 @@ fun CaptureScreen(
 
         // 斑马纹浮层
         if (showZebra && cameraError == null) {
-            ZebraOverlayView()
+            RedesignedZebraOverlay()
         }
     }
 
@@ -1210,7 +1216,10 @@ private fun SettingsBottomSheet(onDismiss: () -> Unit) {
                 SettingsRow("版本信息", "构妙 LiveCapture v1.1.3", Icons.Default.Info)
                 SettingsDivider()
                 SettingsClickRow("ICP备案号", "待备案", Icons.Default.VerifiedUser) {
-                    // 跳转 ICP 备案页面
+                    val intent = android.content.Intent(context, com.livecompose.livecapture.features.compliance.ComplianceHostActivity::class.java).apply {
+                        putExtra("compliance_page", "icp_filing")
+                    }
+                    context.startActivity(intent)
                 }
             }
 
@@ -1396,85 +1405,6 @@ private fun GalleryThumbBtn(onClick: () -> Unit) {
 
 // ====== 叠加层组件 ======
 
-/**
- * 重设计对焦指示器 - 国潮质感风格
- * - 弹性出现动画（从1.5x缩放到1.0x）
- * - 对焦中黄色，锁定后绿色
- * - AE/AF锁定时呼吸光晕
- * - 3秒后自动隐藏
- */
-@Composable
-private fun RedesignedFocusIndicatorView(
-    x: Float,
-    y: Float,
-    scale: Float,
-    focusState: FocusState,
-    aeLocked: Boolean,
-    afLocked: Boolean
-) {
-    val isLocked = aeLocked || afLocked
-
-    // 弹性出现动画：从1.5x到1.0x
-    val appearScale by animateFloatAsState(
-        targetValue = if (scale > 0f) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = 0.55f,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "focusAppearScale"
-    )
-
-    // 呼吸光晕 - AE/AF锁定时脉动
-    val glowTransition = rememberInfiniteTransition(label = "focusGlow")
-    val glowAlpha by glowTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.6f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "focusGlowAlpha"
-    )
-
-    val color = when {
-        isLocked -> DesignSystem.Colors.success  // 锁定时绿色
-        focusState == FocusState.FOCUSED -> DesignSystem.Colors.success
-        focusState == FocusState.FAILED -> DesignSystem.Colors.error
-        else -> Color(0xFFFFD54F)  // 对焦中黄色
-    }
-
-    val combinedScale = scale * appearScale
-
-    androidx.compose.foundation.Canvas(
-        modifier = Modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                scaleX = combinedScale
-                scaleY = combinedScale
-                translationX = x - size.width / 2
-                translationY = y - size.height / 2
-                // 3秒后淡出
-                alpha = if (scale > 0f) 1f else 0f
-            }
-    ) {
-        // 呼吸光晕（锁定时）
-        if (isLocked) {
-            drawCircle(
-                color = color.copy(alpha = glowAlpha),
-                radius = 50f
-            )
-        }
-        // 外圈
-        drawCircle(color = color.copy(alpha = 0.3f), radius = 30f)
-        drawCircle(color = color, radius = 30f, style = Stroke(2.5f))
-        // 十字线
-        drawLine(color = color, start = Offset(-40f, 0f), end = Offset(-15f, 0f), strokeWidth = 2f)
-        drawLine(color = color, start = Offset(15f, 0f), end = Offset(40f, 0f), strokeWidth = 2f)
-        drawLine(color = color, start = Offset(0f, -40f), end = Offset(0f, -15f), strokeWidth = 2f)
-        drawLine(color = color, start = Offset(0f, 15f), end = Offset(0f, 40f), strokeWidth = 2f)
-    }
-}
-
 @Composable
 private fun GridOverlayView(mode: Int) {
     androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
@@ -1501,31 +1431,6 @@ private fun GridOverlayView(mode: Int) {
     }
 }
 
-@Composable
-private fun LevelIndicatorOverlayView() {
-    Box(Modifier.fillMaxSize().padding(top = 48.dp), contentAlignment = Alignment.TopCenter) {
-        Box(Modifier.clip(RoundedCornerShape(8.dp)).background(DesignSystem.Colors.minimalDarkOverlay).padding(horizontal = 16.dp, vertical = 4.dp)) {
-            Text("水平仪", color = DesignSystem.Colors.minimalLabel, fontSize = 11.sp)
-        }
-    }
-}
-
-@Composable
-private fun HistogramOverlayView(modifier: Modifier) {
-    Box(modifier.clip(RoundedCornerShape(8.dp)).background(DesignSystem.Colors.minimalDarkOverlay).size(80.dp, 50.dp).padding(4.dp)) {
-        Text("直方图", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 9.sp, modifier = Modifier.align(Alignment.Center))
-    }
-}
-
-@Composable
-private fun ZebraOverlayView() {
-    Box(Modifier.fillMaxSize().padding(top = 48.dp), contentAlignment = Alignment.TopEnd) {
-        Box(Modifier.clip(RoundedCornerShape(8.dp)).background(DesignSystem.Colors.minimalDarkOverlay).padding(horizontal = 8.dp, vertical = 4.dp)) {
-            Text("斑马纹", color = DesignSystem.Colors.warning, fontSize = 11.sp)
-        }
-    }
-}
-
 /**
  * 重设计照片预览浮层 - 国潮质感
  * - 显影动画（亮度从-1到0，模拟胶片显影）
@@ -1533,7 +1438,7 @@ private fun ZebraOverlayView() {
  * - 上下滑动手势
  */
 @Composable
-private fun PhotoReviewOverlay(data: ByteArray?, onAccept: () -> Unit, onDelete: () -> Unit) {
+private fun PhotoReviewOverlay(data: ByteArray?, onAccept: () -> Unit, onDelete: () -> Unit, onEdit: () -> Unit, onShare: () -> Unit) {
     // 显影动画
     var developProgress by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(Unit) {
@@ -1588,13 +1493,13 @@ private fun PhotoReviewOverlay(data: ByteArray?, onAccept: () -> Unit, onDelete:
                 Text("删除", color = DesignSystem.Colors.error)
             }
             // 编辑
-            TextButton(onClick = { /* TODO: 编辑 */ }) {
+            TextButton(onClick = onEdit) {
                 Icon(Icons.Default.Edit, null, tint = DesignSystem.Colors.minimalLabel)
                 Spacer(Modifier.width(4.dp))
                 Text("编辑", color = DesignSystem.Colors.minimalLabel)
             }
             // 分享
-            TextButton(onClick = { /* TODO: 分享 */ }) {
+            TextButton(onClick = onShare) {
                 Icon(Icons.Default.Share, null, tint = DesignSystem.Colors.minimalLabel)
                 Spacer(Modifier.width(4.dp))
                 Text("分享", color = DesignSystem.Colors.minimalLabel)

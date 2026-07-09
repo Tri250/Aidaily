@@ -93,7 +93,7 @@ fun PhotoAdjustScreen(
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 95, stream)
                 val data = stream.toByteArray()
                 val storage = com.livecompose.livecapture.core.storage.PhotoStorageService(context)
-                storage.savePhoto(data, detectionMethod = "adjust")
+                storage.updatePhoto(photoId, data, detectionMethod = "adjust")
                 stream.close()
             }
             withContext(Dispatchers.Main) {

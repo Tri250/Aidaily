@@ -274,7 +274,23 @@ private fun buildSDKListText(): String = """
 
 根据《个人信息保护法》及相关法规要求，现将本应用集成的第三方SDK信息公示如下：
 
-一、腾讯Bugly
+一、Android CameraX
+
+功能：相机预览与拍照
+收集信息类型：不收集任何个人信息
+收集方式：纯本地运行
+隐私政策：https://developer.android.com/jetpack/androidx/releases/camera
+使用场景：应用内相机预览、拍照、图像分析等核心拍摄功能
+
+二、Google ML Kit
+
+功能：人脸检测、物体检测、图像标签
+收集信息类型：不收集任何个人信息
+收集方式：纯本地运行
+隐私政策：https://policies.google.com/privacy
+使用场景：人像拍摄模式下的面部检测、场景识别
+
+三、腾讯Bugly
 
 功能：崩溃监控与异常上报
 收集信息类型：设备标识信息（Android ID）、应用运行日志、崩溃堆栈信息
@@ -282,29 +298,13 @@ private fun buildSDKListText(): String = """
 隐私政策：https://privacy.qq.com/document/preview/fc748b3d96224fdb825ea79e132c1a56
 使用场景：应用崩溃时自动上报异常信息，用于问题排查和稳定性提升
 
-二、微信OpenSDK
+四、微信OpenSDK
 
 功能：微信分享
 收集信息类型：设备标识信息、网络状态
 收集方式：用户主动触发分享时采集
 隐私政策：https://privacy.qq.com/
 使用场景：用户分享照片至微信好友或朋友圈
-
-三、TensorFlow Lite
-
-功能：端侧AI模型推理
-收集信息类型：不收集任何个人信息
-收集方式：纯本地运行
-隐私政策：不适用
-使用场景：AI构图检测、场景分类等端侧AI推理
-
-四、Google ML Kit
-
-功能：人脸检测
-收集信息类型：不收集任何个人信息
-收集方式：纯本地运行
-隐私政策：https://policies.google.com/privacy
-使用场景：人像拍摄模式下的面部检测
 
 五、AndroidX / Jetpack
 
@@ -329,7 +329,8 @@ private fun buildSDKListText(): String = """
 
 说明：
 1. 除Bugly和微信SDK外，其他SDK均为纯本地运行，不收集任何个人信息。
-2. Bugly仅在应用崩溃时上报必要信息，可在设置中查看。
-3. 微信SDK仅在用户主动分享时使用。
-4. 本应用不集成任何广告SDK、用户画像SDK、数据统计SDK。
+2. CameraX和ML Kit在设备本地运行，所有图像数据不上传服务器。
+3. Bugly仅在应用崩溃时上报必要信息，可在设置中查看。
+4. 微信SDK仅在用户主动分享时使用。
+5. 本应用不集成任何广告SDK、用户画像SDK、数据统计SDK。
 """.trimIndent()
