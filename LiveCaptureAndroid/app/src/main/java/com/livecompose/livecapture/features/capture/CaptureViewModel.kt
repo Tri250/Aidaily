@@ -14,6 +14,9 @@ import com.livecompose.livecapture.core.detection.*
 import com.livecompose.livecapture.core.filter.AiFilterRecommender
 import com.livecompose.livecapture.core.filter.FilterRecommendation
 import com.livecompose.livecapture.core.intelligence.*
+import com.livecompose.livecapture.core.intelligence.PoseGender
+import com.livecompose.livecapture.core.intelligence.AgeGroup
+import com.livecompose.livecapture.core.intelligence.PoseCategory
 import com.livecompose.livecapture.core.logger.AppLogger
 import com.livecompose.livecapture.core.motion.MotionStabilityMonitor
 import com.livecompose.livecapture.core.storage.PhotoStorageService
@@ -280,13 +283,27 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
                 AppLogger.w("CaptureViewModel", "滤镜推荐失败: ${e.message}")
             }
         }
-        // 更新姿势推荐
+        // 更新姿势推荐（含性别/年龄适配）
         viewModelScope.launch {
             try {
                 val subject = sceneEngine.subjectDetection.value ?: SubjectDetection()
                 val confidence = sceneEngine.sceneConfidence.value
+                // 基于检测到的性别和年龄组适配姿势推荐
+                val genderHint = subject.detectedGenders.firstOrNull()
+                val ageHint = subject.detectedAges.firstOrNull()
                 val result = poseEngine.generateRecommendations(scene, confidence, subject)
-                _aiPoseSuggestion.value = result.primaryRecommendation?.title ?: ""
+                // 根据性别和年龄过滤建议优先级
+                val adaptedSuggestions = result.suggestions.map { suggestion ->
+                    if (genderHint == PoseGender.FEMALE && suggestion.category == PoseCategory.WEDDING) {
+                        suggestion.copy(priority = suggestion.priority + 0.05f)
+                    } else if (ageHint == AgeGroup.CHILD && suggestion.category == PoseCategory.CHILDREN) {
+                        suggestion.copy(priority = suggestion.priority + 0.1f)
+                    } else {
+                        suggestion
+                    }
+                }
+                val adaptedResult = result.copy(suggestions = adaptedSuggestions)
+                _aiPoseSuggestion.value = adaptedResult.primaryRecommendation?.title ?: ""
             } catch (e: Exception) {
                 AppLogger.w("CaptureViewModel", "姿势推荐失败: ${e.message}")
             }

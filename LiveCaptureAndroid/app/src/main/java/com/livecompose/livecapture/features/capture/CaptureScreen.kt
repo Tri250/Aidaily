@@ -46,6 +46,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.livecompose.livecapture.core.camera.*
+import com.livecompose.livecapture.core.portrait.PortraitViewModel
+import com.livecompose.livecapture.core.portrait.PortraitLightingType
+import com.livecompose.livecapture.core.portrait.BeautyPreset as PortraitBeautyPreset
 import com.livecompose.livecapture.features.capture.components.*
 import com.livecompose.livecapture.features.home.HomeViewModel
 import com.livecompose.livecapture.core.storage.PhotoRecord
@@ -108,6 +111,10 @@ fun CaptureScreen(
     var vignetteIntensity by remember { mutableFloatStateOf(0f) }
     var isEntryAnimationComplete by remember { mutableStateOf(false) }
 
+    // 人像模式状态
+    var showPortraitMode by remember { mutableStateOf(false) }
+    val portraitViewModel = remember { PortraitViewModel(context) }
+
     // CameraManager 状态
     val zoomState by camera.zoomState.collectAsState()
     val zoomPresets by camera.zoomPresets.collectAsState()
@@ -141,6 +148,16 @@ fun CaptureScreen(
     var showHistogram by remember { mutableStateOf(false) }
     var showZebra by remember { mutableStateOf(false) }
     var showLevel by remember { mutableStateOf(false) }
+
+    // 人像模式：拍照后自动处理图像
+    LaunchedEffect(reviewData) {
+        if (reviewData != null && showPortraitMode) {
+            val bitmap = BitmapFactory.decodeByteArray(reviewData, 0, reviewData!!.size)
+            if (bitmap != null) {
+                portraitViewModel.processImage(bitmap)
+            }
+        }
+    }
 
     LaunchedEffect(cameraErrorState) { cameraError = cameraErrorState }
 
@@ -544,7 +561,9 @@ fun CaptureScreen(
                 onZoomDrag = { viewModel.updateZoomInteractively(it) },
                 onZoomDragEnd = { viewModel.finalizeZoomInteractively(it) },
                 onTogglePipeline = { viewModel.toggleCompositionPipeline() },
-                onCapture = { viewModel.capturePhoto() },
+                onCapture = {
+                    viewModel.capturePhoto()
+                },
                 onToggleCamera = { triggerCameraFlip() },
                 onOpenGallery = {
                     showGallerySheet = true
@@ -558,7 +577,15 @@ fun CaptureScreen(
                     camera.setAspectRatio(ratios[nextIndex])
                 },
                 onToggleManualPanel = { showManualPanel = true },
-                onModeSelected = { selectedMode = it },
+                onModeSelected = {
+                    selectedMode = it
+                    if (it == CaptureMode.PORTRAIT) {
+                        showPortraitMode = true
+                        portraitViewModel.togglePortraitMode()
+                    } else if (showPortraitMode) {
+                        showPortraitMode = false
+                    }
+                },
                 onPhotoClick = { photoId ->
                     onNavigateToPhotoDetail?.invoke(photoId)
                 },
@@ -605,6 +632,15 @@ fun CaptureScreen(
     if (showSettingsSheet) {
         SettingsBottomSheet(
             onDismiss = { showSettingsSheet = false }
+        )
+    }
+
+    // ====== 人像模式浮层 ======
+    if (showPortraitMode && cameraError == null) {
+        PortraitModeOverlay(
+            viewModel = portraitViewModel,
+            onDismiss = { showPortraitMode = false },
+            onProcessImage = { bitmap -> portraitViewModel.processImage(bitmap) }
         )
     }
 }
@@ -1422,6 +1458,251 @@ private fun ComplianceItem(title: String, icon: ImageVector, page: String) {
         Text(title, style = DesignSystem.Typography.headline,
             color = DesignSystem.Colors.textPrimary(), modifier = Modifier.weight(1f))
         Icon(Icons.Default.ChevronRight, null, tint = DesignSystem.Colors.textTertiary())
+    }
+}
+
+// ====== 人像模式浮层 ======
+
+/**
+ * 人像模式控制浮层
+ *
+ * 集成 PortraitViewModel，提供美颜预设、虚化滑块、光效选择器和预览区域。
+ */
+@Composable
+private fun PortraitModeOverlay(
+    viewModel: PortraitViewModel,
+    onDismiss: () -> Unit,
+    onProcessImage: (android.graphics.Bitmap) -> Unit
+) {
+    // 从 ViewModel 收集状态
+    val portraitBlur by viewModel.portraitBlur.collectAsState()
+    val currentPreset by viewModel.currentPreset.collectAsState()
+    val isBeautyEnabled by viewModel.isBeautyEnabled.collectAsState()
+    val isPortraitEnabled by viewModel.isPortraitModeEnabled.collectAsState()
+    val lightingType by viewModel.lightingType.collectAsState()
+    val processedPreview by viewModel.processedPreview.collectAsState()
+    val isProcessing by viewModel.isProcessing.collectAsState()
+    val faceCount by viewModel.faceCount.collectAsState()
+    val hasPortrait by viewModel.hasPortrait.collectAsState()
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.4f))
+            .clickable(onClick = onDismiss)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.7f)
+                .align(Alignment.BottomCenter)
+                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                .background(DesignSystem.Colors.backgroundPrimary())
+                .clickable(enabled = false, onClick = {})
+                .verticalScroll(rememberScrollState())
+        ) {
+            // 拖拽指示器
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    Modifier
+                        .width(36.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(DesignSystem.Colors.gray4())
+                )
+            }
+
+            // 标题行
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "人像模式",
+                    style = DesignSystem.Typography.largeTitle,
+                    color = DesignSystem.Colors.textPrimary()
+                )
+                Spacer(Modifier.weight(1f))
+                // 人脸检测状态
+                if (hasPortrait) {
+                    Text(
+                        "检测到 ${faceCount} 张人脸",
+                        style = DesignSystem.Typography.caption1,
+                        color = DesignSystem.Colors.success
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+                TextButton(onClick = onDismiss) {
+                    Text("完成", color = DesignSystem.Colors.primary)
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // 预览区域
+            if (processedPreview != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .aspectRatio(4f / 3f)
+                        .clip(RoundedCornerShape(DesignSystem.CornerRadius.large))
+                        .background(DesignSystem.Colors.gray2()),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.foundation.Image(
+                        bitmap = processedPreview!!.asImageBitmap(),
+                        contentDescription = "人像预览",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                    if (isProcessing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            color = DesignSystem.Colors.primary,
+                            strokeWidth = 2.dp
+                        )
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+
+            // ====== 开关控制 ======
+            SettingsSectionHeader("模式开关", Icons.Default.Tune)
+            SettingsCard {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Portrait, null, tint = DesignSystem.Colors.primary, modifier = Modifier.size(22.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("人像模式", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
+                        Text("开启背景虚化与光效", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
+                    }
+                    Switch(
+                        checked = isPortraitEnabled,
+                        onCheckedChange = { viewModel.togglePortraitMode() },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = DesignSystem.Colors.primary,
+                            uncheckedThumbColor = DesignSystem.Colors.gray4(),
+                            uncheckedTrackColor = DesignSystem.Colors.gray3()
+                        )
+                    )
+                }
+                SettingsDivider()
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.AutoFixHigh, null, tint = DesignSystem.Colors.primary, modifier = Modifier.size(22.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("美颜", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
+                        Text("智能美颜效果", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
+                    }
+                    Switch(
+                        checked = isBeautyEnabled,
+                        onCheckedChange = { viewModel.setBeautyEnabled(it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = DesignSystem.Colors.primary,
+                            uncheckedThumbColor = DesignSystem.Colors.gray4(),
+                            uncheckedTrackColor = DesignSystem.Colors.gray3()
+                        )
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // ====== 美颜预设选择器 ======
+            SettingsSectionHeader("美颜预设", Icons.Default.AutoFixHigh)
+            SettingsCard {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    PortraitBeautyPreset.entries.forEach { preset ->
+                        val isActive = currentPreset == preset
+                        FilterChip(
+                            selected = isActive,
+                            onClick = { viewModel.applyPreset(preset) },
+                            label = { Text(preset.displayName, style = DesignSystem.Typography.caption1) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = DesignSystem.Colors.primary.copy(alpha = 0.15f),
+                                selectedLabelColor = DesignSystem.Colors.primary
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // ====== 人像虚化滑块 ======
+            SettingsSectionHeader("人像虚化", Icons.Default.LensBlur)
+            SettingsCard {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("虚化强度", style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
+                        Text("${(portraitBlur * 100).toInt()}%", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.primary)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Slider(
+                        value = portraitBlur,
+                        onValueChange = { viewModel.setPortraitBlur(it) },
+                        valueRange = 0f..1f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = DesignSystem.Colors.primary,
+                            activeTrackColor = DesignSystem.Colors.primary
+                        )
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // ====== 光效选择器 ======
+            SettingsSectionHeader("人像光效", Icons.Default.WbSunny)
+            SettingsCard {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    PortraitLightingType.entries.forEach { type ->
+                        val isActive = lightingType == type
+                        FilterChip(
+                            selected = isActive,
+                            onClick = { viewModel.selectLighting(type) },
+                            label = { Text(type.displayName, style = DesignSystem.Typography.caption2) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = DesignSystem.Colors.primary.copy(alpha = 0.15f),
+                                selectedLabelColor = DesignSystem.Colors.primary
+                            )
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(32.dp))
+        }
     }
 }
 

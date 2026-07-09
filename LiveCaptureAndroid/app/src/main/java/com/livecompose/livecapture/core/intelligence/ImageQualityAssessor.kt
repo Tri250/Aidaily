@@ -83,6 +83,164 @@ class ImageQualityAssessor {
     }
 
     /**
+     * 对 Bitmap 进行构图分析
+     *
+     * 基于三分法、对称性、视觉平衡和引导线分析构图质量
+     */
+    fun analyzeComposition(bitmap: Bitmap): CompositionAnalysis {
+        val width = bitmap.width
+        val height = bitmap.height
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+        return analyzeComposition(pixels, width, height)
+    }
+
+    /**
+     * 对原始像素数组进行构图分析
+     */
+    fun analyzeComposition(pixels: IntArray, width: Int, height: Int): CompositionAnalysis {
+        val gray = IntArray(pixels.size) { i ->
+            val p = pixels[i]
+            rgbToGrayscale((p shr 16) and 0xFF, (p shr 8) and 0xFF, p and 0xFF)
+        }
+
+        // 三分法评分：计算四条三分线上的边缘密度
+        val thirdX1 = width / 3
+        val thirdX2 = width * 2 / 3
+        val thirdY1 = height / 3
+        val thirdY2 = height * 2 / 3
+
+        var thirdsEdgeSum = 0f
+        var thirdsCount = 0
+        for (y in 1 until height - 1) {
+            for (tx in listOf(thirdX1, thirdX2)) {
+                val idx = y * width + tx
+                val gx = kotlin.math.abs(gray[idx + 1] - gray[idx - 1])
+                thirdsEdgeSum += gx
+                thirdsCount++
+            }
+        }
+        for (ty in listOf(thirdY1, thirdY2)) {
+            for (x in 1 until width - 1) {
+                val idx = ty * width + x
+                val gy = kotlin.math.abs(gray[idx + width] - gray[idx - width])
+                thirdsEdgeSum += gy
+                thirdsCount++
+            }
+        }
+        val ruleOfThirdsScore = if (thirdsCount > 0) {
+            (thirdsEdgeSum / thirdsCount / 255f * 100f).coerceIn(0f, 100f)
+        } else 0f
+
+        // 对称性评分：左右翻转后的像素差异
+        var symmetryDiff = 0f
+        val sampleStep = 4
+        var symmetrySamples = 0
+        for (y in 0 until height step sampleStep) {
+            for (x in 0 until width / 2 step sampleStep) {
+                val leftIdx = y * width + x
+                val rightIdx = y * width + (width - 1 - x)
+                if (leftIdx < gray.size && rightIdx < gray.size) {
+                    symmetryDiff += kotlin.math.abs(gray[leftIdx] - gray[rightIdx])
+                    symmetrySamples++
+                }
+            }
+        }
+        val symmetryScore = if (symmetrySamples > 0) {
+            (100f - (symmetryDiff / symmetrySamples / 128f * 100f)).coerceIn(0f, 100f)
+        } else 50f
+
+        // 视觉平衡评分：四象限亮度均值的标准差（越小越平衡）
+        val quadSizeX = width / 2
+        val quadSizeY = height / 2
+        val quadMeans = FloatArray(4)
+        val quadCounts = IntArray(4)
+        for (y in 0 until height step 2) {
+            for (x in 0 until width step 2) {
+                val qi = (if (y < quadSizeY) 0 else 2) + (if (x < quadSizeX) 0 else 1)
+                quadMeans[qi] += gray[y * width + x]
+                quadCounts[qi]++
+            }
+        }
+        for (i in 0 until 4) {
+            if (quadCounts[i] > 0) quadMeans[i] /= quadCounts[i]
+        }
+        val meanOfMeans = quadMeans.average().toFloat()
+        val variance = quadMeans.map { (it - meanOfMeans) * (it - meanOfMeans) }.average().toFloat()
+        val visualBalanceScore = (100f - kotlin.math.sqrt(variance) / 128f * 100f).coerceIn(0f, 100f)
+
+        // 引导线计数（近似：高对比度水平/垂直条纹数量）
+        var leadingLinesCount = 0
+        val lineThreshold = 80
+        for (y in 1 until height - 1 step 4) {
+            var consecutiveHighGradient = 0
+            for (x in 1 until width - 1) {
+                val gx = kotlin.math.abs(gray[y * width + x + 1] - gray[y * width + x - 1])
+                if (gx > lineThreshold) {
+                    consecutiveHighGradient++
+                } else {
+                    if (consecutiveHighGradient > width / 8) leadingLinesCount++
+                    consecutiveHighGradient = 0
+                }
+            }
+            if (consecutiveHighGradient > width / 8) leadingLinesCount++
+        }
+
+        // 焦点计数（三分线交叉点附近的高梯度区域）
+        val focalPoints = listOf(
+            thirdX1 to thirdY1, thirdX2 to thirdY1,
+            thirdX1 to thirdY2, thirdX2 to thirdY2
+        )
+        var focalPointsCount = 0
+        val focalRadius = kotlin.math.min(width, height) / 10
+        for ((fx, fy) in focalPoints) {
+            var maxGrad = 0
+            for (dy in -focalRadius..focalRadius step 3) {
+                for (dx in -focalRadius..focalRadius step 3) {
+                    val x = (fx + dx).coerceIn(1, width - 2)
+                    val y = (fy + dy).coerceIn(1, height - 2)
+                    val idx = y * width + x
+                    if (idx > 0 && idx < gray.size - 1) {
+                        val g = kotlin.math.abs(gray[idx + 1] - gray[idx - 1]) +
+                                kotlin.math.abs(gray[idx + width] - gray[idx - width])
+                        if (g > maxGrad) maxGrad = g
+                    }
+                }
+            }
+            if (maxGrad > 100) focalPointsCount++
+        }
+
+        // 构图类型判断
+        val compositionType = when {
+            symmetryScore > 70 -> "对称构图"
+            ruleOfThirdsScore > 60 -> "三分法构图"
+            visualBalanceScore > 70 -> "平衡构图"
+            leadingLinesCount > 3 -> "引导线构图"
+            focalPointsCount >= 3 -> "多点聚焦构图"
+            else -> "自由构图"
+        }
+
+        // 反馈
+        val feedback = when {
+            ruleOfThirdsScore > 70 && symmetryScore > 60 -> "构图优秀，主体位置与画面平衡俱佳"
+            ruleOfThirdsScore > 50 -> "主体位置较好，可适当调整画面平衡"
+            symmetryScore > 60 -> "画面对称性良好，注意主体位置"
+            visualBalanceScore < 40 -> "画面失衡，建议调整主体位置或留白"
+            else -> "构图有提升空间，建议使用三分法或对称构图"
+        }
+
+        return CompositionAnalysis(
+            ruleOfThirdsScore = ruleOfThirdsScore,
+            symmetryScore = symmetryScore,
+            visualBalanceScore = visualBalanceScore,
+            leadingLinesCount = leadingLinesCount,
+            focalPointsCount = focalPointsCount,
+            compositionType = compositionType,
+            feedback = feedback
+        )
+    }
+
+    /**
      * 对 Bitmap 进行完整色彩分析
      */
     fun analyzeColors(bitmap: Bitmap): ColorAnalysis {

@@ -1413,14 +1413,29 @@ class PoseRecommendationEngine {
 
         val poseSuggestions = generatePoseSuggestions(filteredPoses, scene, confidence)
         val adjustmentSuggestions = generateAdjustmentSuggestions(subjectDetection)
-        val compositionSuggestions = generateCompositionSuggestions(scene, subjectDetection)
+        var compositionSuggestions = generateCompositionSuggestions(scene, subjectDetection)
         val dynamicSuggestions = generateDynamicSuggestions(subjectDetection, scene)
 
+        // Backlit scene special handling
+        if (scene == SceneType.BACKLIT) {
+            val backlitSuggestions = generateBacklitSuggestions()
+            // Add backlit suggestions with high priority
+            compositionSuggestions += backlitSuggestions.take(2)
+        }
+
         val prioritizedPoses = prioritizeAndLimit(poseSuggestions, maxSuggestions)
-        val primaryRecommendation = prioritizedPoses.firstOrNull()
+
+        // If no valid suggestions found, use fallback recommendations
+        val finalSuggestions = if (prioritizedPoses.isEmpty()) {
+            getFallbackRecommendations()
+        } else {
+            prioritizedPoses
+        }
+
+        val primaryRecommendation = finalSuggestions.firstOrNull()
 
         return PoseRecommendationResult(
-            suggestions = prioritizedPoses,
+            suggestions = finalSuggestions,
             adjustments = adjustmentSuggestions,
             compositions = compositionSuggestions + dynamicSuggestions,
             primaryRecommendation = primaryRecommendation,
@@ -2028,7 +2043,7 @@ class PoseRecommendationEngine {
     /**
      * 获取兜底推荐 — 当没有匹配场景时使用
      */
-    private fun getFallbackRecommendations(): List<PoseSuggestion> {
+    internal fun getFallbackRecommendations(): List<PoseSuggestion> {
         val fallbackCategory = PoseCategory.PORTRAIT_STANDING
         val fallbackPoses = poseDatabase[fallbackCategory]
             ?.values?.flatten()
