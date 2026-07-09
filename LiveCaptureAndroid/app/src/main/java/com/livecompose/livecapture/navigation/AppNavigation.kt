@@ -1,13 +1,9 @@
 package com.livecompose.livecapture.navigation
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -16,7 +12,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.livecompose.livecapture.di.AppContainer
 import com.livecompose.livecapture.features.capture.CaptureScreen
-import com.livecompose.livecapture.features.home.GalleryScreen
 import com.livecompose.livecapture.features.gallery.PhotoDetailScreen
 import com.livecompose.livecapture.features.gallery.CropEditScreen
 import com.livecompose.livecapture.features.gallery.PhotoAdjustScreen
@@ -26,74 +21,28 @@ import com.livecompose.livecapture.features.gallery.VignetteEditorScreen
 import com.livecompose.livecapture.features.community.CommunityScreen
 import com.livecompose.livecapture.features.compliance.YouthModeScreen
 import com.livecompose.livecapture.features.compliance.IcpFilingScreen
-import com.livecompose.livecapture.features.settings.SettingsScreen
-import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
- * 应用主导航 - 以 AI 相机为核心的三 Tab 极简结构
- * 对标 2026 年高端手机摄影应用的交互设计：
- *   - Tab 0: 拍摄（主入口/AI相机，默认首页）
- *   - Tab 1: 图库（作品浏览）
- *   - Tab 2: 设置（个性配置）
+ * 应用主导航 - 单屏拍摄为核心，设置/图库集成到拍摄页面
+ * 对标 2026 年国内旗舰手机摄影应用：
+ *   - 拍摄为主界面，无底部 Tab
+ *   - 图库：拍摄页底部缩略条 + 全屏浮层
+ *   - 设置：拍摄页顶部图标 → 底部浮层
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    var selectedTab by remember { mutableIntStateOf(0) }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar(
-                containerColor = DesignSystem.Colors.backgroundSecondary(),
-                contentColor = DesignSystem.Colors.primary,
-                tonalElevation = 0.dp
-            ) {
-                TabItem.entries.forEachIndexed { index, tab ->
-                    NavigationBarItem(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        icon = {
-                            Icon(
-                                imageVector = if (selectedTab == index) tab.selectedIcon else tab.icon,
-                                contentDescription = tab.label
-                            )
-                        },
-                        label = {
-                            androidx.compose.material3.Text(
-                                text = tab.label,
-                                style = DesignSystem.Typography.caption2
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = DesignSystem.Colors.primary,
-                            selectedTextColor = DesignSystem.Colors.primary,
-                            unselectedIconColor = DesignSystem.Colors.textTertiary(),
-                            unselectedTextColor = DesignSystem.Colors.textTertiary(),
-                            indicatorColor = DesignSystem.Colors.primary.copy(alpha = 0.1f)
-                        )
-                    )
-                }
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 主拍摄页面
+        CaptureScreen(
+            onBack = {},
+            onNavigateToPhotoDetail = { photoId ->
+                navController.navigate("photo_detail/$photoId")
             }
-        }
-    ) { paddingValues ->
-        // 主 Tab 页面
-        Box(modifier = Modifier.padding(paddingValues)) {
-            when (selectedTab) {
-                0 -> CaptureScreen(
-                    onBack = {}, // 主页不提供返回
-                    onNavigateToGallery = { selectedTab = 1 }
-                )
-                1 -> GalleryScreen(
-                    onPhotoClick = { photoId ->
-                        navController.navigate("photo_detail/$photoId")
-                    }
-                )
-                2 -> SettingsScreen()
-            }
-        }
+        )
 
-        // 导航覆盖层（照片详情/编辑页面）
+        // 导航覆盖层（照片详情/编辑/社区/合规等页面）
         NavHost(
             navController = navController,
             startDestination = "_empty"
@@ -192,13 +141,4 @@ fun AppNavigation() {
             }
         }
     }
-}
-
-/**
- * 底部导航 Tab 定义 - 精简为 3 项，以 AI 相机为中心
- */
-enum class TabItem(val label: String, val icon: ImageVector, val selectedIcon: ImageVector) {
-    CAPTURE("拍摄", Icons.Default.Camera, Icons.Default.Camera),
-    GALLERY("图库", Icons.Default.PhotoLibrary, Icons.Default.PhotoLibrary),
-    SETTINGS("设置", Icons.Default.Tune, Icons.Default.Tune)
 }

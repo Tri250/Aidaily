@@ -1,6 +1,7 @@
 package com.livecompose.livecapture.features.capture
 
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.graphics.PointF
 import android.graphics.RectF
 import android.net.Uri
@@ -13,9 +14,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -25,9 +29,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -36,27 +43,38 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.livecompose.livecapture.core.camera.*
 import com.livecompose.livecapture.features.capture.components.*
+import com.livecompose.livecapture.features.home.HomeViewModel
+import com.livecompose.livecapture.core.storage.PhotoRecord
 import com.livecompose.livecapture.ui.design.DesignSystem
+import com.livecompose.livecapture.ui.design.liquidGlass
+import kotlinx.coroutines.launch
 
 /**
- * 主拍摄界面 - 2026 国内旗舰手机摄影体验
- * 集成: 点按对焦/测光、双指变焦、AE/AF锁定、闪光灯、拍摄比例、直方图、斑马纹、水平仪、手动控制面板
+ * 主拍摄界面 - 单屏全功能 2026 国内旗舰手机摄影体验
+ * 集成: 图库缩略条、设置浮层、点按对焦/测光、双指变焦、AE/AF锁定、闪光灯、网格、直方图、斑马纹、水平仪
+ * 适配: 华为/小米/OPPO/vivo/荣耀等国内品牌手机
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CaptureScreen(
     onBack: () -> Unit,
-    onNavigateToGallery: () -> Unit = {},
-    viewModel: CaptureViewModel = viewModel()
+    onNavigateToPhotoDetail: ((String) -> Unit)? = null,
+    viewModel: CaptureViewModel = viewModel(),
+    homeViewModel: HomeViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val camera = viewModel.camera
+    val scope = rememberCoroutineScope()
 
     // 控件可见性
     var controlsVisible by remember { mutableStateOf(true) }
     var showManualPanel by remember { mutableStateOf(false) }
     var showPhotoReview by remember { mutableStateOf(false) }
     var reviewData by remember { mutableStateOf<ByteArray?>(null) }
+
+    // 图库 / 设置浮层
+    var showGallerySheet by remember { mutableStateOf(false) }
+    var showSettingsSheet by remember { mutableStateOf(false) }
 
     // 动画状态
     var captureAnimationScale by remember { mutableFloatStateOf(1f) }
@@ -91,6 +109,9 @@ fun CaptureScreen(
     val motionStable by viewModel.motionIsStable.collectAsState()
     val isFrontCamera = camera.isFrontCamera
 
+    // 图库数据
+    val galleryRecords by homeViewModel.records.collectAsState()
+
     var cameraError by remember { mutableStateOf<CameraErrorType?>(null) }
 
     // 模式切换
@@ -115,7 +136,7 @@ fun CaptureScreen(
 
     // 控件自动隐藏
     LaunchedEffect(controlsVisible) {
-        if (controlsVisible && cameraError == null && !showManualPanel) {
+        if (controlsVisible && cameraError == null && !showManualPanel && !showGallerySheet && !showSettingsSheet) {
             delay(4000)
             controlsVisible = false
         }
@@ -152,7 +173,6 @@ fun CaptureScreen(
                 detectTapGestures(
                     onTap = { offset ->
                         controlsVisible = !controlsVisible
-                        // 点按对焦
                         val sensorRect = camera.getSensorRect()
                         if (sensorRect != null) {
                             camera.tapToFocus(offset.x / size.width, offset.y / size.height, sensorRect)
@@ -161,7 +181,6 @@ fun CaptureScreen(
                         }
                     },
                     onLongPress = { offset ->
-                        // 长按 AE/AF 锁定
                         camera.toggleAELock()
                         camera.toggleAFLock()
                         focusPoint = PointF(offset.x, offset.y)
@@ -177,7 +196,7 @@ fun CaptureScreen(
                 }
             }
     ) {
-        // 相机预览
+        // 相机预览 - 全屏
         if (cameraError == null) {
             val animatedScale by animateFloatAsState(
                 captureAnimationScale,
@@ -253,7 +272,7 @@ fun CaptureScreen(
             PhotoReviewOverlay(
                 data = reviewData,
                 onAccept = { showPhotoReview = false },
-                onDelete = { showPhotoReview = false } // 实际删除逻辑
+                onDelete = { showPhotoReview = false }
             )
         }
 
@@ -285,7 +304,11 @@ fun CaptureScreen(
                 showZebra = showZebra,
                 onToggleZebra = { showZebra = !showZebra },
                 showLevel = showLevel,
-                onToggleLevel = { showLevel = !showLevel }
+                onToggleLevel = { showLevel = !showLevel },
+                onOpenSettings = {
+                    showSettingsSheet = true
+                    controlsVisible = false
+                }
             )
         }
 
@@ -305,13 +328,17 @@ fun CaptureScreen(
                 afLocked = afLocked,
                 aspectRatio = aspectRatio,
                 captureMode = captureMode,
+                galleryRecords = galleryRecords,
                 onSelectPreset = { viewModel.selectZoomPreset(it) },
                 onZoomDrag = { viewModel.updateZoomInteractively(it) },
                 onZoomDragEnd = { viewModel.finalizeZoomInteractively(it) },
                 onTogglePipeline = { viewModel.toggleCompositionPipeline() },
                 onCapture = { viewModel.capturePhoto() },
                 onToggleCamera = { cameraFlipRotation += 180f; viewModel.toggleCameraPosition() },
-                onNavigateToGallery = onNavigateToGallery,
+                onOpenGallery = {
+                    showGallerySheet = true
+                    controlsVisible = false
+                },
                 onToggleAELock = { camera.toggleAELock() },
                 onToggleAFLock = { camera.toggleAFLock() },
                 onToggleAspectRatio = {
@@ -320,7 +347,10 @@ fun CaptureScreen(
                     camera.setAspectRatio(ratios[nextIndex])
                 },
                 onToggleManualPanel = { showManualPanel = true },
-                onCaptureModeChange = { captureMode = it }
+                onCaptureModeChange = { captureMode = it },
+                onPhotoClick = { photoId ->
+                    onNavigateToPhotoDetail?.invoke(photoId)
+                }
             )
         }
 
@@ -337,6 +367,26 @@ fun CaptureScreen(
         if (showZebra && cameraError == null) {
             ZebraOverlayView()
         }
+    }
+
+    // ====== 图库全屏浮层 ======
+    if (showGallerySheet) {
+        GalleryFullSheet(
+            records = galleryRecords,
+            viewModel = homeViewModel,
+            onDismiss = { showGallerySheet = false },
+            onPhotoClick = { photoId ->
+                showGallerySheet = false
+                onNavigateToPhotoDetail?.invoke(photoId)
+            }
+        )
+    }
+
+    // ====== 设置底部浮层 ======
+    if (showSettingsSheet) {
+        SettingsBottomSheet(
+            onDismiss = { showSettingsSheet = false }
+        )
     }
 }
 
@@ -356,7 +406,8 @@ private fun CaptureTopBar(
     showZebra: Boolean,
     onToggleZebra: () -> Unit,
     showLevel: Boolean,
-    onToggleLevel: () -> Unit
+    onToggleLevel: () -> Unit,
+    onOpenSettings: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -383,6 +434,8 @@ private fun CaptureTopBar(
 
         // 功能按钮组
         Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            // 设置（新增）
+            TopIconButton(Icons.Default.Settings, false, onOpenSettings)
             // 水平仪
             TopIconButton(Icons.Default.AlignHorizontalLeft, showLevel, onToggleLevel)
             // 斑马纹
@@ -400,7 +453,7 @@ private fun CaptureTopBar(
 }
 
 @Composable
-private fun TopIconButton(icon: androidx.compose.ui.graphics.vector.ImageVector, active: Boolean, onClick: () -> Unit) {
+private fun TopIconButton(icon: ImageVector, active: Boolean, onClick: () -> Unit) {
     Box(
         Modifier
             .size(34.dp)
@@ -432,18 +485,20 @@ private fun CaptureBottomBar(
     afLocked: Boolean,
     aspectRatio: AspectRatio,
     captureMode: Int,
+    galleryRecords: List<PhotoRecord>,
     onSelectPreset: (ZoomPreset) -> Unit,
     onZoomDrag: (Float) -> Unit,
     onZoomDragEnd: (Float) -> Unit,
     onTogglePipeline: () -> Unit,
     onCapture: () -> Unit,
     onToggleCamera: () -> Unit,
-    onNavigateToGallery: () -> Unit,
+    onOpenGallery: () -> Unit,
     onToggleAELock: () -> Unit,
     onToggleAFLock: () -> Unit,
     onToggleAspectRatio: () -> Unit,
     onToggleManualPanel: () -> Unit,
-    onCaptureModeChange: (Int) -> Unit
+    onCaptureModeChange: (Int) -> Unit,
+    onPhotoClick: (String) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -451,6 +506,16 @@ private fun CaptureBottomBar(
             .navigationBarsPadding()
             .padding(bottom = 8.dp)
     ) {
+        // 图库缩略条（最近照片）
+        if (galleryRecords.isNotEmpty()) {
+            GalleryThumbnailStrip(
+                records = galleryRecords.take(15),
+                onOpenGallery = onOpenGallery,
+                onPhotoClick = onPhotoClick
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+
         // 拍摄模式切换
         Row(
             modifier = Modifier
@@ -492,7 +557,7 @@ private fun CaptureBottomBar(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             // 左侧: 图库
-            GalleryThumbBtn(onClick = onNavigateToGallery)
+            GalleryThumbBtn(onClick = onOpenGallery)
 
             // AE/AF 锁
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -553,6 +618,507 @@ private fun CaptureBottomBar(
                 Text("翻转", style = DesignSystem.Typography.caption2, color = DesignSystem.Colors.minimalSecondaryLabel)
             }
         }
+    }
+}
+
+// ====== 图库缩略条 ======
+@Composable
+private fun GalleryThumbnailStrip(
+    records: List<PhotoRecord>,
+    onOpenGallery: () -> Unit,
+    onPhotoClick: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        records.forEach { record ->
+            var thumbnail by remember(record.id) { mutableStateOf<android.graphics.Bitmap?>(null) }
+            LaunchedEffect(record.id) {
+                thumbnail = try {
+                    val file = java.io.File(record.filePath)
+                    if (file.exists()) BitmapFactory.decodeFile(record.filePath) else null
+                } catch (e: Exception) { null }
+            }
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(DesignSystem.Colors.minimalOverlay)
+                    .clickable { onPhotoClick(record.id) }
+            ) {
+                if (thumbnail != null) {
+                    androidx.compose.foundation.Image(
+                        bitmap = thumbnail!!.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+        }
+        // "查看全部"按钮
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(DesignSystem.Colors.minimalDarkOverlay)
+                .clickable { onOpenGallery() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.ChevronRight,
+                null,
+                tint = DesignSystem.Colors.minimalSecondaryLabel,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+// ====== 图库全屏浮层 ======
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GalleryFullSheet(
+    records: List<PhotoRecord>,
+    viewModel: HomeViewModel,
+    onDismiss: () -> Unit,
+    onPhotoClick: (String) -> Unit
+) {
+    var selectedPhotoIndex by remember { mutableIntStateOf(-1) }
+    var isSelectionMode by remember { mutableStateOf(false) }
+    var selectedIds by remember { mutableStateOf(setOf<String>()) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DesignSystem.Colors.backgroundPrimary())
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // 顶部栏
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "图库",
+                    style = DesignSystem.Typography.largeTitle,
+                    color = DesignSystem.Colors.textPrimary()
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                if (isSelectionMode) {
+                    TextButton(onClick = {
+                        viewModel.deleteRecords(selectedIds.toList())
+                        selectedIds = emptySet()
+                        isSelectionMode = false
+                    }) {
+                        Text("删除", color = DesignSystem.Colors.error)
+                    }
+                    TextButton(onClick = {
+                        isSelectionMode = false
+                        selectedIds = emptySet()
+                    }) {
+                        Text("取消", color = DesignSystem.Colors.textPrimary())
+                    }
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("关闭", color = DesignSystem.Colors.primary)
+                }
+            }
+
+            if (records.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.PhotoLibrary, null,
+                            modifier = Modifier.size(64.dp),
+                            tint = DesignSystem.Colors.textTertiary()
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Text("暂无照片", color = DesignSystem.Colors.textSecondary(),
+                            style = DesignSystem.Typography.title2)
+                    }
+                }
+            } else {
+                androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+                    columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(3),
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
+                ) {
+                    items(records.size, key = { records[it].id }) { index ->
+                        val record = records[index]
+                        var thumbnail by remember(record.id) { mutableStateOf<android.graphics.Bitmap?>(null) }
+                        LaunchedEffect(record.id) {
+                            thumbnail = try {
+                                val file = java.io.File(record.filePath)
+                                if (file.exists()) BitmapFactory.decodeFile(record.filePath) else null
+                            } catch (e: Exception) { null }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .aspectRatio(1f)
+                                .clickable {
+                                    if (isSelectionMode) {
+                                        selectedIds = if (record.id in selectedIds) {
+                                            val new = selectedIds - record.id
+                                            if (new.isEmpty()) isSelectionMode = false
+                                            new
+                                        } else selectedIds + record.id
+                                    } else {
+                                        onPhotoClick(record.id)
+                                    }
+                                }
+                        ) {
+                            if (thumbnail != null) {
+                                androidx.compose.foundation.Image(
+                                    bitmap = thumbnail!!.asImageBitmap(),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Box(Modifier.fillMaxSize().background(DesignSystem.Colors.gray2()),
+                                    contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Default.Image, null, tint = DesignSystem.Colors.textTertiary())
+                                }
+                            }
+                            if (isSelectionMode) {
+                                Box(Modifier.fillMaxSize().background(DesignSystem.Colors.minimalDarkOverlay))
+                                Icon(
+                                    if (record.id in selectedIds) Icons.Default.CheckCircle else Icons.Default.Circle,
+                                    null,
+                                    tint = if (record.id in selectedIds) DesignSystem.Colors.primary
+                                    else DesignSystem.Colors.minimalSecondaryLabel,
+                                    modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(22.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ====== 设置底部浮层 ======
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsBottomSheet(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    var autoCaptureEnabled by remember { mutableStateOf(true) }
+    var captureDelay by remember { mutableStateOf(1.0) }
+    var gridMode by remember { mutableIntStateOf(0) }
+    var phantomModeEnabled by remember { mutableStateOf(false) }
+    var rawCaptureEnabled by remember { mutableStateOf(false) }
+    var selectedThemeIndex by remember { mutableIntStateOf(0) }
+    var selectedDetectionModeIndex by remember { mutableIntStateOf(1) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.4f))
+            .clickable(onClick = onDismiss)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.75f)
+                .align(Alignment.BottomCenter)
+                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                .background(DesignSystem.Colors.backgroundPrimary())
+                .clickable(enabled = false, onClick = {})
+                .verticalScroll(rememberScrollState())
+        ) {
+            // 拖拽指示器
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    Modifier
+                        .width(36.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(DesignSystem.Colors.gray4())
+                )
+            }
+
+            // 标题
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "设置",
+                    style = DesignSystem.Typography.largeTitle,
+                    color = DesignSystem.Colors.textPrimary()
+                )
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = onDismiss) {
+                    Text("完成", color = DesignSystem.Colors.primary)
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // ====== 外观 ======
+            SettingsSectionHeader("外观", Icons.Default.Palette)
+            SettingsCard {
+                SettingsRow("主题模式", "切换深色 / 浅色外观", Icons.Default.Brightness6) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf("系统", "浅色", "深色").forEachIndexed { index, text ->
+                            FilterChip(
+                                selected = selectedThemeIndex == index,
+                                onClick = { selectedThemeIndex = index },
+                                label = { Text(text, style = DesignSystem.Typography.caption1) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = DesignSystem.Colors.primary.copy(alpha = 0.15f),
+                                    selectedLabelColor = DesignSystem.Colors.primary
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ====== 拍摄设置 ======
+            SettingsSectionHeader("拍摄设置", Icons.Default.CameraAlt)
+            SettingsCard {
+                SettingsSwitchRow("自动拍照", "对准构图框后自动触发拍摄", Icons.Default.Bolt,
+                    autoCaptureEnabled) {
+                    autoCaptureEnabled = it
+                }
+                SettingsDivider()
+                SettingsRow("拍照延迟", "${"%.1f".format(captureDelay)}秒后触发", Icons.Default.Timer) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf(0.5, 1.0, 1.5, 2.0).forEach { delay ->
+                            FilterChip(
+                                selected = captureDelay == delay,
+                                onClick = { captureDelay = delay },
+                                label = { Text("${"%.1f".format(delay)}秒", style = DesignSystem.Typography.caption1) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = DesignSystem.Colors.primary.copy(alpha = 0.15f),
+                                    selectedLabelColor = DesignSystem.Colors.primary
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ====== 构图引擎 ======
+            SettingsSectionHeader("构图引擎", Icons.Default.AutoAwesome)
+            SettingsCard {
+                SettingsRow("网格线", "辅助构图参考线", Icons.Default.GridOn) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf("关闭", "三分法", "黄金分割", "九宫格").forEachIndexed { index, label ->
+                            FilterChip(
+                                selected = gridMode == index,
+                                onClick = { gridMode = index },
+                                label = { Text(label, style = DesignSystem.Typography.caption2) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = DesignSystem.Colors.primary.copy(alpha = 0.15f),
+                                    selectedLabelColor = DesignSystem.Colors.primary
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ====== RAW 处理 ======
+            SettingsSectionHeader("RAW 处理", Icons.Default.Camera)
+            SettingsCard {
+                SettingsSwitchRow("RAW 拍摄", "全链路 RAW 处理", Icons.Default.RawOn,
+                    rawCaptureEnabled) { rawCaptureEnabled = it }
+            }
+
+            // ====== 幻影模式 ======
+            SettingsSectionHeader("幻影模式", Icons.Default.Visibility)
+            SettingsCard {
+                SettingsSwitchRow("幻影模式", "监听系统相机输出，自动应用 LUT 色彩处理", Icons.Default.VisibilityOff,
+                    phantomModeEnabled) { phantomModeEnabled = it }
+            }
+
+            // ====== 隐私与合规 ======
+            SettingsSectionHeader("隐私与合规", Icons.Default.Security)
+            SettingsCard {
+                ComplianceItem("隐私政策", Icons.Default.PrivacyTip, "privacy")
+                ComplianceItem("用户服务协议", Icons.Default.Description, "agreement")
+                ComplianceItem("个人信息收集清单", Icons.Default.ListAlt, "personal_info")
+                ComplianceItem("青少年模式", Icons.Default.PersonRemove, "youth_mode")
+                ComplianceItem("第三方SDK清单", Icons.Default.Code, "sdk_list")
+            }
+
+            // ====== 关于 ======
+            SettingsSectionHeader("关于", Icons.Default.Info)
+            SettingsCard {
+                SettingsRow("版本信息", "构妙 LiveCapture v1.1.3", Icons.Default.Info)
+                SettingsDivider()
+                SettingsClickRow("ICP备案号", "待备案", Icons.Default.VerifiedUser) {
+                    // 跳转 ICP 备案页面
+                }
+            }
+
+            Spacer(Modifier.height(32.dp))
+        }
+    }
+}
+
+// ====== 设置浮层通用组件 ======
+
+@Composable
+private fun SettingsSectionHeader(title: String, icon: ImageVector) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 10.dp, top = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, tint = DesignSystem.Colors.primary, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(title, style = DesignSystem.Typography.title3,
+            color = DesignSystem.Colors.textPrimary(), fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .liquidGlass(cornerRadius = DesignSystem.CornerRadius.large, intensity = 0.08f)
+            .padding(4.dp),
+        content = content
+    )
+}
+
+@Composable
+private fun SettingsRow(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    trailing: @Composable () -> Unit = {}
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, tint = DesignSystem.Colors.primary, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
+            Text(subtitle, style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
+        }
+        trailing()
+    }
+}
+
+@Composable
+private fun SettingsSwitchRow(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, tint = DesignSystem.Colors.primary, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
+            Text(subtitle, style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = DesignSystem.Colors.primary,
+                uncheckedThumbColor = DesignSystem.Colors.gray4(),
+                uncheckedTrackColor = DesignSystem.Colors.gray3()
+            )
+        )
+    }
+}
+
+@Composable
+private fun SettingsClickRow(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(DesignSystem.CornerRadius.medium))
+            .clickable { onClick() }
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, tint = DesignSystem.Colors.primary, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
+            Text(subtitle, style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
+        }
+        Icon(Icons.Default.ChevronRight, null, tint = DesignSystem.Colors.textTertiary())
+    }
+}
+
+@Composable
+private fun SettingsDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 12.dp),
+        color = DesignSystem.Colors.gray3(),
+        thickness = 0.5.dp
+    )
+}
+
+@Composable
+private fun ComplianceItem(title: String, icon: ImageVector, page: String) {
+    val context = LocalContext.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(DesignSystem.CornerRadius.medium))
+            .clickable {
+                val intent = android.content.Intent(context, com.livecompose.livecapture.features.compliance.ComplianceHostActivity::class.java).apply {
+                    putExtra("compliance_page", page)
+                }
+                context.startActivity(intent)
+            }
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, tint = DesignSystem.Colors.primary, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(12.dp))
+        Text(title, style = DesignSystem.Typography.headline,
+            color = DesignSystem.Colors.textPrimary(), modifier = Modifier.weight(1f))
+        Icon(Icons.Default.ChevronRight, null, tint = DesignSystem.Colors.textTertiary())
     }
 }
 
@@ -633,20 +1199,20 @@ private fun GridOverlayView(mode: Int) {
     androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
         val color = DesignSystem.Colors.minimalLabel.copy(alpha = 0.15f)
         when (mode) {
-            1 -> { // 三分法
+            1 -> {
                 drawLine(color, start = androidx.compose.ui.geometry.Offset(size.width/3, 0f), end = androidx.compose.ui.geometry.Offset(size.width/3, size.height), strokeWidth = 1f)
                 drawLine(color, start = androidx.compose.ui.geometry.Offset(size.width*2/3, 0f), end = androidx.compose.ui.geometry.Offset(size.width*2/3, size.height), strokeWidth = 1f)
                 drawLine(color, start = androidx.compose.ui.geometry.Offset(0f, size.height/3), end = androidx.compose.ui.geometry.Offset(size.width, size.height/3), strokeWidth = 1f)
                 drawLine(color, start = androidx.compose.ui.geometry.Offset(0f, size.height*2/3), end = androidx.compose.ui.geometry.Offset(size.width, size.height*2/3), strokeWidth = 1f)
             }
-            2 -> { // 黄金分割
+            2 -> {
                 val phi = 0.618f
                 drawLine(color, start = androidx.compose.ui.geometry.Offset(size.width*phi, 0f), end = androidx.compose.ui.geometry.Offset(size.width*phi, size.height), strokeWidth = 1f)
                 drawLine(color, start = androidx.compose.ui.geometry.Offset(size.width*(1-phi), 0f), end = androidx.compose.ui.geometry.Offset(size.width*(1-phi), size.height), strokeWidth = 1f)
                 drawLine(color, start = androidx.compose.ui.geometry.Offset(0f, size.height*phi), end = androidx.compose.ui.geometry.Offset(size.width, size.height*phi), strokeWidth = 1f)
                 drawLine(color, start = androidx.compose.ui.geometry.Offset(0f, size.height*(1-phi)), end = androidx.compose.ui.geometry.Offset(size.width, size.height*(1-phi)), strokeWidth = 1f)
             }
-            3 -> { // 中心十字
+            3 -> {
                 drawLine(color, start = androidx.compose.ui.geometry.Offset(size.width/2, 0f), end = androidx.compose.ui.geometry.Offset(size.width/2, size.height), strokeWidth = 1f)
                 drawLine(color, start = androidx.compose.ui.geometry.Offset(0f, size.height/2), end = androidx.compose.ui.geometry.Offset(size.width, size.height/2), strokeWidth = 1f)
             }
@@ -717,7 +1283,6 @@ private fun ManualControlPanelOverlay(onDismiss: () -> Unit) {
     var params by remember { mutableStateOf(ManualControlParams()) }
     Box(Modifier.fillMaxSize().background(DesignSystem.Colors.minimalBackground.copy(alpha = 0.95f))) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            // 顶部关闭按钮
             Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("手动控制", color = DesignSystem.Colors.minimalLabel, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                 TextButton(onClick = onDismiss) { Text("完成", color = DesignSystem.Colors.primary) }

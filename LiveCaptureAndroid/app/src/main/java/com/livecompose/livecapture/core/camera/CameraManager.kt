@@ -222,7 +222,9 @@ class CameraManager(private val context: Context) {
         // 设置 ImageReader 用于帧分析
         val characteristics = cameraCharacteristics ?: return
         val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP) as? StreamConfigurationMap ?: return
-        val previewSize = map.getOutputSizes(SurfaceTexture::class.java).firstOrNull() ?: Size(1920, 1080)
+
+        // 选择最佳预览尺寸：匹配屏幕比例
+        val previewSize = selectOptimalPreviewSize(map)
 
         try {
             imageReader = ImageReader.newInstance(previewSize.width, previewSize.height, ImageFormat.YUV_420_888, 2)
@@ -273,6 +275,49 @@ class CameraManager(private val context: Context) {
         } catch (e: Exception) {
             AppLogger.e(TAG, "创建相机会话异常", e)
         }
+    }
+
+    /**
+     * 选择最佳预览尺寸
+     *
+     * 适配国内品牌手机屏幕比例:
+     * - 华为/荣耀: 19.5:9 ~ 20.5:9
+     * - 小米: 20:9 ~ 20.5:9
+     * - OPPO/vivo: 20:9
+     *
+     * 策略: 优先选择与屏幕比例最接近的预览尺寸，
+     * 避免拉伸或裁剪导致的构图偏差
+     */
+    private fun selectOptimalPreviewSize(map: StreamConfigurationMap): Size {
+        val availableSizes = map.getOutputSizes(SurfaceTexture::class.java)
+        if (availableSizes.isNullOrEmpty()) return Size(1920, 1080)
+
+        // 获取屏幕尺寸
+        val displayMetrics = context.resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+        val screenHeight = displayMetrics.heightPixels
+        val screenAspect = screenWidth.toFloat() / screenHeight.toFloat()
+
+        // 选择 16:9 或 4:3 中最接近屏幕比例的尺寸
+        // 优先选择宽度 >= 1080 的尺寸以保证清晰度
+        val sorted = availableSizes
+            .filter { it.width >= 1080 }
+            .sortedByDescending { it.width * it.height }
+
+        if (sorted.isEmpty()) {
+            val fallback = availableSizes.maxByOrNull { it.width * it.height } ?: Size(1920, 1080)
+            AppLogger.i(TAG, "预览尺寸(fallback): ${fallback.width}x${fallback.height}")
+            return fallback
+        }
+
+        // 按与屏幕比例差距排序，选择最接近的
+        val best = sorted.minByOrNull {
+            val aspect = it.width.toFloat() / it.height.toFloat()
+            kotlin.math.abs(aspect - screenAspect)
+        } ?: sorted.first()
+
+        AppLogger.i(TAG, "预览尺寸: ${best.width}x${best.height}, 屏幕比例: $screenAspect, 尺寸比例: ${best.width.toFloat()/best.height}")
+        return best
     }
 
     /**
