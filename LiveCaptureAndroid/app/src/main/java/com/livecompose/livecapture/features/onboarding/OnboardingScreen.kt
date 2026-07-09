@@ -1,13 +1,11 @@
 package com.livecompose.livecapture.features.onboarding
 
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ColorLens
@@ -21,11 +19,10 @@ import androidx.compose.ui.graphics.Brush as ComposeBrush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import android.content.Context
+import com.livecompose.livecapture.ui.design.DesignSystem
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
@@ -52,19 +49,19 @@ private val onboardingPages = listOf(
         icon = Icons.Default.AutoAwesome,
         title = "AI 智能构图",
         description = "让 AI 为你找到最佳构图角度",
-        gradientColors = listOf(Color(0xFF007AFF), Color(0xFF5856D6))
+        gradientColors = listOf(DesignSystem.Colors.primary, DesignSystem.Colors.secondary)
     ),
     OnboardingPageData(
         icon = Icons.Default.ColorLens,
         title = "LUT 色彩预设",
         description = "一键应用专业胶片色彩",
-        gradientColors = listOf(Color(0xFFFF6B35), Color(0xFFFF2D55))
+        gradientColors = listOf(DesignSystem.Colors.accent, DesignSystem.Colors.error)
     ),
     OnboardingPageData(
         icon = Icons.Default.Brush,
         title = "相框水印",
         description = "为作品添加个性边框和水印",
-        gradientColors = listOf(Color(0xFF34C759), Color(0xFF30D158))
+        gradientColors = listOf(DesignSystem.Colors.success, DesignSystem.Colors.info)
     )
 )
 
@@ -99,7 +96,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0A0A0A))
+            .background(DesignSystem.Colors.minimalBackground)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -109,7 +106,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                    .padding(horizontal = DesignSystem.Spacing.medium, vertical = DesignSystem.Spacing.small),
                 contentAlignment = Alignment.TopEnd
             ) {
                 TextButton(
@@ -122,8 +119,8 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                 ) {
                     Text(
                         "跳过",
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 16.sp
+                        color = DesignSystem.Colors.minimalSecondaryLabel,
+                        style = DesignSystem.Typography.callout
                     )
                 }
             }
@@ -140,23 +137,23 @@ fun OnboardingScreen(onComplete: () -> Unit) {
             }
 
             // 底部指示器
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(DesignSystem.Spacing.large))
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(bottom = 16.dp)
+                horizontalArrangement = Arrangement.spacedBy(DesignSystem.Spacing.xxSmall),
+                modifier = Modifier.padding(bottom = DesignSystem.Spacing.small)
             ) {
                 repeat(onboardingPages.size) { index ->
                     val isSelected = pagerState.currentPage == index
                     val width by animateDpAsState(
                         targetValue = if (isSelected) 24.dp else 8.dp,
-                        animationSpec = tween(300)
+                        animationSpec = DesignSystem.Animation.iosSpringDp(0.35, 0.72f)
                     )
                     Box(
                         modifier = Modifier
                             .clip(CircleShape)
                             .background(
-                                if (isSelected) Color(0xFF007AFF)
-                                else Color.White.copy(alpha = 0.3f)
+                                if (isSelected) DesignSystem.Colors.primary
+                                else DesignSystem.Colors.minimalBorder
                             )
                             .then(
                                 if (isSelected) Modifier.size(width = width, height = 8.dp)
@@ -167,7 +164,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
             }
 
             // 开始使用按钮
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(DesignSystem.Spacing.xLarge))
             Button(
                 onClick = {
                     scope.launch {
@@ -177,22 +174,21 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp)
-                    .height(56.dp),
-                shape = RoundedCornerShape(28.dp),
+                    .padding(horizontal = DesignSystem.Spacing.xLarge)
+                    .height(52.dp),
+                shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF007AFF)
+                    containerColor = DesignSystem.Colors.primary
                 )
             ) {
                 Text(
                     "开始使用",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    style = DesignSystem.Typography.title3,
                     color = Color.White
                 )
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxLarge))
         }
     }
 }
@@ -226,26 +222,24 @@ private fun OnboardingPageContent(pageData: OnboardingPageData) {
             )
         }
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxLarge))
 
         // 标题
         Text(
             text = pageData.title,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
+            style = DesignSystem.Typography.title1,
+            color = DesignSystem.Colors.minimalLabel,
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(DesignSystem.Spacing.small))
 
         // 描述
         Text(
             text = pageData.description,
-            fontSize = 16.sp,
-            color = Color.White.copy(alpha = 0.7f),
-            textAlign = TextAlign.Center,
-            lineHeight = 24.sp
+            style = DesignSystem.Typography.callout,
+            color = DesignSystem.Colors.minimalSecondaryLabel,
+            textAlign = TextAlign.Center
         )
     }
 }

@@ -1,13 +1,11 @@
 package com.livecompose.livecapture.navigation
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavType
@@ -37,7 +35,6 @@ import com.livecompose.livecapture.ui.design.DesignSystem
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    val isDark = isSystemInDarkTheme()
     var selectedTab by remember { mutableIntStateOf(0) }
     var showCapture by remember { mutableStateOf(false) }
 
@@ -47,7 +44,7 @@ fun AppNavigation() {
         Scaffold(
             bottomBar = {
                 NavigationBar(
-                    containerColor = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7),
+                    containerColor = DesignSystem.Colors.backgroundSecondary(),
                     contentColor = DesignSystem.Colors.primary
                 ) {
                     TabItem.entries.forEachIndexed { index, tab ->

@@ -1,31 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 主题色 -->
-    <color name="primary">#FFD4A574</color>
-    <color name="primary_variant">#FFB8864F</color>
-    <color name="secondary">#FFE8C994</color>
+    <!--
+        色板与 iOS DesignSystem.Colors 完全对齐
+        品牌色：低饱和清新蓝（魅族 Flyme 风格）#3B82F6
+    -->
 
-    <!-- 背景色 -->
-    <color name="background">#FF000000</color>
-    <color name="surface">#FF1A1A1A</color>
-    <color name="surface_variant">#FF2A2A2A</color>
+    <!-- 品牌色 -->
+    <color name="primary">#FF3B82F6</color>
+    <color name="primary_light">#FF93C0FC</color>
+    <color name="primary_variant">#FF6366F1</color>
+    <color name="secondary">#FF6366F1</color>
+    <color name="accent">#FFF5944D</color>
 
-    <!-- 文字色 -->
-    <color name="text_primary">#FFFFFFFF</color>
-    <color name="text_secondary">#B3FFFFFF</color>
-    <color name="text_tertiary">#66FFFFFF</color>
+    <!-- 语义色 - 低饱和版 -->
+    <color name="success">#FF48B870</color>
+    <color name="success_bg">#1F48B870</color>
+    <color name="warning">#FFF5B23D</color>
+    <color name="warning_bg">#1FF5B23D</color>
+    <color name="error">#FFF05959</color>
+    <color name="error_bg">#1FF05959</color>
+    <color name="info">#FF59B3F0</color>
 
-    <!-- 状态色 -->
-    <color name="success">#FF4CAF50</color>
-    <color name="warning">#FFFFC107</color>
-    <color name="error">#FFE53935</color>
-    <color name="info">#FF1E88E5</color>
+    <!-- 中性色阶（浅色模式 - 对标 iOS gray0~gray6） -->
+    <color name="gray0">#FFFAFAFA</color>
+    <color name="gray1">#FFF0F0F0</color>
+    <color name="gray2">#FFE6E6E6</color>
+    <color name="gray3">#FFD1D1D1</color>
+    <color name="gray4">#FF8C8C8C</color>
+    <color name="gray5">#FF595959</color>
+    <color name="gray6">#FF141414</color>
 
-    <!-- 分隔线 -->
-    <color name="divider">#33FFFFFF</color>
+    <!-- 文字色（语义化） -->
+    <color name="text_primary">#FF141414</color>
+    <color name="text_secondary">#FF595959</color>
+    <color name="text_tertiary">#FF8C8C8C</color>
 
-    <!-- 相机UI -->
-    <color name="camera_overlay">#33FFFFFF</color>
-    <color name="focus_ring">#FFD4A574</color>
+    <!-- 背景色（语义化） -->
+    <color name="background">#FFFAFAFA</color>
+    <color name="surface">#FFF0F0F0</color>
+    <color name="surface_variant">#FFE6E6E6</color>
+
+    <!-- 分隔线 / 描边 -->
+    <color name="divider">#FFD1D1D1</color>
+    <color name="stroke_thin">#1A000000</color>
+
+    <!-- 相机 UI（极简模式，黑色背景） -->
+    <color name="camera_overlay">#14FFFFFF</color>
+    <color name="focus_ring">#FF3B82F6</color>
     <color name="grid_line">#26FFFFFF</color>
+    <color name="minimal_background">#FF000000</color>
+    <color name="minimal_overlay">#14FFFFFF</color>
+    <color name="minimal_border">#33FFFFFF</color>
+    <color name="minimal_label">#EBFFFFFF</color>
 </resources>

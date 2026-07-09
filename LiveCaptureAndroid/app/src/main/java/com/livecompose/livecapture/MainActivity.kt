@@ -12,6 +12,7 @@ import com.livecompose.livecapture.core.phantom.PhantomController
 import com.livecompose.livecapture.features.privacy.PrivacyAgreementDialog
 import com.livecompose.livecapture.features.privacy.isPrivacyAgreed
 import com.livecompose.livecapture.navigation.AppNavigation
+import com.livecompose.livecapture.ui.design.LiveCaptureTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -90,16 +91,20 @@ private fun MainScreen(showGhostPermissions: Boolean = false) {
             // 加载中（短暂）
         }
         !privacyAgreed -> {
-            PrivacyAgreementDialog(
-                onAgree = { privacyAgreed = true },
-                onDisagree = {
-                    val activity = context as? ComponentActivity
-                    activity?.finishAffinity()
-                }
-            )
+            LiveCaptureTheme {
+                PrivacyAgreementDialog(
+                    onAgree = { privacyAgreed = true },
+                    onDisagree = {
+                        val activity = context as? ComponentActivity
+                        activity?.finishAffinity()
+                    }
+                )
+            }
         }
         else -> {
-            AppNavigation()
+            LiveCaptureTheme {
+                AppNavigation()
+            }
         }
     }
 }

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        深色模式色板 - 与 iOS DesignSystem.Colors dark 分支对齐
+        iOS 通过 userInterfaceStyle == .dark 切换，Android 通过 values-night 切换
+    -->
+
+    <!-- 中性色阶（深色模式 - 对标 iOS dark gray0~gray6） -->
+    <color name="gray0">#FF141414</color>
+    <color name="gray1">#FF1F1F1F</color>
+    <color name="gray2">#FF292929</color>
+    <color name="gray3">#FF383838</color>
+    <color name="gray4">#FF595959</color>
+    <color name="gray5">#FF8C8C8C</color>
+    <color name="gray6">#FFEBEBEB</color>
+
+    <!-- 文字色（语义化 - 深色模式反转） -->
+    <color name="text_primary">#FFEBEBEB</color>
+    <color name="text_secondary">#FF8C8C8C</color>
+    <color name="text_tertiary">#FF595959</color>
+
+    <!-- 背景色（语义化 - 深色模式） -->
+    <color name="background">#FF141414</color>
+    <color name="surface">#FF1F1F1F</color>
+    <color name="surface_variant">#FF292929</color>
+
+    <!-- 分隔线 / 描边（深色模式） -->
+    <color name="divider">#FF383838</color>
+    <color name="stroke_thin">#1AFFFFFF</color>
+</resources>
