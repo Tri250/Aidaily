@@ -18,8 +18,8 @@ android {
         applicationId = "com.livecompose.livecapture"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.1.6"
+        versionCode = 7
+        versionName = "1.1.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -57,8 +57,8 @@ android {
             versionNameSuffix = "-debug"
         }
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
