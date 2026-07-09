@@ -296,14 +296,14 @@ fun PhotoAdjustScreen(
                         subtitle = "RGB/红/绿/蓝四通道曲线",
                         onClick = { onNavigateToCurve(photoId) }
                     )
-                    Divider(color = DesignSystem.Colors.minimalOverlay)
+                    HorizontalDivider(color = DesignSystem.Colors.minimalOverlay)
                     EditorToolItem(
                         icon = Icons.Default.Palette,
                         title = "HSL 调整",
                         subtitle = "按色相/饱和度/明度分通道调整",
                         onClick = { onNavigateToHsl(photoId) }
                     )
-                    Divider(color = DesignSystem.Colors.minimalOverlay)
+                    HorizontalDivider(color = DesignSystem.Colors.minimalOverlay)
                     EditorToolItem(
                         icon = Icons.Default.Vignette,
                         title = "暗角效果",

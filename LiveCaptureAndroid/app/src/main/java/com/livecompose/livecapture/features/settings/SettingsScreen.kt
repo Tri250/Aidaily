@@ -141,7 +141,7 @@ fun SettingsScreen() {
                         scope.launch { SettingsDataStore.setAutoCaptureEnabled(context, it) }
                     })
                 }
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Timer, contentDescription = "拍照延迟", tint = DesignSystem.Colors.primary)
                     Spacer(modifier = Modifier.width(10.dp))
@@ -321,7 +321,7 @@ fun SettingsScreen() {
                     }
                     Switch(checked = naturalLightEnabled, onCheckedChange = { naturalLightEnabled = it })
                 }
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                 // Bloom/柔光选项
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.FlashOn, contentDescription = "Bloom效果", tint = DesignSystem.Colors.primary)
@@ -397,7 +397,7 @@ fun SettingsScreen() {
                     }
                     Switch(checked = multiFrameDenoiseEnabled, onCheckedChange = { multiFrameDenoiseEnabled = it })
                 }
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                 // HDR 融合开关
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.HdrStrong, contentDescription = "HDR融合", tint = DesignSystem.Colors.primary)
@@ -411,7 +411,7 @@ fun SettingsScreen() {
                         scope.launch { SettingsDataStore.setHdrFusionEnabled(context, it) }
                     })
                 }
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                 // 多重曝光选项
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Layers, contentDescription = "多重曝光", tint = DesignSystem.Colors.primary)
@@ -459,7 +459,7 @@ fun SettingsScreen() {
                     }
                     Switch(checked = hyperfocalDisplayEnabled, onCheckedChange = { hyperfocalDisplayEnabled = it })
                 }
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                 // 保存位置选择
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Folder, contentDescription = "保存位置", tint = DesignSystem.Colors.primary)
@@ -481,7 +481,7 @@ fun SettingsScreen() {
                         }
                     }
                 }
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                 // HEIC 导出选项
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Image, contentDescription = "HEIC格式", tint = DesignSystem.Colors.primary)
@@ -538,7 +538,7 @@ fun SettingsScreen() {
                     }
                     Switch(checked = aiColorMatchEnabled, onCheckedChange = { aiColorMatchEnabled = it })
                 }
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Colorize, contentDescription = "OKLCH混色器", tint = DesignSystem.Colors.primary)
                     Spacer(modifier = Modifier.width(10.dp))
@@ -836,7 +836,7 @@ fun SettingsScreen() {
                         Text("构妙 LiveCapture v${BuildConfig.VERSION_NAME}", style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
                     }
                 }
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                 // ICP备案号
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

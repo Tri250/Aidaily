@@ -132,7 +132,7 @@ fun GalleryScreen(
                                 )
                             }
                         )
-                        Divider()
+                        HorizontalDivider()
                         Text(
                             "按评分筛选",
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
