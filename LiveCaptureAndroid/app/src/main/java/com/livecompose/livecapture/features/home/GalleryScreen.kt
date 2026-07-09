@@ -9,9 +9,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -32,18 +34,39 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+import com.livecompose.livecapture.core.editing.BatchProcessor
+import com.livecompose.livecapture.core.intelligence.SceneType
 import com.livecompose.livecapture.core.storage.PhotoRecord
+import com.livecompose.livecapture.core.storage.PhotoSearchEngine
+import com.livecompose.livecapture.core.storage.PhotoStorageService
+import com.livecompose.livecapture.core.storage.SmartAlbumClassifier
 import com.livecompose.livecapture.ui.design.DesignSystem
 import com.livecompose.livecapture.ui.design.liquidGlass
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+
+/**
+ * 智能相册分类标签
+ */
+private data class AlbumTab(val label: String, val sceneTypes: List<SceneType>)
+
+private val albumTabs = listOf(
+    AlbumTab("全部", emptyList()),
+    AlbumTab("人物", listOf(SceneType.PORTRAIT, SceneType.SELFIE, SceneType.GROUP)),
+    AlbumTab("风景", listOf(SceneType.LANDSCAPE, SceneType.NATURE, SceneType.SUNSET, SceneType.OUTDOOR)),
+    AlbumTab("美食", listOf(SceneType.FOOD)),
+    AlbumTab("动物", listOf(SceneType.PET)),
+    AlbumTab("建筑", listOf(SceneType.ARCHITECTURE, SceneType.URBAN, SceneType.STREET)),
+    AlbumTab("其他", listOf(SceneType.UNKNOWN, SceneType.INDOOR, SceneType.EVENT, SceneType.WEDDING, SceneType.PRODUCT, SceneType.MACRO, SceneType.DOCUMENTARY, SceneType.FASHION, SceneType.BACKLIT, SceneType.NIGHT))
+)
 
 /**
  * 图库界面 - 液态玻璃风格 2026 高端摄影体验
@@ -55,6 +78,8 @@ fun GalleryScreen(
     onPhotoClick: ((String) -> Unit)? = null
 ) {
     val records by viewModel.records.collectAsState()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var selectedPhotoIndex by remember { mutableIntStateOf(-1) }
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf(setOf<String>()) }
@@ -64,6 +89,19 @@ fun GalleryScreen(
     var showFilterMenu by remember { mutableStateOf(false) }
     var emptyStateVisible by remember { mutableStateOf(false) }
 
+    // Feature A: PhotoSearchEngine
+    var searchQuery by remember { mutableStateOf("") }
+    var showSearchBar by remember { mutableStateOf(false) }
+    val photoStorage = remember { PhotoStorageService(context.applicationContext) }
+    val searchEngine = remember { PhotoSearchEngine(photoStorage) }
+
+    // Feature B: SmartAlbumClassifier
+    var selectedAlbumTabIndex by remember { mutableIntStateOf(0) }
+    val albumClassifier = remember { SmartAlbumClassifier(photoStorage) }
+
+    // Feature C: BatchProcessor
+    val batchProcessor = remember { BatchProcessor(photoStorage, context.applicationContext) }
+
     LaunchedEffect(records.isEmpty()) {
         if (records.isEmpty()) {
             emptyStateVisible = true
@@ -72,11 +110,25 @@ fun GalleryScreen(
         }
     }
 
-    val filteredRecords = remember(records, filterRating, filterFlaggedOnly) {
+    val baseFilteredRecords = remember(records, filterRating, filterFlaggedOnly) {
         records.filter { record ->
             val ratingMatch = filterRating == 0 || record.rating == filterRating
             val flagMatch = !filterFlaggedOnly || record.flag
             ratingMatch && flagMatch
+        }
+    }
+
+    val searchFilteredRecords = remember(baseFilteredRecords, searchQuery) {
+        if (searchQuery.isBlank()) baseFilteredRecords
+        else searchEngine.search(searchQuery, baseFilteredRecords)
+    }
+
+    val displayRecords = remember(searchFilteredRecords, selectedAlbumTabIndex) {
+        if (selectedAlbumTabIndex == 0) searchFilteredRecords
+        else {
+            val selectedSceneTypes = albumTabs[selectedAlbumTabIndex].sceneTypes
+            val grouped = albumClassifier.groupByScene(searchFilteredRecords)
+            selectedSceneTypes.flatMap { grouped[it] ?: emptyList() }
         }
     }
 
@@ -121,6 +173,21 @@ fun GalleryScreen(
                     Text("取消", color = DesignSystem.Colors.textPrimary())
                 }
             } else if (records.isNotEmpty()) {
+                IconButton(onClick = { showSearchBar = !showSearchBar }) {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = "搜索",
+                        tint = if (showSearchBar) DesignSystem.Colors.accentWarm
+                        else DesignSystem.Colors.textSecondary()
+                    )
+                }
+                IconButton(onClick = { isSelectionMode = true }) {
+                    Icon(
+                        Icons.Default.CheckBox,
+                        contentDescription = "多选",
+                        tint = DesignSystem.Colors.textSecondary()
+                    )
+                }
                 Box {
                     IconButton(onClick = { showFilterMenu = true }) {
                         Icon(
@@ -197,7 +264,84 @@ fun GalleryScreen(
             }
         }
 
-        if (records.isEmpty()) {
+        // Feature A: 搜索栏
+        AnimatedVisibility(
+            visible = showSearchBar,
+            enter = fadeIn(animationSpec = tween(200)) +
+                    slideInVertically(initialOffsetY = { -it / 2 }, animationSpec = tween(200))
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                placeholder = {
+                    Text("搜索照片...", color = DesignSystem.Colors.textTertiary())
+                },
+                leadingIcon = {
+                    Icon(Icons.Default.Search, null, tint = DesignSystem.Colors.textTertiary())
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Default.Close, "清除", tint = DesignSystem.Colors.textSecondary())
+                        }
+                    }
+                },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = DesignSystem.Colors.textPrimary(),
+                    unfocusedTextColor = DesignSystem.Colors.textPrimary(),
+                    focusedBorderColor = DesignSystem.Colors.primary,
+                    unfocusedBorderColor = DesignSystem.Colors.gray3(),
+                    cursorColor = DesignSystem.Colors.primary
+                ),
+                shape = RoundedCornerShape(12.dp)
+            )
+        }
+
+        // Feature B: 智能相册分类标签
+        if (records.isNotEmpty()) {
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp)
+            ) {
+                items(albumTabs.size) { index ->
+                    val tab = albumTabs[index]
+                    val isSelected = selectedAlbumTabIndex == index
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { selectedAlbumTabIndex = index },
+                        label = {
+                            Text(
+                                tab.label,
+                                fontSize = 13.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = DesignSystem.Colors.primary.copy(alpha = 0.15f),
+                            selectedLabelColor = DesignSystem.Colors.primary,
+                            containerColor = DesignSystem.Colors.gray2(),
+                            labelColor = DesignSystem.Colors.textSecondary()
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            borderColor = if (isSelected) DesignSystem.Colors.primary.copy(alpha = 0.3f)
+                            else DesignSystem.Colors.gray3(),
+                            selectedBorderColor = DesignSystem.Colors.primary.copy(alpha = 0.3f),
+                            enabled = true,
+                            selected = isSelected
+                        )
+                    )
+                }
+            }
+        }
+
+        if (displayRecords.isEmpty()) {
             // 空状态 - 液态玻璃卡片 + 入场动画
             AnimatedVisibility(
                 visible = emptyStateVisible,
@@ -248,7 +392,7 @@ fun GalleryScreen(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
                 contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
             ) {
-                itemsIndexed(filteredRecords, key = { _, it -> it.id }) { index, record ->
+                itemsIndexed(displayRecords, key = { _, it -> it.id }) { index, record ->
                     StaggeredEntryItem(index = index) {
                         PhotoCard(
                             record = record,
@@ -277,6 +421,59 @@ fun GalleryScreen(
                                 }
                             }
                         )
+                    }
+                }
+            }
+        }
+
+        // Feature C: 批量操作底栏
+        if (isSelectionMode && selectedIds.isNotEmpty()) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = DesignSystem.Colors.backgroundSecondary(),
+                shadowElevation = 8.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "已选 ${selectedIds.size} 张",
+                        style = DesignSystem.Typography.headline,
+                        color = DesignSystem.Colors.textPrimary()
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    TextButton(onClick = {
+                        viewModel.deleteRecords(selectedIds.toList())
+                        selectedIds = emptySet()
+                        isSelectionMode = false
+                    }) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = null,
+                            tint = DesignSystem.Colors.error,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("批量删除", color = DesignSystem.Colors.error)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                val selectedRecords = records.filter { it.id in selectedIds }
+                                batchProcessor.applyAutoEnhance(selectedRecords)
+                                selectedIds = emptySet()
+                                isSelectionMode = false
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = DesignSystem.Colors.primary
+                        )
+                    ) {
+                        Text("批量增强")
                     }
                 }
             }

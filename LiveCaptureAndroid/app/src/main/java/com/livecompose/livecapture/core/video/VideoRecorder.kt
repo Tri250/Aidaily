@@ -82,6 +82,8 @@ open class VideoRecorder(private val context: Context) {
     private var muxerStarted = false
 
     private var outputFilePath: String? = null
+    /** 最近一次录制完成的输出文件路径（公开只读） */
+    val lastRecordedPath: String? get() = outputFilePath
     private var startTimeUs: Long = -1L
     private val frameCounter = AtomicLong(0)
     private val bufferInfo = MediaCodec.BufferInfo()

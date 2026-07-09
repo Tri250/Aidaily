@@ -6,6 +6,7 @@ import android.graphics.RectF
 import android.net.Uri
 import android.provider.Settings
 import android.content.Intent
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
@@ -49,8 +50,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.livecompose.livecapture.core.camera.*
+import com.livecompose.livecapture.core.camera.RawCaptureManager
+import com.livecompose.livecapture.core.camera.DngCaptureManager
+import com.livecompose.livecapture.core.camera.HyperfocalCalculator
+import com.livecompose.livecapture.core.camera.HyperfocalResult
+import com.livecompose.livecapture.core.processing.QuickShotManager
+import com.livecompose.livecapture.core.processing.MultipleExposure
 import com.livecompose.livecapture.core.portrait.PortraitViewModel
 import com.livecompose.livecapture.core.portrait.BeautyPreset as PortraitBeautyPreset
+import com.livecompose.livecapture.core.video.VideoViewModel
+import com.livecompose.livecapture.core.video.VideoEditor
+import com.livecompose.livecapture.core.video.SlowMotionRecorder
+import com.livecompose.livecapture.core.video.VideoStabilizer
+import com.livecompose.livecapture.core.video.VideoMode
+import com.livecompose.livecapture.core.video.SlowMotionSpeed
+import com.livecompose.livecapture.core.video.VideoRecordingState
 import com.livecompose.livecapture.features.capture.components.*
 import com.livecompose.livecapture.features.home.HomeViewModel
 import com.livecompose.livecapture.core.storage.PhotoRecord
@@ -150,6 +164,58 @@ fun CaptureScreen(
     var showZebra by remember { mutableStateOf(false) }
     var showLevel by remember { mutableStateOf(false) }
 
+    // === 专业功能状态 ===
+    var rawCaptureEnabled by remember { mutableStateOf(false) }
+    var dngCaptureEnabled by remember { mutableStateOf(false) }
+    var hyperfocalEnabled by remember { mutableStateOf(false) }
+    var hyperfocalDistanceText by remember { mutableStateOf("--") }
+    var burstModeEnabled by remember { mutableStateOf(false) }
+    var burstCount by remember { mutableIntStateOf(0) }
+    var isBursting by remember { mutableStateOf(false) }
+    var multiExposureEnabled by remember { mutableStateOf(false) }
+    var multiExposureFrameCount by remember { mutableIntStateOf(0) }
+    var multiExposureBitmaps by remember { mutableStateOf<List<android.graphics.Bitmap>>(emptyList()) }
+    val quickShotManager = remember { QuickShotManager() }
+    val multipleExposure = remember { MultipleExposure() }
+    val dngCaptureManager = remember { DngCaptureManager(context) }
+
+    // === 视频录制状态 ===
+    val videoViewModel = remember { VideoViewModel(context) }
+    val videoRecordingState by videoViewModel.recordingState.collectAsState()
+    val videoStabilizationEnabled by videoViewModel.stabilizationEnabled.collectAsState()
+    var slowMotionEnabled by remember { mutableStateOf(false) }
+    var showVideoEditor by remember { mutableStateOf(false) }
+    var lastRecordedVideoPath by remember { mutableStateOf<String?>(null) }
+    var videoEditorStartTime by remember { mutableLongStateOf(0L) }
+    var videoEditorEndTime by remember { mutableLongStateOf(0L) }
+
+    // 视频模式切换时同步 VideoViewModel
+    LaunchedEffect(selectedMode) {
+        if (selectedMode == CaptureMode.VIDEO) {
+            if (slowMotionEnabled) {
+                videoViewModel.switchMode(VideoMode.SLOW_MOTION)
+            } else {
+                videoViewModel.switchMode(VideoMode.NORMAL)
+            }
+        }
+    }
+
+    // 慢动作切换时同步模式
+    LaunchedEffect(slowMotionEnabled) {
+        if (selectedMode == CaptureMode.VIDEO) {
+            if (slowMotionEnabled) {
+                videoViewModel.switchMode(VideoMode.SLOW_MOTION)
+            } else {
+                videoViewModel.switchMode(VideoMode.NORMAL)
+            }
+        }
+    }
+
+    // 防抖开关同步
+    LaunchedEffect(videoStabilizationEnabled) {
+        // VideoViewModel manages its own stabilization state
+    }
+
     // === 工具状态 ===
     var isGridEnabled by remember { mutableStateOf(false) }
     var currentRatio by remember { mutableStateOf("3:4") }
@@ -225,7 +291,32 @@ fun CaptureScreen(
 
     LaunchedEffect(cameraErrorState) { cameraError = cameraErrorState }
 
-    DisposableEffect(Unit) { onDispose { viewModel.onDisappear() } }
+    // 超焦距计算
+    LaunchedEffect(hyperfocalEnabled, zoomState.currentFactor) {
+        if (hyperfocalEnabled) {
+            try {
+                val focalLength = HyperfocalCalculator.estimateFocalLength(zoomState.currentFactor)
+                val aperture = 1.8f // 默认光圈值
+                val result = HyperfocalCalculator.calculate(
+                    focalLengthMm = focalLength,
+                    aperture = aperture,
+                    sensorKey = "phone_main"
+                )
+                hyperfocalDistanceText = result.displayText
+            } catch (e: Exception) {
+                hyperfocalDistanceText = "--"
+            }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.onDisappear()
+            try {
+                videoViewModel.stabilizer.stopStabilization()
+            } catch (_: Exception) {}
+        }
+    }
 
     // 相机翻转动画
     fun triggerCameraFlip() {
@@ -401,6 +492,186 @@ fun CaptureScreen(
                         isLocked = aeLocked || afLocked
                     )
                 }
+
+                // 超焦距距离指示器
+                if (hyperfocalEnabled && cameraError == null) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(16.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(DesignSystem.Colors.minimalDarkOverlayLight)
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.CenterFocusStrong,
+                                null,
+                                tint = DesignSystem.Colors.primary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "超焦距 $hyperfocalDistanceText",
+                                style = DesignSystem.Typography.caption2,
+                                color = DesignSystem.Colors.minimalLabel
+                            )
+                        }
+                    }
+                }
+
+                // 连拍计数指示器
+                if (isBursting) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 16.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(DesignSystem.Colors.recordingRed.copy(alpha = 0.8f))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.BurstMode,
+                                null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "连拍 $burstCount",
+                                style = DesignSystem.Typography.caption2,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+
+                // 多重曝光帧计数指示器
+                if (multiExposureEnabled && multiExposureFrameCount > 0 && cameraError == null) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = if (isBursting) 52.dp else 16.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(DesignSystem.Colors.minimalDarkOverlayLight)
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Layers,
+                                null,
+                                tint = DesignSystem.Colors.primary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "多重曝光 ${multiExposureFrameCount}帧",
+                                style = DesignSystem.Typography.caption2,
+                                color = DesignSystem.Colors.minimalLabel
+                            )
+                        }
+                    }
+                }
+
+                // 视频录制时长指示器
+                if (selectedMode == CaptureMode.VIDEO && videoRecordingState.isRecording && cameraError == null) {
+                    val recordingPulseAlpha by rememberInfiniteTransition(label = "recPulse").animateFloat(
+                        initialValue = 1f,
+                        targetValue = 0.3f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(800, easing = FastOutSlowInEasing),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "recPulseAlpha"
+                    )
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(top = 16.dp, start = 16.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(DesignSystem.Colors.recordingRed.copy(alpha = 0.8f))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = recordingPulseAlpha))
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = videoRecordingState.formattedDuration,
+                                style = DesignSystem.Typography.caption1,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                // 慢动作指示器
+                if (selectedMode == CaptureMode.VIDEO && slowMotionEnabled && cameraError == null) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(
+                                top = if (videoRecordingState.isRecording) 56.dp else 16.dp,
+                                start = 16.dp
+                            )
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(DesignSystem.Colors.accentWarm.copy(alpha = 0.7f))
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.SlowMotionVideo,
+                                null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "慢动作",
+                                style = DesignSystem.Typography.caption2,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+
+                // 防抖指示器
+                if (selectedMode == CaptureMode.VIDEO && videoStabilizationEnabled && cameraError == null) {
+                    val stabTopPadding = if (videoRecordingState.isRecording) {
+                        if (slowMotionEnabled) 96.dp else 56.dp
+                    } else {
+                        if (slowMotionEnabled) 56.dp else 16.dp
+                    }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(top = stabTopPadding, start = 16.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(DesignSystem.Colors.info.copy(alpha = 0.7f))
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Vibration,
+                                null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "防抖",
+                                style = DesignSystem.Typography.caption2,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
             }
 
             // === 底部控制区 ===
@@ -434,7 +705,75 @@ fun CaptureScreen(
                 isAligned = isAligned,
                 isPipelineEnabled = isPipelineEnabled,
                 onCapture = {
-                    viewModel.capturePhoto()
+                    scope.launch {
+                        try {
+                            if (selectedMode == CaptureMode.VIDEO) {
+                                // 视频模式：切换录制状态
+                                if (videoRecordingState.isRecording) {
+                                    videoViewModel.stopRecording()
+                                    val duration = videoViewModel.recordingState.value.duration
+                                    Toast.makeText(context, "视频录制完成 (${"%.1f".format(duration)}秒)", Toast.LENGTH_SHORT).show()
+                                    // 显示视频编辑选项
+                                    lastRecordedVideoPath = videoViewModel.videoRecorder.lastRecordedPath
+                                    if (lastRecordedVideoPath != null) {
+                                        try {
+                                            val dur = videoViewModel.editor.getVideoDuration(lastRecordedVideoPath!!)
+                                            videoEditorStartTime = 0L
+                                            videoEditorEndTime = dur
+                                        } catch (e: Exception) {
+                                            videoEditorEndTime = 0L
+                                        }
+                                        showVideoEditor = true
+                                    }
+                                } else {
+                                    videoViewModel.startRecording()
+                                    Toast.makeText(context, "开始录制视频", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                // 拍照模式
+                                // RAW 格式处理
+                                if (rawCaptureEnabled) {
+                                    val rawSupported = RawCaptureManager.isRawSupported(context)
+                                    if (rawSupported) {
+                                        Toast.makeText(context, "RAW 拍摄已启用", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "设备不支持 RAW 拍摄", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                                // DNG 格式处理
+                                if (dngCaptureEnabled) {
+                                    val dngSupported = dngCaptureManager.isRawSupported()
+                                    if (dngSupported) {
+                                        dngCaptureManager.onDngSaved = { path ->
+                                            Toast.makeText(context, "DNG 已保存", Toast.LENGTH_SHORT).show()
+                                        }
+                                        dngCaptureManager.onError = { msg ->
+                                            Toast.makeText(context, "DNG 错误: $msg", Toast.LENGTH_SHORT).show()
+                                        }
+                                        dngCaptureManager.captureRaw()
+                                    } else {
+                                        Toast.makeText(context, "设备不支持 DNG 拍摄", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                                // 超焦距对焦
+                                if (hyperfocalEnabled) {
+                                    val sensorRect = camera.getSensorRect()
+                                    if (sensorRect != null) {
+                                        camera.tapToFocus(0.5f, 0.5f, sensorRect)
+                                    }
+                                }
+                                // 多重曝光
+                                if (multiExposureEnabled) {
+                                    multiExposureFrameCount++
+                                    Toast.makeText(context, "多重曝光 ${multiExposureFrameCount}帧", Toast.LENGTH_SHORT).show()
+                                }
+                                // 基础拍照
+                                viewModel.capturePhoto()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "拍摄失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                     interactionCounter++
                 },
                 onOpenGallery = {
@@ -450,8 +789,24 @@ fun CaptureScreen(
                     onNavigateToPhotoDetail?.invoke(photoId)
                     interactionCounter++
                 },
-                onLongPressStart = { /* TODO: 开始视频录制 */ },
-                onLongPressEnd = { /* TODO: 结束视频录制 */ }
+                onLongPressStart = {
+                    if (burstModeEnabled) {
+                        isBursting = true
+                        burstCount = 0
+                        quickShotManager.startBurst()
+                        Toast.makeText(context, "连拍开始", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onLongPressEnd = {
+                    if (burstModeEnabled && isBursting) {
+                        isBursting = false
+                        val frames = quickShotManager.stopBurst()
+                        burstCount = frames.size
+                        Toast.makeText(context, "连拍完成，共 ${frames.size} 张", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                isRecording = videoRecordingState.isRecording,
+                isVideoMode = selectedMode == CaptureMode.VIDEO
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -534,7 +889,26 @@ fun CaptureScreen(
         // 设置底部浮层
         if (showSettingsSheet) {
             SettingsBottomSheet2026(
-                onDismiss = { showSettingsSheet = false }
+                onDismiss = { showSettingsSheet = false },
+                rawCaptureEnabled = rawCaptureEnabled,
+                onRawCaptureChange = { rawCaptureEnabled = it },
+                dngCaptureEnabled = dngCaptureEnabled,
+                onDngCaptureChange = { dngCaptureEnabled = it },
+                hyperfocalEnabled = hyperfocalEnabled,
+                onHyperfocalChange = { hyperfocalEnabled = it },
+                burstModeEnabled = burstModeEnabled,
+                onBurstModeChange = { burstModeEnabled = it },
+                multiExposureEnabled = multiExposureEnabled,
+                onMultiExposureChange = { multiExposureEnabled = it },
+                multiExposureFrameCount = multiExposureFrameCount,
+                onMultiExposureReset = {
+                    multiExposureFrameCount = 0
+                    multiExposureBitmaps = emptyList()
+                },
+                slowMotionEnabled = slowMotionEnabled,
+                onSlowMotionChange = { slowMotionEnabled = it },
+                videoStabilizationEnabled = videoStabilizationEnabled,
+                onVideoStabilizationChange = { videoViewModel.toggleStabilization() }
             )
         }
 
@@ -575,6 +949,23 @@ fun CaptureScreen(
                 viewModel = portraitViewModel,
                 onDismiss = { showPortraitMode = false },
                 onProcessImage = { bitmap -> portraitViewModel.processImage(bitmap) }
+            )
+        }
+
+        // 视频编辑浮层
+        if (showVideoEditor && lastRecordedVideoPath != null) {
+            VideoEditorOverlay(
+                videoPath = lastRecordedVideoPath!!,
+                videoEditor = videoViewModel.editor,
+                startTimeUs = videoEditorStartTime,
+                endTimeUs = videoEditorEndTime,
+                onDismiss = { showVideoEditor = false },
+                onTrimComplete = { outputPath ->
+                    showVideoEditor = false
+                    if (outputPath != null) {
+                        Toast.makeText(context, "视频已保存", Toast.LENGTH_SHORT).show()
+                    }
+                }
             )
         }
     }
@@ -888,7 +1279,9 @@ private fun ShutterControlRow(
     onTogglePipeline: () -> Unit,
     onPhotoClick: (String) -> Unit,
     onLongPressStart: () -> Unit = {},
-    onLongPressEnd: () -> Unit = {}
+    onLongPressEnd: () -> Unit = {},
+    isRecording: Boolean = false,
+    isVideoMode: Boolean = false
 ) {
     Row(
         modifier = Modifier
@@ -909,7 +1302,9 @@ private fun ShutterControlRow(
             isAligned = isAligned,
             onCapture = onCapture,
             onLongPressStart = onLongPressStart,
-            onLongPressEnd = onLongPressEnd
+            onLongPressEnd = onLongPressEnd,
+            isRecording = isRecording,
+            isVideoMode = isVideoMode
         )
 
         // 右侧：AI构图按钮
@@ -998,15 +1393,17 @@ private fun MainShutterButton2026(
     isAligned: Boolean,
     onCapture: () -> Unit,
     onLongPressStart: () -> Unit = {},
-    onLongPressEnd: () -> Unit = {}
+    onLongPressEnd: () -> Unit = {},
+    isRecording: Boolean = false,
+    isVideoMode: Boolean = false
 ) {
-    var isRecording by remember { mutableStateOf(false) }
     var isPressedState by remember { mutableStateOf(false) }
+    var isLongPressing by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
     val scale by animateFloatAsState(
         targetValue = when {
-            isRecording -> 0.88f
+            isRecording || isLongPressing -> 0.88f
             isPressedState -> 0.92f
             else -> 1f
         },
@@ -1016,14 +1413,14 @@ private fun MainShutterButton2026(
 
     // 内圈颜色：录制时变红，否则纯白
     val innerColor by animateColorAsState(
-        targetValue = if (isRecording) DesignSystem.Colors.recordingRed else DesignSystem.Colors.shutterInner,
+        targetValue = if (isRecording || isLongPressing) DesignSystem.Colors.recordingRed else DesignSystem.Colors.shutterInner,
         animationSpec = tween(300),
         label = "shutterColor"
     )
 
     // 内圈缩放：录制时缩小至65%（变形为方块效果）
     val innerScale by animateFloatAsState(
-        targetValue = if (isRecording) 0.65f else 1f,
+        targetValue = if (isRecording || isLongPressing) 0.65f else 1f,
         animationSpec = DesignSystem.Animation.shutterLongPress,
         label = "shutterInnerScale"
     )
@@ -1056,29 +1453,38 @@ private fun MainShutterButton2026(
         modifier = Modifier
             .size(DesignSystem.Dimensions.shutterButtonOuter)
             .scale(scale)
-            .pointerInput(Unit) {
+            .pointerInput(isVideoMode) {
                 detectTapGestures(
                     onPress = {
                         isPressedState = true
-                        val longPressJob = coroutineScope.launch {
-                            delay(500L)
-                            if (!isRecording) {
-                                isRecording = true
-                                HapticManager.success()
-                                onLongPressStart()
+                        if (isVideoMode) {
+                            // 视频模式：轻触即开始/停止录制
+                            val released = tryAwaitRelease()
+                            isPressedState = false
+                            if (released) {
+                                HapticManager.light()
+                                onCapture()
                             }
-                        }
-                        val released = tryAwaitRelease()
-                        longPressJob.cancel()
-                        isPressedState = false
-                        if (released && !isRecording) {
-                            // 轻触拍照
-                            HapticManager.light()
-                            onCapture()
-                        } else if (isRecording) {
-                            // 长按结束，停止录制
-                            isRecording = false
-                            onLongPressEnd()
+                        } else {
+                            // 拍照模式：长按触发连拍/录制
+                            val longPressJob = coroutineScope.launch {
+                                delay(500L)
+                                if (!isLongPressing) {
+                                    isLongPressing = true
+                                    HapticManager.success()
+                                    onLongPressStart()
+                                }
+                            }
+                            val released = tryAwaitRelease()
+                            longPressJob.cancel()
+                            isPressedState = false
+                            if (released && !isLongPressing) {
+                                HapticManager.light()
+                                onCapture()
+                            } else if (isLongPressing) {
+                                isLongPressing = false
+                                onLongPressEnd()
+                            }
                         }
                     }
                 )
@@ -1106,14 +1512,14 @@ private fun MainShutterButton2026(
                 .background(Color.Transparent)
                 .border(
                     width = DesignSystem.Dimensions.shutterButtonRingWidth,
-                    color = if (isRecording) DesignSystem.Colors.recordingRed.copy(alpha = 0.6f)
+                    color = if (isRecording || isLongPressing) DesignSystem.Colors.recordingRed.copy(alpha = 0.6f)
                         else DesignSystem.Colors.shutterOuterRing,
                     shape = CircleShape
                 )
         )
 
         // 内圈：录制时变形为圆角方块
-        if (isRecording) {
+        if (isRecording || isLongPressing) {
             Box(
                 modifier = Modifier
                     .size(DesignSystem.Dimensions.shutterButtonInner * innerScale)
@@ -1564,14 +1970,31 @@ private fun GalleryFullSheet2026(
 }
 
 @Composable
-private fun SettingsBottomSheet2026(onDismiss: () -> Unit) {
+private fun SettingsBottomSheet2026(
+    onDismiss: () -> Unit,
+    rawCaptureEnabled: Boolean,
+    onRawCaptureChange: (Boolean) -> Unit,
+    dngCaptureEnabled: Boolean,
+    onDngCaptureChange: (Boolean) -> Unit,
+    hyperfocalEnabled: Boolean,
+    onHyperfocalChange: (Boolean) -> Unit,
+    burstModeEnabled: Boolean,
+    onBurstModeChange: (Boolean) -> Unit,
+    multiExposureEnabled: Boolean,
+    onMultiExposureChange: (Boolean) -> Unit,
+    multiExposureFrameCount: Int,
+    onMultiExposureReset: () -> Unit,
+    slowMotionEnabled: Boolean = false,
+    onSlowMotionChange: (Boolean) -> Unit = {},
+    videoStabilizationEnabled: Boolean = true,
+    onVideoStabilizationChange: (Boolean) -> Unit = {}
+) {
     val context = LocalContext.current
 
     var autoCaptureEnabled by remember { mutableStateOf(true) }
     var captureDelay by remember { mutableStateOf(1.0) }
     var gridMode by remember { mutableIntStateOf(0) }
     var phantomModeEnabled by remember { mutableStateOf(false) }
-    var rawCaptureEnabled by remember { mutableStateOf(false) }
     var selectedThemeIndex by remember { mutableIntStateOf(0) }
 
     Box(
@@ -1681,12 +2104,41 @@ private fun SettingsBottomSheet2026(onDismiss: () -> Unit) {
 
             SettingsSectionHeader("RAW 处理", Icons.Default.Camera)
             SettingsCard {
-                SettingsSwitchRow("RAW 拍摄", "全链路 RAW 处理", Icons.Default.RawOn, rawCaptureEnabled) { rawCaptureEnabled = it }
+                SettingsSwitchRow("RAW 格式", "全链路 RAW 传感器数据保存", Icons.Default.RawOn, rawCaptureEnabled) { onRawCaptureChange(it) }
+                SettingsDivider()
+                SettingsSwitchRow("DNG 格式", "标准 DNG 数字负片格式保存", Icons.Default.Image, dngCaptureEnabled) { onDngCaptureChange(it) }
+            }
+
+            SettingsSectionHeader("专业功能", Icons.Default.Tune)
+            SettingsCard {
+                SettingsSwitchRow("超焦距对焦", "自动对焦至超焦距距离，前后景均清晰", Icons.Default.CenterFocusStrong, hyperfocalEnabled) { onHyperfocalChange(it) }
+                SettingsDivider()
+                SettingsSwitchRow("连拍模式", "长按快门触发高速连拍", Icons.Default.BurstMode, burstModeEnabled) { onBurstModeChange(it) }
+                SettingsDivider()
+                SettingsSwitchRow("多重曝光", "每次拍摄叠加到前一张画面", Icons.Default.Layers, multiExposureEnabled) { onMultiExposureChange(it) }
+                if (multiExposureEnabled) {
+                    SettingsDivider()
+                    SettingsRow("曝光层数", "当前已叠加 ${multiExposureFrameCount} 帧", Icons.Default.Layers) {
+                        TextButton(onClick = {
+                            onMultiExposureReset()
+                            Toast.makeText(context, "多重曝光已重置", Toast.LENGTH_SHORT).show()
+                        }) {
+                            Text("重置", color = DesignSystem.Colors.error, style = DesignSystem.Typography.caption1)
+                        }
+                    }
+                }
             }
 
             SettingsSectionHeader("幻影模式", Icons.Default.Visibility)
             SettingsCard {
                 SettingsSwitchRow("幻影模式", "监听系统相机输出，自动应用 LUT 色彩处理", Icons.Default.VisibilityOff, phantomModeEnabled) { phantomModeEnabled = it }
+            }
+
+            SettingsSectionHeader("视频录制", Icons.Default.Videocam)
+            SettingsCard {
+                SettingsSwitchRow("慢动作", "拍摄高帧率视频，以慢动作播放", Icons.Default.SlowMotionVideo, slowMotionEnabled) { onSlowMotionChange(it) }
+                SettingsDivider()
+                SettingsSwitchRow("视频防抖", "录制时启用电子防抖，减少画面抖动", Icons.Default.Vibration, videoStabilizationEnabled) { onVideoStabilizationChange(it) }
             }
 
             SettingsSectionHeader("隐私与合规", Icons.Default.Security)
@@ -1832,6 +2284,258 @@ private fun PortraitModeOverlay(
     onProcessImage: (android.graphics.Bitmap) -> Unit
 ) {
     // TODO: 实现人像模式浮层
+}
+
+// ====== 视频编辑浮层 ======
+
+@Composable
+private fun VideoEditorOverlay(
+    videoPath: String,
+    videoEditor: VideoEditor,
+    startTimeUs: Long,
+    endTimeUs: Long,
+    onDismiss: () -> Unit,
+    onTrimComplete: (String?) -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var isTrimming by remember { mutableStateOf(false) }
+    var trimStart by remember { mutableFloatStateOf(0f) }
+    var trimEnd by remember { mutableFloatStateOf(1f) }
+    val totalDuration = endTimeUs - startTimeUs
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DesignSystem.Colors.minimalBackground)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .padding(16.dp)
+        ) {
+            // 标题栏
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text("取消", color = DesignSystem.Colors.minimalLabelSecondary)
+                }
+                Text(
+                    "编辑视频",
+                    style = DesignSystem.Typography.title3,
+                    color = DesignSystem.Colors.minimalLabel,
+                    fontWeight = FontWeight.SemiBold
+                )
+                TextButton(
+                    onClick = {
+                        if (!isTrimming) {
+                            isTrimming = true
+                            val startTime = startTimeUs + (totalDuration * trimStart).toLong()
+                            val endTime = startTimeUs + (totalDuration * trimEnd).toLong()
+                            scope.launch {
+                                try {
+                                    videoEditor.trimVideo(videoPath, startTime, endTime) { outputPath ->
+                                        isTrimming = false
+                                        if (outputPath != null) {
+                                            Toast.makeText(context, "视频裁剪完成", Toast.LENGTH_SHORT).show()
+                                            onTrimComplete(outputPath)
+                                        } else {
+                                            Toast.makeText(context, "视频裁剪失败", Toast.LENGTH_SHORT).show()
+                                            onTrimComplete(null)
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    isTrimming = false
+                                    Toast.makeText(context, "视频编辑失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    onTrimComplete(null)
+                                }
+                            }
+                        }
+                    },
+                    enabled = !isTrimming
+                ) {
+                    Text(
+                        if (isTrimming) "处理中..." else "裁剪",
+                        color = if (isTrimming) DesignSystem.Colors.minimalLabelTertiary else DesignSystem.Colors.primary
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // 视频预览占位（实际应使用 VideoView）
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clip(RoundedCornerShape(DesignSystem.CornerRadius.large))
+                    .background(DesignSystem.Colors.minimalSurface),
+                contentAlignment = Alignment.Center
+            ) {
+                // 尝试加载缩略图
+                var thumbnail by remember(videoPath) { mutableStateOf<android.graphics.Bitmap?>(null) }
+                LaunchedEffect(videoPath) {
+                    thumbnail = try {
+                        videoEditor.generateThumbnail(videoPath)
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                if (thumbnail != null) {
+                    Image(
+                        bitmap = thumbnail!!.asImageBitmap(),
+                        contentDescription = "视频预览",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.Videocam,
+                            null,
+                            tint = DesignSystem.Colors.minimalLabelTertiary,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "视频预览",
+                            style = DesignSystem.Typography.caption1,
+                            color = DesignSystem.Colors.minimalLabelTertiary
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // 裁剪控制区
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "裁剪范围",
+                    style = DesignSystem.Typography.headline,
+                    color = DesignSystem.Colors.minimalLabel,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(Modifier.height(12.dp))
+
+                // 开始时间滑块
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "起始",
+                        style = DesignSystem.Typography.caption1,
+                        color = DesignSystem.Colors.minimalLabelSecondary,
+                        modifier = Modifier.width(40.dp)
+                    )
+                    Slider(
+                        value = trimStart,
+                        onValueChange = { newVal ->
+                            if (newVal < trimEnd) trimStart = newVal
+                        },
+                        valueRange = 0f..1f,
+                        modifier = Modifier.weight(1f),
+                        colors = SliderDefaults.colors(
+                            thumbColor = DesignSystem.Colors.primary,
+                            activeTrackColor = DesignSystem.Colors.primary,
+                            inactiveTrackColor = DesignSystem.Colors.minimalOverlayStrong
+                        )
+                    )
+                    Text(
+                        text = formatVideoTime((totalDuration * trimStart / 1_000_000).toLong()),
+                        style = DesignSystem.Typography.caption2,
+                        color = DesignSystem.Colors.minimalLabelSecondary,
+                        modifier = Modifier.width(56.dp),
+                        textAlign = TextAlign.End
+                    )
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                // 结束时间滑块
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "结束",
+                        style = DesignSystem.Typography.caption1,
+                        color = DesignSystem.Colors.minimalLabelSecondary,
+                        modifier = Modifier.width(40.dp)
+                    )
+                    Slider(
+                        value = trimEnd,
+                        onValueChange = { newVal ->
+                            if (newVal > trimStart) trimEnd = newVal
+                        },
+                        valueRange = 0f..1f,
+                        modifier = Modifier.weight(1f),
+                        colors = SliderDefaults.colors(
+                            thumbColor = DesignSystem.Colors.primary,
+                            activeTrackColor = DesignSystem.Colors.primary,
+                            inactiveTrackColor = DesignSystem.Colors.minimalOverlayStrong
+                        )
+                    )
+                    Text(
+                        text = formatVideoTime((totalDuration * trimEnd / 1_000_000).toLong()),
+                        style = DesignSystem.Typography.caption2,
+                        color = DesignSystem.Colors.minimalLabelSecondary,
+                        modifier = Modifier.width(56.dp),
+                        textAlign = TextAlign.End
+                    )
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                // 时长信息
+                Text(
+                    text = "裁剪后时长: ${formatVideoTime((totalDuration * (trimEnd - trimStart) / 1_000_000).toLong())}",
+                    style = DesignSystem.Typography.caption1,
+                    color = DesignSystem.Colors.primary,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        // 处理中遮罩
+        if (isTrimming) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.6f))
+                    .clickable(enabled = false, onClick = {}),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(
+                        color = DesignSystem.Colors.primary,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        "正在处理视频...",
+                        style = DesignSystem.Typography.headline,
+                        color = DesignSystem.Colors.minimalLabel
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 格式化视频时长
+ */
+private fun formatVideoTime(seconds: Long): String {
+    val mins = seconds / 60
+    val secs = seconds % 60
+    return String.format("%02d:%02d", mins, secs)
 }
 
 // ====== 预设参数映射 ======

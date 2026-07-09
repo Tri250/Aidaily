@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.RectF
 import androidx.lifecycle.ViewModel
 import com.livecompose.livecapture.core.logger.AppLogger
+import com.livecompose.livecapture.core.processing.HealingBrushProcessor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -50,7 +51,8 @@ class AIEditViewModel(context: Context) : ViewModel() {
         REMOVE,
         SKY_REPLACE,
         EXPAND,
-        STYLE_TRANSFER;
+        STYLE_TRANSFER,
+        HEALING_BRUSH;
 
         /** 显示名称 */
         val displayName: String
@@ -59,6 +61,7 @@ class AIEditViewModel(context: Context) : ViewModel() {
                 SKY_REPLACE -> "天空替换"
                 EXPAND -> "图像扩展"
                 STYLE_TRANSFER -> "风格迁移"
+                HEALING_BRUSH -> "修复画笔"
             }
     }
 
@@ -68,6 +71,7 @@ class AIEditViewModel(context: Context) : ViewModel() {
     private val skyReplacer = SkyReplacer()
     private val imageExpander = ImageExpander()
     private val styleTransfer = StyleTransfer()
+    private val healingBrushProcessor = HealingBrushProcessor()
 
     // MARK: - 图像状态
 
@@ -118,6 +122,20 @@ class AIEditViewModel(context: Context) : ViewModel() {
     private val _expandDirection = MutableStateFlow(ImageExpander.ExpansionDirection.ALL)
     /** 扩展方向 */
     val expandDirection: StateFlow<ImageExpander.ExpansionDirection> = _expandDirection.asStateFlow()
+
+    // MARK: - 修复画笔参数
+
+    private val _healingBrushX = MutableStateFlow(150f)
+    /** 修复画笔 X 坐标 */
+    val healingBrushX: StateFlow<Float> = _healingBrushX.asStateFlow()
+
+    private val _healingBrushY = MutableStateFlow(150f)
+    /** 修复画笔 Y 坐标 */
+    val healingBrushY: StateFlow<Float> = _healingBrushY.asStateFlow()
+
+    private val _healingBrushRadius = MutableStateFlow(30f)
+    /** 修复画笔半径 */
+    val healingBrushRadius: StateFlow<Float> = _healingBrushRadius.asStateFlow()
 
     // MARK: - 进度与错误
 
@@ -203,6 +221,33 @@ class AIEditViewModel(context: Context) : ViewModel() {
         _expandDirection.value = direction
     }
 
+    /**
+     * 设置修复画笔 X 坐标
+     *
+     * @param x 修复画笔 X 坐标
+     */
+    fun setHealingBrushX(x: Float) {
+        _healingBrushX.value = x
+    }
+
+    /**
+     * 设置修复画笔 Y 坐标
+     *
+     * @param y 修复画笔 Y 坐标
+     */
+    fun setHealingBrushY(y: Float) {
+        _healingBrushY.value = y
+    }
+
+    /**
+     * 设置修复画笔半径
+     *
+     * @param radius 修复画笔半径
+     */
+    fun setHealingBrushRadius(radius: Float) {
+        _healingBrushRadius.value = radius.coerceIn(5f, 100f)
+    }
+
     // MARK: - 编辑执行
 
     /**
@@ -232,6 +277,7 @@ class AIEditViewModel(context: Context) : ViewModel() {
                     AIEditTool.SKY_REPLACE -> applySkyReplaceTool(image)
                     AIEditTool.EXPAND -> applyExpandTool(image)
                     AIEditTool.STYLE_TRANSFER -> applyStyleTransferTool(image)
+                    AIEditTool.HEALING_BRUSH -> applyHealingBrushTool(image)
                 }
             } catch (e: Exception) {
                 AppLogger.e(TAG, "编辑处理异常", e)
@@ -295,6 +341,25 @@ class AIEditViewModel(context: Context) : ViewModel() {
      */
     private suspend fun applyStyleTransferTool(image: Bitmap): Bitmap? {
         return styleTransfer.applyStyle(image, _selectedStyle.value, _styleIntensity.value)
+    }
+
+    /**
+     * 修复画笔
+     *
+     * 使用污点修复算法，从源区域取样像素混合到目标区域。
+     *
+     * @param image 源图像
+     * @return 修复后的图像，失败返回 null
+     */
+    private suspend fun applyHealingBrushTool(image: Bitmap): Bitmap? {
+        return healingBrushProcessor.healSpot(
+            image,
+            _healingBrushX.value,
+            _healingBrushY.value,
+            _healingBrushX.value,
+            _healingBrushY.value,
+            _healingBrushRadius.value
+        )
     }
 
     // MARK: - 快捷操作方法
@@ -411,6 +476,7 @@ class AIEditViewModel(context: Context) : ViewModel() {
             AIEditTool.SKY_REPLACE -> "选择一种天空类型替换当前天空"
             AIEditTool.EXPAND -> "设置扩展像素数，向外扩展画布"
             AIEditTool.STYLE_TRANSFER -> "选择一种艺术风格应用到图片"
+            AIEditTool.HEALING_BRUSH -> "污点修复与仿制图章工具"
         }
 
     // MARK: - 资源清理

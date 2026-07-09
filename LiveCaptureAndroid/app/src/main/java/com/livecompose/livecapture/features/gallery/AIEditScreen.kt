@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Expand
+import androidx.compose.material.icons.filled.Healing
 import androidx.compose.material.icons.filled.InvertColors
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.Button
@@ -59,6 +60,7 @@ import com.livecompose.livecapture.core.editing.AIEditViewModel
 import com.livecompose.livecapture.core.editing.ImageExpander
 import com.livecompose.livecapture.core.editing.SkyReplacer
 import com.livecompose.livecapture.core.editing.StyleTransfer
+import com.livecompose.livecapture.core.processing.HealingBrushProcessor
 import com.livecompose.livecapture.di.AppContainer
 import com.livecompose.livecapture.ui.design.DesignSystem
 import kotlinx.coroutines.launch
@@ -85,6 +87,9 @@ fun AIEditScreen(
     val styleIntensity by viewModel.styleIntensity.collectAsState()
     val expandAmount by viewModel.expandAmount.collectAsState()
     val expandDirection by viewModel.expandDirection.collectAsState()
+    val healingBrushX by viewModel.healingBrushX.collectAsState()
+    val healingBrushY by viewModel.healingBrushY.collectAsState()
+    val healingBrushRadius by viewModel.healingBrushRadius.collectAsState()
 
     LaunchedEffect(sourceBitmap) {
         viewModel.setSourceImage(sourceBitmap)
@@ -161,7 +166,13 @@ fun AIEditScreen(
                 expandAmount = expandAmount,
                 onExpandAmountChanged = { viewModel.setExpandAmount(it) },
                 expandDirection = expandDirection,
-                onExpandDirectionChanged = { viewModel.setExpandDirection(it) }
+                onExpandDirectionChanged = { viewModel.setExpandDirection(it) },
+                healingBrushX = healingBrushX,
+                onHealingBrushXChanged = { viewModel.setHealingBrushX(it) },
+                healingBrushY = healingBrushY,
+                onHealingBrushYChanged = { viewModel.setHealingBrushY(it) },
+                healingBrushRadius = healingBrushRadius,
+                onHealingBrushRadiusChanged = { viewModel.setHealingBrushRadius(it) }
             )
 
             Spacer(modifier = Modifier.height(DesignSystem.Spacing.medium))
@@ -341,7 +352,8 @@ private fun ToolSelectorChips(
         Icons.Default.AutoFixHigh,       // REMOVE
         Icons.Default.InvertColors,      // SKY_REPLACE
         Icons.Default.Expand,            // EXPAND
-        Icons.Default.Palette            // STYLE_TRANSFER
+        Icons.Default.Palette,           // STYLE_TRANSFER
+        Icons.Default.Healing            // HEALING_BRUSH
     )
 
     Row(
@@ -410,7 +422,13 @@ private fun ToolParameterSection(
     expandAmount: Int,
     onExpandAmountChanged: (Int) -> Unit,
     expandDirection: ImageExpander.ExpansionDirection,
-    onExpandDirectionChanged: (ImageExpander.ExpansionDirection) -> Unit
+    onExpandDirectionChanged: (ImageExpander.ExpansionDirection) -> Unit,
+    healingBrushX: Float,
+    onHealingBrushXChanged: (Float) -> Unit,
+    healingBrushY: Float,
+    onHealingBrushYChanged: (Float) -> Unit,
+    healingBrushRadius: Float,
+    onHealingBrushRadiusChanged: (Float) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -444,6 +462,16 @@ private fun ToolParameterSection(
                     onStyleSelected = onStyleSelected,
                     styleIntensity = styleIntensity,
                     onStyleIntensityChanged = onStyleIntensityChanged
+                )
+            }
+            AIEditViewModel.AIEditTool.HEALING_BRUSH -> {
+                HealingBrushSection(
+                    healingBrushX = healingBrushX,
+                    onHealingBrushXChanged = onHealingBrushXChanged,
+                    healingBrushY = healingBrushY,
+                    onHealingBrushYChanged = onHealingBrushYChanged,
+                    healingBrushRadius = healingBrushRadius,
+                    onHealingBrushRadiusChanged = onHealingBrushRadiusChanged
                 )
             }
         }
@@ -760,6 +788,133 @@ private fun ExpandSection(
                     )
                 }
             }
+        }
+    }
+}
+
+// MARK: - 修复画笔参数
+
+@Composable
+private fun HealingBrushSection(
+    healingBrushX: Float,
+    onHealingBrushXChanged: (Float) -> Unit,
+    healingBrushY: Float,
+    onHealingBrushYChanged: (Float) -> Unit,
+    healingBrushRadius: Float,
+    onHealingBrushRadiusChanged: (Float) -> Unit
+) {
+    Column {
+        Text(
+            "修复画笔",
+            style = DesignSystem.Typography.headline,
+            color = DesignSystem.Colors.textPrimary()
+        )
+        Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxxSmall))
+        Text(
+            "污点修复与仿制图章工具",
+            style = DesignSystem.Typography.subheadline,
+            color = DesignSystem.Colors.textSecondary()
+        )
+        Spacer(modifier = Modifier.height(DesignSystem.Spacing.xSmall))
+
+        // X 坐标滑块
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "X 坐标",
+                style = DesignSystem.Typography.subheadline,
+                color = DesignSystem.Colors.textSecondary()
+            )
+            Spacer(modifier = Modifier.width(DesignSystem.Spacing.xSmall))
+            Slider(
+                value = healingBrushX,
+                onValueChange = onHealingBrushXChanged,
+                valueRange = 0f..500f,
+                modifier = Modifier.weight(1f),
+                colors = SliderDefaults.colors(
+                    thumbColor = DesignSystem.Colors.primary,
+                    activeTrackColor = DesignSystem.Colors.primary,
+                    inactiveTrackColor = DesignSystem.Colors.gray3()
+                )
+            )
+            Spacer(modifier = Modifier.width(DesignSystem.Spacing.xxxSmall))
+            Text(
+                "${healingBrushX.toInt()}",
+                style = DesignSystem.Typography.monoCaption,
+                color = DesignSystem.Colors.textSecondary(),
+                modifier = Modifier.width(40.dp),
+                textAlign = TextAlign.End
+            )
+        }
+
+        Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxSmall))
+
+        // Y 坐标滑块
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Y 坐标",
+                style = DesignSystem.Typography.subheadline,
+                color = DesignSystem.Colors.textSecondary()
+            )
+            Spacer(modifier = Modifier.width(DesignSystem.Spacing.xSmall))
+            Slider(
+                value = healingBrushY,
+                onValueChange = onHealingBrushYChanged,
+                valueRange = 0f..500f,
+                modifier = Modifier.weight(1f),
+                colors = SliderDefaults.colors(
+                    thumbColor = DesignSystem.Colors.primary,
+                    activeTrackColor = DesignSystem.Colors.primary,
+                    inactiveTrackColor = DesignSystem.Colors.gray3()
+                )
+            )
+            Spacer(modifier = Modifier.width(DesignSystem.Spacing.xxxSmall))
+            Text(
+                "${healingBrushY.toInt()}",
+                style = DesignSystem.Typography.monoCaption,
+                color = DesignSystem.Colors.textSecondary(),
+                modifier = Modifier.width(40.dp),
+                textAlign = TextAlign.End
+            )
+        }
+
+        Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxSmall))
+
+        // 半径滑块
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "画笔半径",
+                style = DesignSystem.Typography.subheadline,
+                color = DesignSystem.Colors.textSecondary()
+            )
+            Spacer(modifier = Modifier.width(DesignSystem.Spacing.xSmall))
+            Slider(
+                value = healingBrushRadius,
+                onValueChange = onHealingBrushRadiusChanged,
+                valueRange = 5f..100f,
+                modifier = Modifier.weight(1f),
+                colors = SliderDefaults.colors(
+                    thumbColor = DesignSystem.Colors.primary,
+                    activeTrackColor = DesignSystem.Colors.primary,
+                    inactiveTrackColor = DesignSystem.Colors.gray3()
+                )
+            )
+            Spacer(modifier = Modifier.width(DesignSystem.Spacing.xxxSmall))
+            Text(
+                "${healingBrushRadius.toInt()}",
+                style = DesignSystem.Typography.monoCaption,
+                color = DesignSystem.Colors.textSecondary(),
+                modifier = Modifier.width(40.dp),
+                textAlign = TextAlign.End
+            )
         }
     }
 }

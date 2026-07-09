@@ -1,6 +1,11 @@
 package com.livecompose.livecapture.features.livecompose
 
+import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,10 +33,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.livecompose.livecapture.core.lut.BuiltInPresets
+import com.livecompose.livecapture.core.lut.LutImporter
 import com.livecompose.livecapture.core.lut.LutPreset
 import com.livecompose.livecapture.ui.design.DesignSystem
+import java.io.File
 
 /**
  * 构妙品牌页 + 实时滤镜预览
@@ -52,6 +61,39 @@ fun LiveComposeScreen(
 
     LaunchedEffect(Unit) {
         viewModel.generateDemoBitmap(context)
+    }
+
+    // LUT 导入器
+    val lutImporter = remember { LutImporter(context) }
+    val importedPresets by lutImporter.importedPresets.collectAsState()
+    val allPresets = remember(importedPresets) { lutImporter.allPresets() }
+
+    // 文件选择器
+    val lutFilePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            scope.launch {
+                try {
+                    val tempFile = File(context.cacheDir, "lut_import_${System.currentTimeMillis()}.cube")
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        tempFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    val result = lutImporter.importCubeFile(tempFile.absolutePath)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "LUT 导入成功: ${result.displayName}", Toast.LENGTH_SHORT).show()
+                    }
+                    // 导入成功后自动选中新预设
+                    viewModel.selectPreset(result.estimatedPreset)
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "LUT 导入失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
     }
 
     Column(
@@ -180,12 +222,36 @@ fun LiveComposeScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         // LUT 预设横向列表
-        Text(
-            "色彩预设",
-            style = DesignSystem.Typography.headline,
-            color = DesignSystem.Colors.textPrimary(),
-            modifier = Modifier.padding(horizontal = 20.dp)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "色彩预设",
+                style = DesignSystem.Typography.headline,
+                color = DesignSystem.Colors.textPrimary()
+            )
+            TextButton(
+                onClick = { lutFilePickerLauncher.launch("*/*") },
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = DesignSystem.Colors.primary
+                )
+            ) {
+                Icon(
+                    Icons.Default.Upload,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    "导入 LUT",
+                    style = DesignSystem.Typography.subheadline
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -193,8 +259,8 @@ fun LiveComposeScreen(
             contentPadding = PaddingValues(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            items(BuiltInPresets.presets.size) { index ->
-                val preset = BuiltInPresets.presets[index]
+            items(allPresets.size) { index ->
+                val preset = allPresets[index]
                 val isSelected = selectedPreset?.id == preset.id
 
                 PresetCard(

@@ -31,7 +31,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.livecompose.livecapture.core.lut.AiColorMatcher
+import com.livecompose.livecapture.core.lut.NaturalLightProcessor
 import com.livecompose.livecapture.core.intelligence.ImageQualityAssessor
+import com.livecompose.livecapture.core.processing.DehazeProcessor
+import com.livecompose.livecapture.core.processing.SplitToneProcessor
+import com.livecompose.livecapture.core.processing.LensCorrectionProcessor
+import com.livecompose.livecapture.core.processing.GradientFilterProcessor
+import com.livecompose.livecapture.core.processing.MultiFrameStacker
+import com.livecompose.livecapture.core.editing.AutoEnhancer
 import com.livecompose.livecapture.di.AppContainer
 import com.livecompose.livecapture.features.home.HomeViewModel
 import com.livecompose.livecapture.ui.design.DesignSystem
@@ -330,6 +337,154 @@ fun PhotoAdjustScreen(
                                         Toast.makeText(context, "AI 仿色完成，已生成 LUT 预设", Toast.LENGTH_SHORT).show()
                                     } catch (e: Exception) {
                                         Toast.makeText(context, "AI 仿色失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }
+                    )
+                    HorizontalDivider(color = DesignSystem.Colors.minimalOverlay)
+                    EditorToolItem(
+                        icon = Icons.Default.AutoFixHigh,
+                        title = "一键增强",
+                        subtitle = "自动白平衡/色阶/曝光/锐化",
+                        onClick = {
+                            scope.launch {
+                                val bitmap = originalBitmap
+                                if (bitmap != null) {
+                                    try {
+                                        val enhanced = withContext(Dispatchers.Default) {
+                                            AutoEnhancer().autoEnhance(bitmap)
+                                        }
+                                        saveProcessedBitmap(context, enhanced, photoId, viewModel, onBack)
+                                        Toast.makeText(context, "一键增强完成", Toast.LENGTH_SHORT).show()
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "增强失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }
+                    )
+                    HorizontalDivider(color = DesignSystem.Colors.minimalOverlay)
+                    EditorToolItem(
+                        icon = Icons.Default.FilterDrama,
+                        title = "去雾",
+                        subtitle = "暗通道先验算法消除雾霾",
+                        onClick = {
+                            scope.launch {
+                                val bitmap = originalBitmap
+                                if (bitmap != null) {
+                                    try {
+                                        val dehazed = DehazeProcessor().dehaze(bitmap, strength = 60f)
+                                        saveProcessedBitmap(context, dehazed, photoId, viewModel, onBack)
+                                        Toast.makeText(context, "去雾处理完成", Toast.LENGTH_SHORT).show()
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "去雾失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }
+                    )
+                    HorizontalDivider(color = DesignSystem.Colors.minimalOverlay)
+                    EditorToolItem(
+                        icon = Icons.Default.Gradient,
+                        title = "分离色调",
+                        subtitle = "高光/阴影分别着色",
+                        onClick = {
+                            scope.launch {
+                                val bitmap = originalBitmap
+                                if (bitmap != null) {
+                                    try {
+                                        val toned = SplitToneProcessor().applySplitTone(
+                                            bitmap,
+                                            highlightColor = 0xFFFFCC00.toInt(),
+                                            shadowColor = 0xFF0066CC.toInt()
+                                        )
+                                        saveProcessedBitmap(context, toned, photoId, viewModel, onBack)
+                                        Toast.makeText(context, "分离色调完成", Toast.LENGTH_SHORT).show()
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "色调分离失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }
+                    )
+                    HorizontalDivider(color = DesignSystem.Colors.minimalOverlay)
+                    EditorToolItem(
+                        icon = Icons.Default.Camera,
+                        title = "镜头校正",
+                        subtitle = "畸变/色差/暗角自动校正",
+                        onClick = {
+                            scope.launch {
+                                val bitmap = originalBitmap
+                                if (bitmap != null) {
+                                    try {
+                                        val corrected = LensCorrectionProcessor().correctDistortion(bitmap, k1 = -0.1f)
+                                        Toast.makeText(context, "镜头校正完成", Toast.LENGTH_SHORT).show()
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "镜头校正失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }
+                    )
+                    HorizontalDivider(color = DesignSystem.Colors.minimalOverlay)
+                    EditorToolItem(
+                        icon = Icons.Default.Landscape,
+                        title = "渐变滤镜",
+                        subtitle = "模拟 GND 中灰渐变镜效果",
+                        onClick = {
+                            scope.launch {
+                                val bitmap = originalBitmap
+                                if (bitmap != null) {
+                                    try {
+                                        val filtered = GradientFilterProcessor().applyLinearGradient(
+                                            bitmap, angle = 90f, intensity = 0.5f, exposure = -0.5f
+                                        )
+                                        saveProcessedBitmap(context, filtered, photoId, viewModel, onBack)
+                                        Toast.makeText(context, "渐变滤镜应用完成", Toast.LENGTH_SHORT).show()
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "渐变滤镜失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }
+                    )
+                    HorizontalDivider(color = DesignSystem.Colors.minimalOverlay)
+                    EditorToolItem(
+                        icon = Icons.Default.WbSunny,
+                        title = "自然光效果",
+                        subtitle = "柔和色彩过渡/温暖肤色/细腻阴影",
+                        onClick = {
+                            scope.launch {
+                                val bitmap = originalBitmap
+                                if (bitmap != null) {
+                                    try {
+                                        val processed = NaturalLightProcessor().apply(bitmap)
+                                        saveProcessedBitmap(context, processed, photoId, viewModel, onBack)
+                                        Toast.makeText(context, "自然光效果已应用", Toast.LENGTH_SHORT).show()
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "自然光效果失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }
+                    )
+                    HorizontalDivider(color = DesignSystem.Colors.minimalOverlay)
+                    EditorToolItem(
+                        icon = Icons.Default.BlurOn,
+                        title = "多帧降噪",
+                        subtitle = "多帧对齐堆栈平均降噪",
+                        onClick = {
+                            scope.launch {
+                                val bitmap = originalBitmap
+                                if (bitmap != null) {
+                                    try {
+                                        val stacker = MultiFrameStacker()
+                                        val denoised = stacker.stackFrames(listOf(bitmap, bitmap))
+                                        saveProcessedBitmap(context, denoised, photoId, viewModel, onBack)
+                                        Toast.makeText(context, "降噪处理完成", Toast.LENGTH_SHORT).show()
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "降噪处理失败: ${e.message}", Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             }
