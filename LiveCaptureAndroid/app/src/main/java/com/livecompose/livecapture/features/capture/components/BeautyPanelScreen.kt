@@ -30,7 +30,7 @@ import com.livecompose.livecapture.core.portrait.toBeautySettings
 import com.livecompose.livecapture.ui.design.DesignSystem
 
 // 美颜面板深色风格（对应 iOS BeautyPanelView 的黑色半透明背景）
-private val PanelBackground = Color.Black.copy(alpha = 0.92f)
+private val PanelBackground = DesignSystem.Colors.minimalBackground.copy(alpha = 0.92f)
 private val PanelLabel = DesignSystem.Colors.minimalLabel
 private val PanelSecondaryLabel = DesignSystem.Colors.minimalSecondaryLabel
 private val PanelBorder = DesignSystem.Colors.minimalBorder

@@ -54,7 +54,11 @@ fun BottomSection(
             .fillMaxWidth()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f), Color.Black.copy(alpha = 0.9f)),
+                    colors = listOf(
+                        Color.Transparent,
+                        DesignSystem.Colors.minimalBackground.copy(alpha = 0.6f),
+                        DesignSystem.Colors.minimalBackground.copy(alpha = 0.9f)
+                    ),
                     startY = -100f,
                     endY = Float.POSITIVE_INFINITY
                 )
@@ -106,7 +110,7 @@ fun BottomSection(
                     Icon(
                         Icons.Default.AutoAwesome,
                         contentDescription = "构图",
-                        tint = if (isPipelineEnabled) Color.White else DesignSystem.Colors.textTertiary(),
+                        tint = if (isPipelineEnabled) DesignSystem.Colors.minimalLabel else DesignSystem.Colors.textTertiary(),
                         modifier = Modifier.size(26.dp)
                     )
                 }
@@ -164,7 +168,7 @@ private fun ZoomControlBar(
                         Text(
                             preset.label,
                             fontSize = 14.sp,
-                            color = Color.White,
+                            color = DesignSystem.Colors.minimalLabel,
                             fontWeight = if (preset.zoomFactor == zoomState.currentFactor) FontWeight(600) else FontWeight(400)
                         )
                         Text(
@@ -197,8 +201,8 @@ private fun ZoomControlBar(
                 valueRange = zoomRange.start..zoomRange.endInclusive,
                 modifier = Modifier.fillMaxWidth(0.7f),
                 colors = SliderDefaults.colors(
-                    thumbColor = Color.White,
-                    activeTrackColor = Color.White,
+                    thumbColor = DesignSystem.Colors.minimalLabel,
+                    activeTrackColor = DesignSystem.Colors.minimalLabel,
                     inactiveTrackColor = DesignSystem.Colors.minimalBorder
                 )
             )
@@ -227,7 +231,7 @@ private fun CaptureButton(onCapture: () -> Unit) {
             modifier = Modifier
                 .size(60.dp)
                 .clip(CircleShape)
-                .background(Color.White)
+                .background(DesignSystem.Colors.shutterInner)
         )
     }
 }
@@ -255,7 +259,7 @@ private fun ZoomRingView(
         val range = zoomRange.endInclusive - zoomRange.start
         val progress = if (range > 0f) (zoomState.currentFactor - zoomRange.start) / range else 0f
         drawArc(
-            color = Color.White,
+            color = DesignSystem.Colors.minimalLabel,
             startAngle = -90f,
             sweepAngle = 360f * progress,
             useCenter = false,
@@ -270,7 +274,7 @@ private fun ZoomRingView(
         val markX = center.x + markRadius * kotlin.math.cos(Math.toRadians(markAngle.toDouble())).toFloat()
         val markY = center.y + markRadius * kotlin.math.sin(Math.toRadians(markAngle.toDouble())).toFloat()
         drawCircle(
-            color = Color.White,
+            color = DesignSystem.Colors.minimalLabel,
             radius = 5f,
             center = Offset(markX, markY)
         )

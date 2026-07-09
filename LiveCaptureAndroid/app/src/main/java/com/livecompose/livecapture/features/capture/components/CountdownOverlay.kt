@@ -94,7 +94,7 @@ fun CountdownOverlay(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.3f)),
+            .background(DesignSystem.Colors.minimalDarkOverlay),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -121,7 +121,7 @@ fun CountdownOverlay(
                 // 进度弧
                 val arcSize = androidx.compose.ui.geometry.Size(radius * 2 - 8.dp.toPx(), radius * 2 - 8.dp.toPx())
                 drawArc(
-                    color = Color.White,
+                    color = DesignSystem.Colors.minimalLabel,
                     startAngle = -90f,
                     sweepAngle = 360f * currentProgress,
                     useCenter = false,
@@ -138,7 +138,7 @@ fun CountdownOverlay(
                 text = if (remainingSeconds > 0) "$remainingSeconds" else "",
                 fontSize = 64.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = DesignSystem.Colors.minimalLabel,
                 letterSpacing = (-2).sp
             )
         }

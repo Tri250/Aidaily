@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
  * 调试面板
@@ -37,7 +38,7 @@ fun DebugPanel(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(Color.Black.copy(alpha = 0.75f))
+            .background(DesignSystem.Colors.minimalDarkOverlay.copy(alpha = 0.75f))
             .padding(12.dp)
     ) {
         Column {
@@ -45,10 +46,10 @@ fun DebugPanel(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("调试面板", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp, fontFamily = FontFamily.Monospace)
+                Text("调试面板", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
                 Spacer(modifier = Modifier.weight(1f))
                 IconButton(onClick = onClose, modifier = Modifier.size(20.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = null, tint = Color.White.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Close, contentDescription = null, tint = DesignSystem.Colors.minimalSecondaryLabel, modifier = Modifier.size(16.dp))
                 }
             }
             Spacer(modifier = Modifier.height(6.dp))
@@ -70,7 +71,7 @@ fun DebugPanel(
 @Composable
 private fun DebugRow(label: String, value: String) {
     Row {
-        Text("$label: ", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontFamily = FontFamily.Monospace)
-        Text(value, color = Color.White.copy(alpha = 0.9f), fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+        Text("$label: ", color = DesignSystem.Colors.minimalSecondaryLabel.copy(alpha = 0.6f), fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+        Text(value, color = DesignSystem.Colors.minimalLabel, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
     }
 }

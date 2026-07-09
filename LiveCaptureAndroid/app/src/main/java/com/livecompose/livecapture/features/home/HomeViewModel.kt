@@ -45,7 +45,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun getThumbnail(id: String): Bitmap? = withContext(Dispatchers.IO) {
         try {
-            storage.getThumbnail(id)
+            val file = storage.getPhotoFile(id)
+            if (!file.exists()) return@withContext null
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            BitmapFactory.decodeFile(file.absolutePath, options)
+            options.inJustDecodeBounds = false
+            options.inSampleSize = calculateInSampleSize(options.outWidth, options.outHeight, 256)
+            BitmapFactory.decodeFile(file.absolutePath, options)
         } catch (e: Exception) {
             AppLogger.e(TAG, "获取缩略图失败: $id", e)
             null
@@ -55,11 +63,33 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun getFullPhoto(id: String): Bitmap? = withContext(Dispatchers.IO) {
         try {
             val file = storage.getPhotoFile(id)
-            if (file.exists()) BitmapFactory.decodeFile(file.absolutePath) else null
+            if (!file.exists()) return@withContext null
+            val options = BitmapFactory.Options().apply {
+                inSampleSize = calculateInSampleSize(
+                    options.outWidth, options.outHeight, 2048
+                )
+            }
+            // First decode bounds to get dimensions
+            val boundsOpts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.absolutePath, boundsOpts)
+            options.inSampleSize = calculateInSampleSize(boundsOpts.outWidth, boundsOpts.outHeight, 2048)
+            BitmapFactory.decodeFile(file.absolutePath, options)
         } catch (e: Exception) {
             AppLogger.e(TAG, "获取原图失败: $id", e)
             null
         }
+    }
+
+    private fun calculateInSampleSize(width: Int, height: Int, reqSize: Int): Int {
+        var inSampleSize = 1
+        if (height > reqSize || width > reqSize) {
+            val halfHeight = height / 2
+            val halfWidth = width / 2
+            while (halfHeight / inSampleSize >= reqSize && halfWidth / inSampleSize >= reqSize) {
+                inSampleSize *= 2
+            }
+        }
+        return inSampleSize
     }
 
     fun updateRating(id: String, rating: Int) {

@@ -49,7 +49,7 @@ fun ToastView(
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color.Black.copy(alpha = 0.8f))
+                    .background(DesignSystem.Colors.minimalDarkOverlay)
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -62,7 +62,7 @@ fun ToastView(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     message,
-                    color = Color.White,
+                    color = DesignSystem.Colors.minimalLabel,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
                 )

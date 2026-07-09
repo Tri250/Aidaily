@@ -36,8 +36,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlin.math.min
-import kotlin.math.roundToInt
+import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
  * 拍照动画快照数据
@@ -203,7 +202,7 @@ fun CaptureAnimationOverlay(
                 modifier = Modifier
                     .fillMaxSize()
                     .alpha(flashOpacity)
-                    .background(Color.White)
+                    .background(DesignSystem.Colors.shutterInner)
             )
         }
 
