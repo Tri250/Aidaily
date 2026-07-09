@@ -36,7 +36,7 @@ class LiveCaptureApp : Application() {
         try {
             com.google.mlkit.common.MlKit.initialize(this)
             AppLogger.i(TAG, "[启动链路] 2/7 ML Kit 手动初始化完成")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             AppLogger.e(TAG, "ML Kit 初始化失败（不影响核心功能）", e)
         }
 

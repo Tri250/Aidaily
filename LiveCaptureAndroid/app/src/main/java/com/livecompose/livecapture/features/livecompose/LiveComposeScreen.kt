@@ -1,6 +1,7 @@
 package com.livecompose.livecapture.features.livecompose
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,7 +28,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import com.livecompose.livecapture.core.lut.BuiltInPresets
 import com.livecompose.livecapture.core.lut.LutPreset
@@ -90,8 +90,8 @@ fun LiveComposeScreen(
         ) {
             val displayBitmap = processedBitmap
             if (displayBitmap != null) {
-                AsyncImage(
-                    model = displayBitmap.asImageBitmap(),
+                Image(
+                    bitmap = displayBitmap.asImageBitmap(),
                     contentDescription = "滤镜预览",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
