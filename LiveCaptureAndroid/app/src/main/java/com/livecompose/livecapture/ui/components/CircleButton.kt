@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.livecompose.livecapture.ui.design.DesignSystem
+import com.livecompose.livecapture.ui.design.liquidGlass
 
 /**
  * 圆形按钮组件 - 液态玻璃风格
@@ -68,8 +69,3 @@ fun TopCircleButton(
     }
 }
 
-private fun Modifier.liquidGlass(cornerRadius: androidx.compose.ui.unit.Dp, intensity: Float): Modifier {
-    return this.then(
-        com.livecompose.livecapture.ui.design.liquidGlass(cornerRadius, intensity)
-    )
-}

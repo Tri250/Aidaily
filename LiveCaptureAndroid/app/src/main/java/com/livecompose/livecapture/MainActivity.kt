@@ -76,7 +76,7 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             try {
                 // Android 13+ 使用 PREFERRED_REFRESH_RATE_MAX
-                window.attributes.preferredRefreshRate = WindowManager.LayoutParams.PREFERRED_REFRESH_RATE_MAX
+                window.attributes.preferredRefreshRate = 120f
                 AppLogger.i(TAG, "已请求最高刷新率 (Android 13+)")
             } catch (e: Exception) {
                 AppLogger.w(TAG, "设置高刷新率失败", e)

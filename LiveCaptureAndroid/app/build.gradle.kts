@@ -18,8 +18,8 @@ android {
         applicationId = "com.livecompose.livecapture"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.1.3"
+        versionCode = 7
+        versionName = "1.1.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -29,9 +29,8 @@ android {
         buildConfigField("String", "WECHAT_APP_ID", "\"${project.findProperty("WECHAT_APP_ID") as? String ?: ""}\"")
 
         ndk {
-            // 仅保留 64 位 ABI：Android 15/16 16KB-page 设备仅加载 64 位 .so
-            // 移除 armeabi-v7a（32 位），因其部分 .so 为 4KB 对齐，且 Google Play 已强制 64 位
-            abiFilters += listOf("arm64-v8a", "x86_64")
+            // 仅保留 arm64-v8a，进一步降低构建内存消耗
+            abiFilters += listOf("arm64-v8a")
         }
     }
 

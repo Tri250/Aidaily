@@ -20,6 +20,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.livecompose.livecapture.ui.design.DesignSystem
@@ -121,8 +122,8 @@ fun RedesignedShutterButton(
             glowAlphaAnimatable.snapTo(0.8f)
         }
     }
-    val glowScale by glowScaleAnimatable
-    val glowAlpha by glowAlphaAnimatable
+    val glowScale = glowScaleAnimatable.value
+    val glowAlpha = glowAlphaAnimatable.value
 
     // 连拍定时器
     LaunchedEffect(isBurstMode) {
@@ -220,51 +221,52 @@ fun RedesignedShutterButton(
                 .fillMaxSize()
                 .clip(CircleShape)
                 .pointerInput(Unit) {
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        HapticManager.light()
+                    detectTapGestures(
+                        onPress = {
+                            HapticManager.light()
 
-                        val longPressJob = coroutineScope.launch {
-                            delay(500L)
-                            if (!isBurstMode) {
-                                isLongPressing = true
-                                onLongPressStart()
+                            val longPressJob = coroutineScope.launch {
+                                delay(500L)
+                                if (!isBurstMode) {
+                                    isLongPressing = true
+                                    onLongPressStart()
+                                }
+                            }
+                            val burstJob = coroutineScope.launch {
+                                delay(500L)
+                                if (!isLongPressing) {
+                                    isBurstMode = true
+                                }
+                            }
+
+                            val released = tryAwaitRelease()
+                            longPressJob.cancel()
+                            burstJob.cancel()
+
+                            val wasLongPressing = isLongPressing
+                            val wasBurstMode = isBurstMode
+
+                            if (wasLongPressing) {
+                                isLongPressing = false
+                                HapticManager.success()
+                                onLongPressEnd()
+                            } else if (wasBurstMode) {
+                                isBurstMode = false
+                            } else {
+                                onCapture()
+                                HapticManager.success()
+                                coroutineScope.launch {
+                                    val ripple = RippleAnim(Animatable(0f))
+                                    ripples.add(ripple)
+                                    ripple.progress.animateTo(
+                                        targetValue = 1f,
+                                        animationSpec = tween(durationMillis = 600, easing = EaseOut)
+                                    )
+                                    ripples.remove(ripple)
+                                }
                             }
                         }
-                        val burstJob = coroutineScope.launch {
-                            delay(500L)
-                            if (!isLongPressing) {
-                                isBurstMode = true
-                            }
-                        }
-
-                        waitForUpOrCancellation()
-                        longPressJob.cancel()
-                        burstJob.cancel()
-
-                        val wasLongPressing = isLongPressing
-                        val wasBurstMode = isBurstMode
-
-                        if (wasLongPressing) {
-                            isLongPressing = false
-                            HapticManager.success()
-                            onLongPressEnd()
-                        } else if (wasBurstMode) {
-                            isBurstMode = false
-                        } else {
-                            onCapture()
-                            HapticManager.success()
-                            coroutineScope.launch {
-                                val ripple = RippleAnim(Animatable(0f))
-                                ripples.add(ripple)
-                                ripple.progress.animateTo(
-                                    targetValue = 1f,
-                                    animationSpec = tween(durationMillis = 600, easing = EaseOut)
-                                )
-                                ripples.remove(ripple)
-                            }
-                        }
-                    }
+                    )
                 }
         )
     }

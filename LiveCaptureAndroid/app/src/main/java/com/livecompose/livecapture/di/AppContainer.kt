@@ -186,7 +186,7 @@ class AppContainer(context: Context) {
             memoryMonitor.dispose()
             // VideoViewModel 的 onCleared 会在 ViewModel 销毁时调用，此处确保音频/录制资源释放
             videoViewModel.stopRecording()
-            aiEditViewModel.onCleared()
+            // aiEditViewModel.onCleared() // onCleared 是 ViewModel 的 protected 方法，不应外部调用
             cameraManager.destroy()
             lutImporter.dispose()
             communityManager.dispose()

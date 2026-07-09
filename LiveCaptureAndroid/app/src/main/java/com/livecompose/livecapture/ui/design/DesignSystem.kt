@@ -168,6 +168,11 @@ object DesignSystem {
         // Beta标签
         val betaBadgeBg = Color.White.copy(alpha = 0.15f)
         val betaBadgeText = Color.White.copy(alpha = 0.85f)
+
+        // 兼容旧代码别名（2026重构期间保留）
+        val minimalSecondaryLabel = minimalLabelSecondary
+        val minimalTertiaryLabel = minimalLabelTertiary
+        val minimalActiveBorder = minimalBorderActive
     }
 
     // MARK: - Typography（2026旗舰影像字体系统）
@@ -888,24 +893,19 @@ fun Modifier.captureVignette(
     drawContent()
     if (intensity > 0.01f) {
         val radius = size.minDimension * 0.7f
-        drawRadialGradient(
-            colors = listOf(
-                Color.Transparent,
-                Color.Black.copy(alpha = intensity * 0.5f)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color.Transparent,
+                    Color.Black.copy(alpha = intensity * 0.5f)
+                ),
+                center = Offset(size.width / 2, size.height / 2),
+                radius = radius
             ),
-            center = Offset(size.width / 2, size.height / 2),
-            radius = radius
+            radius = radius,
+            center = Offset(size.width / 2, size.height / 2)
         )
     }
-}
-
-@Composable
-private fun drawRadialGradient(
-    colors: List<Color>,
-    center: Offset,
-    radius: Float
-) {
-    // Placeholder - actual implementation uses Brush.radialGradient in drawWithContent
 }
 
 /**
@@ -918,10 +918,10 @@ fun Modifier.recordingPulse(
     val alpha by transition.animateFloat(
         initialValue = 1f,
         targetValue = 0.3f,
-        animationSpec = if (isRecording) infiniteRepeatable(
+        animationSpec = infiniteRepeatable(
             animation = tween(800, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
-        ) else tween(0),
+        ),
         label = "recPulseAlpha"
     )
 

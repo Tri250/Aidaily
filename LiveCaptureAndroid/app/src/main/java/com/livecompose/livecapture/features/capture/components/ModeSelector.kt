@@ -2,6 +2,7 @@ package com.livecompose.livecapture.features.capture.components
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -116,9 +117,8 @@ fun ModeSelector(
 
         // Bottom sliding indicator
         val indicatorOffset by animateDpAsState(
-            targetValue = selectedIndex * (cardWidth + cardSpacing),
-            animationSpec = DesignSystem.Animation.modeSlide,
-            label = "modeIndicatorOffset"
+            targetValue = (cardWidth + cardSpacing) * selectedIndex,
+            animationSpec = tween(200)
         )
 
         Box(

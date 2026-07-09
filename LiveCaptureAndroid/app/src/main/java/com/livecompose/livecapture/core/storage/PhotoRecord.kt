@@ -16,7 +16,8 @@ data class PhotoRecord(
     val imageWidth: Int? = null,
     val imageHeight: Int? = null,
     val rating: Int = 0,
-    val flag: Boolean = false
+    val flag: Boolean = false,
+    val filePath: String = ""
 ) {
     companion object {
         fun photoFilename(id: String) = "${id}.jpg"

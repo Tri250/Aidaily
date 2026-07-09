@@ -37,10 +37,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.awaitEachGesture
-import androidx.compose.ui.input.pointer.awaitFirstDown
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.waitForUpOrCancellation
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -300,8 +297,7 @@ fun CaptureScreen(
                 if (cameraError == null) {
                     val animatedScale by animateFloatAsState(
                         captureAnimationScale,
-                        DesignSystem.Animation.shutterPress,
-                        "captureScale"
+                        DesignSystem.Animation.shutterPress
                     )
                     val previewAlpha by animateFloatAsState(
                         targetValue = if (isEntryAnimationComplete) 1f else 0f,
@@ -968,6 +964,7 @@ private fun MainShutterButton2026(
 ) {
     var isRecording by remember { mutableStateOf(false) }
     var isPressedState by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     val scale by animateFloatAsState(
         targetValue = when {
@@ -1022,37 +1019,38 @@ private fun MainShutterButton2026(
             .size(DesignSystem.Dimensions.shutterButtonOuter)
             .scale(scale)
             .pointerInput(Unit) {
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    isPressedState = true
-                    val longPressJob = launch {
-                        delay(500L)
-                        if (!isRecording) {
-                            isRecording = true
-                            HapticManager.success()
-                            onLongPressStart()
+                detectTapGestures(
+                    onPress = {
+                        isPressedState = true
+                        val longPressJob = coroutineScope.launch {
+                            delay(500L)
+                            if (!isRecording) {
+                                isRecording = true
+                                HapticManager.success()
+                                onLongPressStart()
+                            }
+                        }
+                        val released = tryAwaitRelease()
+                        longPressJob.cancel()
+                        isPressedState = false
+                        if (released && !isRecording) {
+                            // 轻触拍照
+                            HapticManager.light()
+                            onCapture()
+                        } else if (isRecording) {
+                            // 长按结束，停止录制
+                            isRecording = false
+                            onLongPressEnd()
                         }
                     }
-                    val up = waitForUpOrCancellation()
-                    longPressJob.cancel()
-                    isPressedState = false
-                    if (up != null && !isRecording) {
-                        // 轻触拍照
-                        HapticManager.light()
-                        onCapture()
-                    } else if (isRecording) {
-                        // 长按结束，停止录制
-                        isRecording = false
-                        onLongPressEnd()
-                    }
-                }
+                )
             },
         contentAlignment = Alignment.Center
     ) {
         // 金色光环（对齐成功）
         if (isAligned) {
-            val glowScale by glowScaleAnimatable
-            val glowAlpha by glowAlphaAnimatable
+            val glowScale = glowScaleAnimatable.value
+            val glowAlpha = glowAlphaAnimatable.value
             androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
                 drawCircle(
                     color = DesignSystem.Colors.goldenGlow.copy(alpha = glowAlpha),
@@ -1341,18 +1339,16 @@ private fun PhotoReviewOverlay2026(
                 android.graphics.BitmapFactory.decodeByteArray(data, 0, data.size)
             }
             bitmap?.let {
-                androidx.compose.foundation.Image(
-                    bitmap = it.asImageBitmap(),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            colorMatrix = androidx.compose.ui.graphics.ColorMatrix().apply {
-                                setToBrightness(-1f + developProgress)
+                    androidx.compose.foundation.Image(
+                        bitmap = it.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                alpha = developProgress
                             }
-                        }
-                )
-            }
+                    )
+                }
         }
 
         Row(
@@ -1789,6 +1785,15 @@ private fun ComplianceItem(title: String, icon: ImageVector, page: String) {
         Text(title, style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary(), modifier = Modifier.weight(1f))
         Icon(Icons.Default.ChevronRight, null, tint = DesignSystem.Colors.textTertiary())
     }
+}
+
+@Composable
+private fun PortraitModeOverlay(
+    viewModel: com.livecompose.livecapture.core.portrait.PortraitViewModel,
+    onDismiss: () -> Unit,
+    onProcessImage: (android.graphics.Bitmap) -> Unit
+) {
+    // TODO: 实现人像模式浮层
 }
 
 // ====== 预设参数映射 ======

@@ -204,7 +204,7 @@ fun GalleryScreen(
                 enter = fadeIn(animationSpec = DesignSystem.Animation.entryFadeIn) +
                         slideInVertically(
                             initialOffsetY = { it / 4 },
-                            animationSpec = DesignSystem.Animation.entrySlideUp
+                            animationSpec = tween(300)
                         )
             ) {
                 Box(
@@ -342,12 +342,10 @@ private fun PhotoCard(
             )
         } else {
             // Shimmer 占位 - 使用 DesignSystem 颜色
+            val gray2 = DesignSystem.Colors.gray2()
+            val gray3 = DesignSystem.Colors.gray3()
             val shimmerColors = remember {
-                listOf(
-                    DesignSystem.Colors.gray2(),
-                    DesignSystem.Colors.gray3(),
-                    DesignSystem.Colors.gray2()
-                )
+                listOf(gray2, gray3, gray2)
             }
             val transition = rememberInfiniteTransition()
             val translateAnim = transition.animateFloat(

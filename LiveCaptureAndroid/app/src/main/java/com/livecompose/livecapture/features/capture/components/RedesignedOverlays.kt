@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.livecompose.livecapture.ui.design.DesignSystem
@@ -56,8 +57,7 @@ fun RedesignedLevelIndicator(
 
     val lineColor by animateColorAsState(
         targetValue = if (isLevel) DesignSystem.Colors.success else DesignSystem.Colors.warning,
-        animationSpec = DesignSystem.Animation.stateActive,
-        label = "levelLineColor"
+        animationSpec = tween(200)
     )
 
     Box(
@@ -215,9 +215,10 @@ fun RedesignedZebraOverlay(
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "zebra")
 
+    val density = LocalDensity.current
     val stripeOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = 24.dp.toPx(),
+        targetValue = with(density) { 24.dp.toPx() },
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 600),
             repeatMode = RepeatMode.Restart

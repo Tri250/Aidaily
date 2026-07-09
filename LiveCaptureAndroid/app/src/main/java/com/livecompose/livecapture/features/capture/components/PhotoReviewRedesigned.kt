@@ -181,7 +181,7 @@ fun PhotoReviewRedesigned(
                         },
                         onDragEnd = {
                             val offsetPx = kotlin.math.abs(swipeOffsetY.value)
-                            val thresholdPx = with(LocalDensity.current) { 100.dp.toPx() }
+                            val thresholdPx = with(density) { 100.dp.toPx() }
                             if (offsetPx > thresholdPx) {
                                 // Threshold exceeded
                                 if (swipeOffsetY.value < 0) {
