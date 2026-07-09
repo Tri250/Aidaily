@@ -129,16 +129,25 @@ object DesignSystem {
         fun backgroundTertiary() = gray2()
 
         // 极简相机专属色（纯黑背景 + 白色 UI 层级）
+        // 2026 旗舰摄影应用设计语言：高对比度、低饱和、药丸/液态玻璃
         val minimalBackground = Color.Black
-        val minimalOverlay = Color.White.copy(alpha = 0.08f)
-        val minimalBorder = Color.White.copy(alpha = 0.22f)
-        val minimalActiveBorder = Color.White.copy(alpha = 0.92f)
-        val minimalLabel = Color.White.copy(alpha = 0.96f)
-        val minimalSecondaryLabel = Color.White.copy(alpha = 0.50f)
-        val minimalTertiaryLabel = Color.White.copy(alpha = 0.28f)
-        val minimalDarkOverlay = Color.Black.copy(alpha = 0.45f)
+        val minimalOverlay = Color.White.copy(alpha = 0.10f)          // 药丸背景
+        val minimalActiveOverlay = Color.White.copy(alpha = 0.22f)    // 选中态药丸背景
+        val minimalBorder = Color.White.copy(alpha = 0.18f)           // 细描边
+        val minimalActiveBorder = Color.White.copy(alpha = 0.85f)     // 激活描边
+        val minimalLabel = Color.White.copy(alpha = 0.96f)            // 主文字
+        val minimalSecondaryLabel = Color.White.copy(alpha = 0.58f)   // 次文字
+        val minimalTertiaryLabel = Color.White.copy(alpha = 0.32f)    // 禁用/第三级文字
+        val minimalDarkOverlay = Color.Black.copy(alpha = 0.45f)      // 暗色遮罩
         val shutterStroke = Color.White
         val shutterInner = Color.White.copy(alpha = 0.95f)
+
+        // 底部导航栏专属色
+        val tabBarBackground = Color.White.copy(alpha = 0.10f)
+        val tabBarActiveBackground = Color.White.copy(alpha = 0.20f)
+        val tabBarBorder = Color.White.copy(alpha = 0.15f)
+        val tabBarLabel = Color.White.copy(alpha = 0.95f)
+        val tabBarInactiveLabel = Color.White.copy(alpha = 0.55f)
     }
 
     // MARK: - Typography（魅族级字体系统）
@@ -253,23 +262,26 @@ object DesignSystem {
             lineHeight = lineHeightFor(12f).sp
         )
 
-        // 极简模式专用字体
+        // 极简模式专用字体 - 2026 旗舰摄影 UI：清晰、克制、高可读
         val minimalModeLabel = TextStyle(
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
             fontFamily = defaultFamily,
-            lineHeight = lineHeightFor(11f).sp
+            letterSpacing = 0.1f.sp,
+            lineHeight = lineHeightFor(12f).sp
         )
         val minimalFilterName = TextStyle(
             fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
             fontFamily = defaultFamily,
+            letterSpacing = 0.2f.sp,
             lineHeight = lineHeightFor(10f).sp
         )
         val minimalControlLabel = TextStyle(
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
             fontFamily = defaultFamily,
+            letterSpacing = 0.1f.sp,
             lineHeight = lineHeightFor(13f).sp
         )
         val minimalTimer = TextStyle(
@@ -280,9 +292,17 @@ object DesignSystem {
         )
         val minimalZoomIndicator = TextStyle(
             fontSize = 12.sp,
-            fontWeight = FontWeight.Normal,
+            fontWeight = FontWeight.Medium,
             fontFamily = monoFamily,
+            letterSpacing = 0.15f.sp,
             lineHeight = lineHeightFor(12f).sp
+        )
+        val minimalTabLabel = TextStyle(
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            fontFamily = defaultFamily,
+            letterSpacing = 0.2f.sp,
+            lineHeight = lineHeightFor(13f).sp
         )
 
         // 行高（Line Height）- 基于字体大小的 1.4 倍（对标 iOS lineHeight(for:)）
@@ -353,6 +373,7 @@ object DesignSystem {
         val xLarge: Dp = 20.dp
         val xxLarge: Dp = 24.dp
         val xxxLarge: Dp = 28.dp   // 面板顶部超椭圆
+        val cameraPreview: Dp = 32.dp  // 取景器圆角（2026 旗舰摄影大屏趋势）
         val circle: Dp = 999.dp
         val pill: Dp = 999.dp       // 胶囊形（替代原来的 circle）
 
@@ -368,6 +389,7 @@ object DesignSystem {
     val largeRoundedShape = RoundedCornerShape(CornerRadius.large)
     val xLargeRoundedShape = RoundedCornerShape(CornerRadius.xLarge)
     val xxLargeRoundedShape = RoundedCornerShape(CornerRadius.xxLarge)
+    val cameraPreviewShape = RoundedCornerShape(CornerRadius.cameraPreview)
     val circleShape = CircleShape
 
     // MARK: - Shadows（柔和阴影系统）
