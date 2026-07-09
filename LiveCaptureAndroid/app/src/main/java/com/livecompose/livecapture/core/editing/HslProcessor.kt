@@ -188,8 +188,9 @@ class HslProcessor {
 
     /**
      * 计算两个色相在色相环上的最短角度距离（0~180）
+     * @VisibleForTesting 用于单元测试验证色相环距离计算
      */
-    private fun circularDistance(a: Float, b: Float): Float {
+    fun circularDistance(a: Float, b: Float): Float {
         var d = abs(a - b) % 360f
         if (d > 180f) d = 360f - d
         return d
