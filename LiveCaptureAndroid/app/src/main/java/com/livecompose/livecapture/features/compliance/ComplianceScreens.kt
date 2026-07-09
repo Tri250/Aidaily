@@ -130,6 +130,44 @@ fun ThirdPartySDKScreen(onBack: () -> Unit) {
     }
 }
 
+/**
+ * 个人信息收集清单页面
+ * 符合《个人信息保护法》要求，公示应用收集的个人信息类型和目的
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PersonalInfoScreen(onBack: () -> Unit) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("个人信息收集清单", color = Color.White, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DesignSystem.Colors.gray1())
+            )
+        },
+        containerColor = DesignSystem.Colors.gray1()
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp)
+        ) {
+            Text(
+                text = buildPersonalInfoText(),
+                color = DesignSystem.Colors.minimalLabel,
+                fontSize = 14.sp,
+                lineHeight = 22.sp
+            )
+        }
+    }
+}
+
 private fun buildAgreementText(): String = """
 用户服务协议
 
@@ -333,4 +371,92 @@ private fun buildSDKListText(): String = """
 3. Bugly仅在应用崩溃时上报必要信息，可在设置中查看。
 4. 微信SDK仅在用户主动分享时使用。
 5. 本应用不集成任何广告SDK、用户画像SDK、数据统计SDK。
+""".trimIndent()
+
+private fun buildPersonalInfoText(): String = """
+个人信息收集清单
+
+根据《个人信息保护法》及相关法规要求，现将本应用收集的个人信息类型、目的及方式公示如下：
+
+一、必要权限信息
+
+1. 相机权限
+- 信息类型：相机传感器数据（实时视频流）
+- 收集目的：实现拍照、视频录制等核心功能
+- 收集方式：仅在用户主动使用拍摄功能时获取
+- 存储方式：不存储原始视频流，仅在拍摄瞬间捕获单帧图像
+- 是否上传：否，所有处理均在本地
+
+2. 存储权限
+- 信息类型：照片/视频文件
+- 收集目的：保存拍摄的照片和视频到设备相册
+- 收集方式：用户主动触发保存操作
+- 存储方式：存储在设备本地存储中
+- 是否上传：否
+
+3. 麦克风权限（可选）
+- 信息类型：音频数据
+- 收集目的：视频录制时同步录制音频
+- 收集方式：仅在用户主动使用视频录制功能时获取
+- 存储方式：嵌入视频文件中，存储在设备本地
+- 是否上传：否
+
+4. 位置权限（可选）
+- 信息类型：GPS位置信息
+- 收集目的：照片地理标记（EXIF GPS）
+- 收集方式：仅在用户授权后在拍摄时获取
+- 存储方式：写入照片EXIF元数据中
+- 是否上传：否
+
+二、设备信息（Bugly SDK）
+
+1. 设备标识信息
+- 信息类型：Android ID
+- 收集目的：崩溃上报时的设备标识，用于问题排查
+- 收集方式：应用崩溃时自动采集
+- 收集方：腾讯Bugly（com.tencent.bugly）
+- 是否上传：是，仅在崩溃时上传至Bugly服务器
+
+2. 应用运行日志
+- 信息类型：崩溃堆栈信息、应用运行日志
+- 收集目的：异常问题定位和分析
+- 收集方式：应用崩溃时自动采集
+- 收集方：腾讯Bugly
+- 是否上传：是，仅在崩溃时上传
+
+三、第三方分享（微信SDK）
+
+1. 设备标识信息
+- 信息类型：设备标识
+- 收集目的：微信分享功能必需
+- 收集方式：用户主动触发分享时采集
+- 收集方：腾讯微信（com.tencent.mm.opensdk）
+- 是否上传：是，分享时使用微信服务
+
+四、不收集的信息
+
+本应用明确不收集以下信息：
+1. 不收集任何个人身份信息（姓名、手机号、身份证号等）
+2. 不收集用户位置轨迹和行为日志
+3. 不收集用户的通讯录、短信、通话记录
+4. 不收集用户在其他应用中的使用数据
+5. 不进行用户画像分析和个性化推荐
+6. 不使用任何广告SDK
+7. 照片内容完全在本地处理，不上传至任何服务器
+
+五、用户权利
+
+根据《个人信息保护法》，您享有以下权利：
+1. 知情权：了解我们收集哪些信息（即本清单所公示内容）
+2. 查阅权：查看我们收集的您的个人信息
+3. 更正权：更正不准确的个人信息
+4. 删除权：删除您的个人信息（卸载应用即可清除所有本地数据）
+5. 撤回同意权：随时撤回对权限的授权（系统设置中操作）
+6. 注销权：卸载应用即视为注销，不再收集任何信息
+
+六、联系我们
+
+如对本清单有任何疑问，可通过以下方式联系我们：
+- 邮箱：privacy@livecapture.cn
+- 客服电话：400-000-0000
 """.trimIndent()

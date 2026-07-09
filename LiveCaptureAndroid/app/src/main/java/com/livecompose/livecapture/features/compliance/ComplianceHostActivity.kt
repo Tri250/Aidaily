@@ -27,6 +27,7 @@ class ComplianceHostActivity : ComponentActivity() {
                     "privacy" -> PrivacyPolicyScreen(onBack = { finish() })
                     "agreement" -> UserAgreementScreen(onBack = { finish() })
                     "sdk_list" -> ThirdPartySDKScreen(onBack = { finish() })
+                    "personal_info" -> PersonalInfoScreen(onBack = { finish() })
                     "youth_mode" -> YouthModeScreen(
                         manager = appContainer.youthModeManager,
                         onBack = { finish() }

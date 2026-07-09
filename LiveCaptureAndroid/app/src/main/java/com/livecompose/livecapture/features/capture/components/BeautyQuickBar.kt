@@ -46,8 +46,8 @@ data class BeautyQuickParams(
     val enlargeEye: Float = 0.2f    // 大眼 0-1
 )
 
-/** 暖金色 - 美颜开关激活状态 */
-private val AccentWarm = Color(0xFFD4A76A)
+/** 暖金色 - 美颜开关激活状态，使用 DesignSystem 统一色板 */
+private val AccentWarm get() = DesignSystem.Colors.accentWarm
 
 /**
  * 预设 → 快调参数映射

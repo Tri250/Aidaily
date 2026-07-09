@@ -572,10 +572,10 @@ private fun AIQualityAssessmentCard(bitmap: Bitmap, context: android.content.Con
                 Text(
                     "${quality.overallScore.roundToInt()}分",
                     color = when (quality.qualityGrade) {
-                        QualityGrade.EXCELLENT -> Color(0xFF4CAF50)
-                        QualityGrade.GOOD -> Color(0xFF8BC34A)
-                        QualityGrade.FAIR -> Color(0xFFFFC107)
-                        QualityGrade.POOR -> Color(0xFFF44336)
+                        QualityGrade.EXCELLENT -> DesignSystem.Colors.success
+                        QualityGrade.GOOD -> DesignSystem.Colors.success
+                        QualityGrade.FAIR -> DesignSystem.Colors.warning
+                        QualityGrade.POOR -> DesignSystem.Colors.error
                     },
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
@@ -583,7 +583,7 @@ private fun AIQualityAssessmentCard(bitmap: Bitmap, context: android.content.Con
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     quality.qualityGrade.displayName,
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = DesignSystem.Colors.minimalSecondaryLabel,
                     fontSize = 12.sp
                 )
             }
@@ -601,7 +601,7 @@ private fun AIQualityAssessmentCard(bitmap: Bitmap, context: android.content.Con
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     "AI 构图分析",
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = DesignSystem.Colors.minimalLabel,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -627,7 +627,7 @@ private fun AIQualityAssessmentCard(bitmap: Bitmap, context: android.content.Con
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     "AI 增强建议",
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = DesignSystem.Colors.minimalLabel,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -654,7 +654,7 @@ private fun QualityBar(label: String, score: Float) {
     ) {
         Text(
             label,
-            color = Color.White.copy(alpha = 0.6f),
+            color = DesignSystem.Colors.minimalSecondaryLabel,
             fontSize = 11.sp,
             modifier = Modifier.width(32.dp)
         )
@@ -663,7 +663,7 @@ private fun QualityBar(label: String, score: Float) {
                 .weight(1f)
                 .height(6.dp)
                 .clip(RoundedCornerShape(3.dp))
-                .background(Color.White.copy(alpha = 0.1f))
+                .background(DesignSystem.Colors.minimalOverlay)
         ) {
             Box(
                 modifier = Modifier
@@ -672,9 +672,9 @@ private fun QualityBar(label: String, score: Float) {
                     .clip(RoundedCornerShape(3.dp))
                     .background(
                         when {
-                            score >= 80 -> Color(0xFF4CAF50)
-                            score >= 60 -> Color(0xFFFFC107)
-                            else -> Color(0xFFF44336)
+                            score >= 80 -> DesignSystem.Colors.success
+                            score >= 60 -> DesignSystem.Colors.warning
+                            else -> DesignSystem.Colors.error
                         }
                     )
             )
@@ -682,7 +682,7 @@ private fun QualityBar(label: String, score: Float) {
         Spacer(modifier = Modifier.width(4.dp))
         Text(
             "${score.toInt()}",
-            color = Color.White.copy(alpha = 0.5f),
+            color = DesignSystem.Colors.minimalSecondaryLabel,
             fontSize = 10.sp
         )
     }

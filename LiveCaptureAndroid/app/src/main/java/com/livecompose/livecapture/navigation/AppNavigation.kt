@@ -21,6 +21,9 @@ import com.livecompose.livecapture.features.gallery.VignetteEditorScreen
 import com.livecompose.livecapture.features.community.CommunityScreen
 import com.livecompose.livecapture.features.compliance.YouthModeScreen
 import com.livecompose.livecapture.features.compliance.IcpFilingScreen
+import com.livecompose.livecapture.features.compliance.PrivacyPolicyScreen
+import com.livecompose.livecapture.features.compliance.UserAgreementScreen
+import com.livecompose.livecapture.features.onboarding.ShootingGuideScreen
 
 /**
  * 应用主导航 - 单屏拍摄为核心，设置/图库集成到拍摄页面
@@ -39,7 +42,12 @@ fun AppNavigation() {
             onBack = {},
             onNavigateToPhotoDetail = { photoId ->
                 navController.navigate("photo_detail/$photoId")
-            }
+            },
+            onNavigateToShootingGuide = { navController.navigate("shooting_guide") },
+            onNavigateToPrivacy = { navController.navigate("privacy") },
+            onNavigateToAgreement = { navController.navigate("agreement") },
+            onNavigateToCommunity = { navController.navigate("community") },
+            onNavigateToIcp = { navController.navigate("icp_filing") }
         )
 
         // 导航覆盖层（照片详情/编辑/社区/合规等页面）
@@ -136,6 +144,24 @@ fun AppNavigation() {
 
             composable("icp_filing") {
                 IcpFilingScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable("shooting_guide") {
+                ShootingGuideScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable("privacy") {
+                PrivacyPolicyScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable("agreement") {
+                UserAgreementScreen(
                     onBack = { navController.popBackStack() }
                 )
             }

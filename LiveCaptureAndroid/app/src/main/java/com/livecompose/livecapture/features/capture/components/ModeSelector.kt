@@ -67,7 +67,7 @@ private val CaptureMode.accentColor: Color
         CaptureMode.VIDEO -> DesignSystem.Colors.error
         CaptureMode.PORTRAIT -> DesignSystem.Colors.accent
         CaptureMode.PRO -> DesignSystem.Colors.info
-        CaptureMode.NIGHT -> Color(0xFF6B5BA5)
+        CaptureMode.NIGHT -> DesignSystem.Colors.secondary
         CaptureMode.MORE -> DesignSystem.Colors.secondary
     }
 

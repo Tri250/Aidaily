@@ -60,6 +60,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import com.livecompose.livecapture.utilities.HapticManager
+import com.livecompose.livecapture.features.profile.ProfileScreen
 
 /**
  * 2026旗舰影像主拍摄界面 - 纯黑沉浸式设计
@@ -71,6 +72,11 @@ import com.livecompose.livecapture.utilities.HapticManager
 fun CaptureScreen(
     onBack: () -> Unit,
     onNavigateToPhotoDetail: ((String) -> Unit)? = null,
+    onNavigateToShootingGuide: (() -> Unit)? = null,
+    onNavigateToPrivacy: (() -> Unit)? = null,
+    onNavigateToAgreement: (() -> Unit)? = null,
+    onNavigateToCommunity: (() -> Unit)? = null,
+    onNavigateToIcp: (() -> Unit)? = null,
     viewModel: CaptureViewModel = viewModel(),
     homeViewModel: HomeViewModel = viewModel()
 ) {
@@ -87,6 +93,7 @@ fun CaptureScreen(
     var reviewData by remember { mutableStateOf<ByteArray?>(null) }
     var showGallerySheet by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
+    var showProfileSheet by remember { mutableStateOf(false) }
 
     // === 动画状态 ===
     var captureAnimationScale by remember { mutableFloatStateOf(1f) }
@@ -457,7 +464,7 @@ fun CaptureScreen(
                     interactionCounter++
                     when (index) {
                         1 -> { showGallerySheet = true; controlsVisible = false }
-                        2 -> { showSettingsSheet = true; controlsVisible = false }
+                        2 -> { showProfileSheet = true; controlsVisible = false }
                     }
                 }
             )
@@ -528,6 +535,37 @@ fun CaptureScreen(
         if (showSettingsSheet) {
             SettingsBottomSheet2026(
                 onDismiss = { showSettingsSheet = false }
+            )
+        }
+
+        // 我的页面
+        if (showProfileSheet) {
+            ProfileSheet(
+                onDismiss = { showProfileSheet = false },
+                onNavigateToSettings = {
+                    showProfileSheet = false
+                    showSettingsSheet = true
+                },
+                onNavigateToShootingGuide = {
+                    showProfileSheet = false
+                    onNavigateToShootingGuide?.invoke()
+                },
+                onNavigateToPrivacy = {
+                    showProfileSheet = false
+                    onNavigateToPrivacy?.invoke()
+                },
+                onNavigateToAgreement = {
+                    showProfileSheet = false
+                    onNavigateToAgreement?.invoke()
+                },
+                onNavigateToCommunity = {
+                    showProfileSheet = false
+                    onNavigateToCommunity?.invoke()
+                },
+                onNavigateToIcp = {
+                    showProfileSheet = false
+                    onNavigateToIcp?.invoke()
+                }
             )
         }
 
@@ -1662,7 +1700,7 @@ private fun SettingsBottomSheet2026(onDismiss: () -> Unit) {
 
             SettingsSectionHeader("关于", Icons.Default.Info)
             SettingsCard {
-                SettingsRow("版本信息", "构妙 LiveCapture v1.1.3", Icons.Default.Info)
+                SettingsRow("版本信息", "构妙 LiveCapture v1.1.6", Icons.Default.Info)
                 SettingsDivider()
                 SettingsClickRow("ICP备案号", "待备案", Icons.Default.VerifiedUser) {
                     val intent = android.content.Intent(context, com.livecompose.livecapture.features.compliance.ComplianceHostActivity::class.java).apply {
@@ -1803,4 +1841,49 @@ private fun presetParamsFor(preset: BeautyPreset): BeautyQuickParams = when (pre
     BeautyPreset.VIBRANT -> BeautyQuickParams(smoothing = 0.4f, whitening = 0.3f, slimFace = 0.25f, enlargeEye = 0.3f)
     BeautyPreset.PREMIUM -> BeautyQuickParams(smoothing = 0.3f, whitening = 0.15f, slimFace = 0.15f, enlargeEye = 0.1f)
     BeautyPreset.CUSTOM -> BeautyQuickParams()
+}
+
+// ====== ProfileSheet 我的页面浮层 ======
+
+@Composable
+private fun ProfileSheet(
+    onDismiss: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToShootingGuide: () -> Unit,
+    onNavigateToPrivacy: () -> Unit,
+    onNavigateToAgreement: () -> Unit,
+    onNavigateToCommunity: () -> Unit,
+    onNavigateToIcp: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DesignSystem.Colors.backgroundPrimary())
+            .systemBarsPadding()
+    ) {
+        // 关闭按钮
+        IconButton(
+            onClick = onDismiss,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(DesignSystem.Spacing.small)
+                .statusBarsPadding()
+        ) {
+            Icon(
+                Icons.Filled.Close,
+                contentDescription = "关闭",
+                tint = DesignSystem.Colors.textPrimary()
+            )
+        }
+
+        ProfileScreen(
+            onNavigateToSettings = onNavigateToSettings,
+            onNavigateToShootingGuide = onNavigateToShootingGuide,
+            onNavigateToPrivacy = onNavigateToPrivacy,
+            onNavigateToAgreement = onNavigateToAgreement,
+            onNavigateToCommunity = onNavigateToCommunity,
+            onNavigateToIcp = onNavigateToIcp,
+            modifier = Modifier.fillMaxSize()
+        )
+    }
 }

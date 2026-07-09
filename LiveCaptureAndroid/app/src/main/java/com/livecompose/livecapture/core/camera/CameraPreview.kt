@@ -96,6 +96,10 @@ fun CameraPreview(
  *
  * 相机传感器通常为 4:3 (1.333) 或 16:9 (1.778)
  * 需要根据屏幕比例进行裁剪/填充适配
+ *
+ * 修复：使用 FIT_CENTER 策略替代 CENTER_CROP
+ * CENTER_CROP 会将 4:3 传感器强行拉伸到 20:9 屏幕，导致取景框变形
+ * FIT_CENTER 保持传感器原始比例，上下留黑边，确保画面不变形
  */
 private fun configurePreviewSize(
     textureView: TextureView,
@@ -103,23 +107,23 @@ private fun configurePreviewSize(
     surfaceHeight: Int,
     screenAspect: Float
 ) {
-    // 相机传感器通常为 4:3，需要裁剪为屏幕比例
-    // 使用 CENTER_CROP 策略确保预览填满屏幕
     val surfaceAspect = if (surfaceHeight > 0) surfaceWidth.toFloat() / surfaceHeight else screenAspect
 
     val layoutParams = textureView.layoutParams as? ViewGroup.LayoutParams ?: return
 
-    // 计算填充尺寸：确保预览完全覆盖屏幕（裁剪传感器边缘）
+    // 使用 FIT_CENTER 策略：保持传感器原始比例，画面不变形
+    // 传感器 4:3 (1.333) 在 20:9 (2.222) 屏幕上：宽度填满，高度按比例缩放
     if (surfaceAspect > screenAspect) {
-        // Surface 比屏幕更宽 → 按高度填充，宽度裁剪
-        layoutParams.width = (surfaceHeight * screenAspect).toInt()
+        // Surface 比屏幕更宽 → 按高度适配，宽度按比例缩放
         layoutParams.height = surfaceHeight
+        layoutParams.width = (surfaceHeight * surfaceAspect).toInt()
     } else {
-        // Surface 比屏幕更高 → 按宽度填充，高度裁剪
+        // Surface 比屏幕更高（4:3 传感器在 20:9 屏幕上的情况）
+        // 按宽度填充，高度按传感器比例缩放，保持画面不变形
         layoutParams.width = surfaceWidth
-        layoutParams.height = (surfaceWidth / screenAspect).toInt()
+        layoutParams.height = (surfaceWidth / surfaceAspect).toInt()
     }
 
     textureView.layoutParams = layoutParams
-    AppLogger.i("CameraPreview", "预览尺寸调整: ${layoutParams.width}x${layoutParams.height}")
+    AppLogger.i("CameraPreview", "预览尺寸调整: ${layoutParams.width}x${layoutParams.height} (屏幕: ${surfaceWidth}x${surfaceHeight}, 比例: $screenAspect)")
 }

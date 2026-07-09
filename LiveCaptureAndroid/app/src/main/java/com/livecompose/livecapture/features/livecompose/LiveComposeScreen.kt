@@ -390,7 +390,7 @@ private fun PresetCard(
  */
 private fun generatePresetTint(preset: LutPreset): androidx.compose.ui.graphics.Color {
     if (preset.id == "original") {
-        return androidx.compose.ui.graphics.Color(0xFF8C8C8C)
+        return DesignSystem.Colors.minimalSecondaryLabel
     }
     // 根据色温、饱和度、对比度推算代表色
     val warmthShift = preset.warmth.coerceIn(-100f, 100f) / 100f
