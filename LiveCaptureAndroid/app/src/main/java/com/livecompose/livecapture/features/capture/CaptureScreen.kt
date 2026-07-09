@@ -290,8 +290,9 @@ fun CaptureScreen(
                 captureAnimationScale = 1f
             }
         }
+        // 主动请求相机权限
         if (!camera.hasCameraPermission()) {
-            cameraError = CameraErrorType.PERMISSION_DENIED
+            permissionLauncher.launch(android.Manifest.permission.CAMERA)
         }
     }
 
@@ -907,8 +908,12 @@ fun CaptureScreen(
                 errorType = error,
                 onRetry = {
                     cameraError = null
-                    if (camera.hasCameraPermission()) camera.openCamera()
-                    else permissionLauncher.launch(android.Manifest.permission.CAMERA)
+                    if (camera.hasCameraPermission()) {
+                        camera.openCamera()
+                    } else {
+                        // 重新请求权限
+                        permissionLauncher.launch(android.Manifest.permission.CAMERA)
+                    }
                 },
                 onGoToSettings = {
                     context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -1932,7 +1937,7 @@ private fun GalleryFullSheet2026(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DesignSystem.Colors.backgroundPrimary())
+            .background(DesignSystem.Colors.minimalBackground)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
@@ -1942,7 +1947,7 @@ private fun GalleryFullSheet2026(
                     .padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("图库", style = DesignSystem.Typography.largeTitle, color = DesignSystem.Colors.textPrimary())
+                Text("图库", style = DesignSystem.Typography.largeTitle, color = DesignSystem.Colors.minimalLabel)
                 Spacer(modifier = Modifier.weight(1f))
                 if (isSelectionMode) {
                     TextButton(onClick = {
@@ -1953,7 +1958,7 @@ private fun GalleryFullSheet2026(
                     TextButton(onClick = {
                         isSelectionMode = false
                         selectedIds = emptySet()
-                    }) { Text("取消", color = DesignSystem.Colors.textPrimary()) }
+                    }) { Text("取消", color = DesignSystem.Colors.minimalLabelSecondary) }
                 }
                 TextButton(onClick = onDismiss) { Text("关闭", color = DesignSystem.Colors.primary) }
             }
@@ -1964,10 +1969,10 @@ private fun GalleryFullSheet2026(
                         Icon(
                             Icons.Default.PhotoLibrary, null,
                             modifier = Modifier.size(64.dp),
-                            tint = DesignSystem.Colors.textTertiary()
+                            tint = DesignSystem.Colors.minimalLabelTertiary
                         )
                         Spacer(Modifier.height(16.dp))
-                        Text("暂无照片", color = DesignSystem.Colors.textSecondary(), style = DesignSystem.Typography.title2)
+                        Text("暂无照片", color = DesignSystem.Colors.minimalLabelSecondary, style = DesignSystem.Typography.title2)
                     }
                 }
             } else {
@@ -2010,8 +2015,8 @@ private fun GalleryFullSheet2026(
                                     contentScale = ContentScale.Crop
                                 )
                             } else {
-                                Box(Modifier.fillMaxSize().background(DesignSystem.Colors.gray2()), contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.Image, null, tint = DesignSystem.Colors.textTertiary())
+                                Box(Modifier.fillMaxSize().background(DesignSystem.Colors.minimalElevated), contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Default.Image, null, tint = DesignSystem.Colors.minimalLabelTertiary)
                                 }
                             }
                             if (isSelectionMode) {
@@ -2020,7 +2025,7 @@ private fun GalleryFullSheet2026(
                                     if (record.id in selectedIds) Icons.Default.CheckCircle else Icons.Default.Circle,
                                     null,
                                     tint = if (record.id in selectedIds) DesignSystem.Colors.primary
-                                    else DesignSystem.Colors.minimalSecondaryLabel,
+                                    else DesignSystem.Colors.minimalLabelTertiary,
                                     modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(22.dp)
                                 )
                             }
@@ -2072,7 +2077,7 @@ private fun SettingsBottomSheet2026(
                 .fillMaxHeight(0.75f)
                 .align(Alignment.BottomCenter)
                 .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                .background(DesignSystem.Colors.backgroundPrimary())
+                .background(DesignSystem.Colors.minimalElevated)
                 .clickable(enabled = false, onClick = {})
                 .verticalScroll(androidx.compose.foundation.rememberScrollState())
         ) {
@@ -2087,7 +2092,7 @@ private fun SettingsBottomSheet2026(
                         .width(36.dp)
                         .height(4.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(DesignSystem.Colors.gray4())
+                        .background(DesignSystem.Colors.minimalLabelTertiary)
                 )
             }
 
@@ -2097,7 +2102,7 @@ private fun SettingsBottomSheet2026(
                     .padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("设置", style = DesignSystem.Typography.largeTitle, color = DesignSystem.Colors.textPrimary())
+                Text("设置", style = DesignSystem.Typography.largeTitle, color = DesignSystem.Colors.minimalLabel)
                 Spacer(Modifier.weight(1f))
                 TextButton(onClick = onDismiss) { Text("完成", color = DesignSystem.Colors.primary) }
             }
@@ -2215,7 +2220,7 @@ private fun SettingsBottomSheet2026(
 
             SettingsSectionHeader("关于", Icons.Default.Info)
             SettingsCard {
-                SettingsRow("版本信息", "构妙 LiveCapture v1.1.6", Icons.Default.Info)
+                SettingsRow("版本信息", "构妙 LiveCapture v1.1.7", Icons.Default.Info)
                 SettingsDivider()
                 SettingsClickRow("ICP备案号", "待备案", Icons.Default.VerifiedUser) {
                     val intent = android.content.Intent(context, com.livecompose.livecapture.features.compliance.ComplianceHostActivity::class.java).apply {
@@ -2241,7 +2246,7 @@ private fun SettingsSectionHeader(title: String, icon: ImageVector) {
     ) {
         Icon(icon, null, tint = DesignSystem.Colors.primary, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
-        Text(title, style = DesignSystem.Typography.title3, color = DesignSystem.Colors.textPrimary(), fontWeight = FontWeight.SemiBold)
+        Text(title, style = DesignSystem.Typography.title3, color = DesignSystem.Colors.minimalLabel, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -2263,8 +2268,8 @@ private fun SettingsRow(title: String, subtitle: String, icon: ImageVector, trai
         Icon(icon, null, tint = DesignSystem.Colors.primary, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
-            Text(subtitle, style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
+            Text(title, style = DesignSystem.Typography.headline, color = DesignSystem.Colors.minimalLabel)
+            Text(subtitle, style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.minimalLabelTertiary)
         }
         trailing()
     }
@@ -2276,8 +2281,8 @@ private fun SettingsSwitchRow(title: String, subtitle: String, icon: ImageVector
         Icon(icon, null, tint = DesignSystem.Colors.primary, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
-            Text(subtitle, style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
+            Text(title, style = DesignSystem.Typography.headline, color = DesignSystem.Colors.minimalLabel)
+            Text(subtitle, style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.minimalLabelTertiary)
         }
         Switch(
             checked = checked,
@@ -2305,16 +2310,16 @@ private fun SettingsClickRow(title: String, subtitle: String, icon: ImageVector,
         Icon(icon, null, tint = DesignSystem.Colors.primary, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary())
-            Text(subtitle, style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.textTertiary())
+            Text(title, style = DesignSystem.Typography.headline, color = DesignSystem.Colors.minimalLabel)
+            Text(subtitle, style = DesignSystem.Typography.caption1, color = DesignSystem.Colors.minimalLabelTertiary)
         }
-        Icon(Icons.Default.ChevronRight, null, tint = DesignSystem.Colors.textTertiary())
+        Icon(Icons.Default.ChevronRight, null, tint = DesignSystem.Colors.minimalLabelTertiary)
     }
 }
 
 @Composable
 private fun SettingsDivider() {
-    HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp), color = DesignSystem.Colors.gray3(), thickness = 0.5.dp)
+    HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp), color = DesignSystem.Colors.minimalBorder, thickness = 0.5.dp)
 }
 
 @Composable
@@ -2335,8 +2340,8 @@ private fun ComplianceItem(title: String, icon: ImageVector, page: String) {
     ) {
         Icon(icon, null, tint = DesignSystem.Colors.primary, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(12.dp))
-        Text(title, style = DesignSystem.Typography.headline, color = DesignSystem.Colors.textPrimary(), modifier = Modifier.weight(1f))
-        Icon(Icons.Default.ChevronRight, null, tint = DesignSystem.Colors.textTertiary())
+        Text(title, style = DesignSystem.Typography.headline, color = DesignSystem.Colors.minimalLabel, modifier = Modifier.weight(1f))
+        Icon(Icons.Default.ChevronRight, null, tint = DesignSystem.Colors.minimalLabelTertiary)
     }
 }
 
@@ -2625,7 +2630,7 @@ private fun ProfileSheet(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DesignSystem.Colors.backgroundPrimary())
+            .background(DesignSystem.Colors.minimalBackground)
             .systemBarsPadding()
     ) {
         // 关闭按钮
@@ -2639,7 +2644,7 @@ private fun ProfileSheet(
             Icon(
                 Icons.Filled.Close,
                 contentDescription = "关闭",
-                tint = DesignSystem.Colors.textPrimary()
+                tint = DesignSystem.Colors.minimalLabel
             )
         }
 

@@ -131,7 +131,7 @@ fun ProfileScreen(
                     color = DesignSystem.Colors.textPrimary()
                 )
                 Text(
-                    "v1.1.6",
+                    "v1.1.7",
                     style = DesignSystem.Typography.callout,
                     color = DesignSystem.Colors.textTertiary()
                 )

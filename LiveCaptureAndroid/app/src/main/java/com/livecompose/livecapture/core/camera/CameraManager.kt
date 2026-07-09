@@ -134,61 +134,89 @@ class CameraManager(private val context: Context) {
         this.cameraId = cameraId
         this.isFrontCamera = cameraId == "1"
         _cameraError.value = null
-        try {
-            closeCamera()
-            systemCameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
-                override fun onOpened(device: CameraDevice) {
-                    cameraDevice = device
-                    _isCameraOpened.value = true
-                    _cameraError.value = null
-                    cameraCharacteristics = try {
-                        systemCameraManager.getCameraCharacteristics(cameraId)
-                    } catch (e: Exception) {
-                        AppLogger.e(TAG, "获取相机特性失败", e)
-                        null
-                    }
-                    configureZoomCapabilities()
-                    createCameraPreviewSession()
-                }
 
-                override fun onDisconnected(device: CameraDevice) {
-                    AppLogger.w(TAG, "相机断开连接")
-                    _cameraError.value = CameraErrorType.CAMERA_DISCONNECTED
-                    _isCameraOpened.value = false
-                    device.close()
-                    cameraDevice = null
-                }
+        // 先完全关闭旧相机，确保资源释放
+        closeCamera()
 
-                override fun onError(device: CameraDevice, error: Int) {
-                    AppLogger.e(TAG, "相机打开失败, 错误码: $error")
-                    _cameraError.value = when (error) {
-                        CameraDevice.StateCallback.ERROR_CAMERA_IN_USE -> CameraErrorType.CAMERA_IN_USE
-                        CameraDevice.StateCallback.ERROR_CAMERA_DISABLED -> CameraErrorType.CAMERA_DISCONNECTED
-                        CameraDevice.StateCallback.ERROR_CAMERA_DEVICE -> CameraErrorType.NO_CAMERA_HARDWARE
-                        else -> CameraErrorType.UNKNOWN
+        // 短暂延迟确保旧资源释放完毕，避免 CAMERA_IN_USE 错误
+        backgroundHandler.postDelayed({
+            try {
+                systemCameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
+                    override fun onOpened(device: CameraDevice) {
+                        cameraDevice = device
+                        _isCameraOpened.value = true
+                        _cameraError.value = null
+                        cameraCharacteristics = try {
+                            systemCameraManager.getCameraCharacteristics(cameraId)
+                        } catch (e: Exception) {
+                            AppLogger.e(TAG, "获取相机特性失败", e)
+                            null
+                        }
+                        configureZoomCapabilities()
+                        createCameraPreviewSession()
                     }
-                    _isCameraOpened.value = false
-                    device.close()
-                    cameraDevice = null
-                }
-            }, backgroundHandler)
-        } catch (e: SecurityException) {
-            AppLogger.e(TAG, "相机权限不足", e)
-            _cameraError.value = CameraErrorType.PERMISSION_DENIED
-        } catch (e: Exception) {
-            AppLogger.e(TAG, "相机打开异常", e)
-            _cameraError.value = CameraErrorType.UNKNOWN
-        }
+
+                    override fun onDisconnected(device: CameraDevice) {
+                        AppLogger.w(TAG, "相机断开连接")
+                        _cameraError.value = CameraErrorType.CAMERA_DISCONNECTED
+                        _isCameraOpened.value = false
+                        device.close()
+                        cameraDevice = null
+                    }
+
+                    override fun onError(device: CameraDevice, error: Int) {
+                        AppLogger.e(TAG, "相机打开失败, 错误码: $error")
+                        _cameraError.value = when (error) {
+                            CameraDevice.StateCallback.ERROR_CAMERA_IN_USE -> CameraErrorType.CAMERA_IN_USE
+                            CameraDevice.StateCallback.ERROR_CAMERA_DISABLED -> CameraErrorType.CAMERA_DISCONNECTED
+                            CameraDevice.StateCallback.ERROR_CAMERA_DEVICE -> CameraErrorType.NO_CAMERA_HARDWARE
+                            CameraDevice.StateCallback.ERROR_MAX_CAMERAS_IN_USE -> CameraErrorType.CAMERA_IN_USE
+                            else -> CameraErrorType.UNKNOWN
+                        }
+                        _isCameraOpened.value = false
+                        device.close()
+                        cameraDevice = null
+                    }
+
+                    override fun onClosed(device: CameraDevice) {
+                        super.onClosed(device)
+                        AppLogger.i(TAG, "相机设备已关闭")
+                        cameraDevice = null
+                        _isCameraOpened.value = false
+                    }
+                }, backgroundHandler)
+            } catch (e: SecurityException) {
+                AppLogger.e(TAG, "相机权限不足", e)
+                _cameraError.value = CameraErrorType.PERMISSION_DENIED
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "相机打开异常", e)
+                _cameraError.value = CameraErrorType.UNKNOWN
+            }
+        }, 200)
     }
 
     fun closeCamera() {
         shouldBeRunning = false
-        captureSession?.close()
+        try {
+            captureSession?.close()
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "关闭 captureSession 异常", e)
+        }
         captureSession = null
-        cameraDevice?.close()
+        try {
+            cameraDevice?.close()
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "关闭 cameraDevice 异常", e)
+        }
         cameraDevice = null
-        imageReader?.close()
+        try {
+            imageReader?.close()
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "关闭 imageReader 异常", e)
+        }
         imageReader = null
+        captureRequestBuilder = null
+        previewSurface = null
         _isSessionRunning.value = false
         _isCameraOpened.value = false
         _cameraError.value = null
@@ -196,10 +224,14 @@ class CameraManager(private val context: Context) {
 
     /**
      * 设置预览 Surface
+     * 当 TextureView 可用时调用，若相机已打开则立即创建预览会话
      */
     fun setPreviewSurface(surface: Surface) {
         previewSurface = surface
-        cameraDevice?.let { createCameraPreviewSession() }
+        if (cameraDevice != null && captureSession == null) {
+            // 相机已打开但会话尚未建立，立即创建预览会话
+            createCameraPreviewSession()
+        }
     }
 
     /**

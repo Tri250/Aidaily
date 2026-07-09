@@ -67,7 +67,9 @@ fun CameraPreview(
 
                     override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
                         AppLogger.i("CameraPreview", "Surface 销毁")
-                        return true
+                        // 返回 false 表示由我们自行管理 SurfaceTexture 的生命周期
+                        // 避免系统回收后重新进入时 SurfaceTexture 不可用
+                        return false
                     }
 
                     override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
@@ -80,6 +82,14 @@ fun CameraPreview(
                 view.scaleX = -1f
             } else {
                 view.scaleX = 1f
+            }
+            // 当 view 被重新附加时，如果 SurfaceTexture 已存在，重新设置预览
+            if (view.isAvailable) {
+                val surfaceTexture = view.surfaceTexture
+                if (surfaceTexture != null) {
+                    val surface = Surface(surfaceTexture)
+                    cameraManager.setPreviewSurface(surface)
+                }
             }
         }
     )
