@@ -134,12 +134,15 @@ class CrashHandler private constructor(private val context: Context) :
 
     /**
      * 检查上次是否崩溃
+     * 使用带超时的 runBlocking 防止 ANR（应用启动期间在主线程调用）
      */
     fun wasLastSessionCrashed(): Boolean {
         return try {
             runBlocking {
-                val preferences = store.data.first()
-                preferences[CRASH_OCCURRED_KEY] ?: false
+                withTimeoutOrNull(2000L) {
+                    val preferences = store.data.first()
+                    preferences[CRASH_OCCURRED_KEY] ?: false
+                } ?: false
             }
         } catch (e: Exception) {
             false
@@ -148,21 +151,24 @@ class CrashHandler private constructor(private val context: Context) :
 
     /**
      * 获取上次崩溃信息
+     * 使用带超时的 runBlocking 防止 ANR（应用启动期间在主线程调用）
      */
     fun getLastCrashInfo(): CrashInfo? {
         return try {
             runBlocking {
-                val preferences = store.data.first()
-                val occurred = preferences[CRASH_OCCURRED_KEY] ?: false
-                if (!occurred) return@runBlocking null
+                withTimeoutOrNull(2000L) {
+                    val preferences = store.data.first()
+                    val occurred = preferences[CRASH_OCCURRED_KEY] ?: false
+                    if (!occurred) return@withTimeoutOrNull null
 
-                CrashInfo(
-                    timestamp = preferences[CRASH_TIMESTAMP_KEY] ?: 0L,
-                    exceptionMessage = preferences[CRASH_MESSAGE_KEY] ?: "Unknown",
-                    stackTrace = preferences[CRASH_STACK_KEY] ?: "",
-                    threadName = preferences[CRASH_THREAD_KEY] ?: "unknown",
-                    deviceInfo = preferences[CRASH_DEVICE_KEY] ?: "unknown"
-                )
+                    CrashInfo(
+                        timestamp = preferences[CRASH_TIMESTAMP_KEY] ?: 0L,
+                        exceptionMessage = preferences[CRASH_MESSAGE_KEY] ?: "Unknown",
+                        stackTrace = preferences[CRASH_STACK_KEY] ?: "",
+                        threadName = preferences[CRASH_THREAD_KEY] ?: "unknown",
+                        deviceInfo = preferences[CRASH_DEVICE_KEY] ?: "unknown"
+                    )
+                }
             }
         } catch (e: Exception) {
             null
@@ -171,17 +177,20 @@ class CrashHandler private constructor(private val context: Context) :
 
     /**
      * 清除崩溃状态
+     * 使用带超时的 runBlocking 防止 ANR（应用启动期间在主线程调用）
      */
     fun clearCrashState() {
         try {
             runBlocking {
-                store.edit { preferences ->
-                    preferences.remove(CRASH_OCCURRED_KEY)
-                    preferences.remove(CRASH_TIMESTAMP_KEY)
-                    preferences.remove(CRASH_MESSAGE_KEY)
-                    preferences.remove(CRASH_STACK_KEY)
-                    preferences.remove(CRASH_THREAD_KEY)
-                    preferences.remove(CRASH_DEVICE_KEY)
+                withTimeoutOrNull(2000L) {
+                    store.edit { preferences ->
+                        preferences.remove(CRASH_OCCURRED_KEY)
+                        preferences.remove(CRASH_TIMESTAMP_KEY)
+                        preferences.remove(CRASH_MESSAGE_KEY)
+                        preferences.remove(CRASH_STACK_KEY)
+                        preferences.remove(CRASH_THREAD_KEY)
+                        preferences.remove(CRASH_DEVICE_KEY)
+                    }
                 }
             }
         } catch (_: Exception) {

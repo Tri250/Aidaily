@@ -29,7 +29,9 @@ android {
         buildConfigField("String", "WECHAT_APP_ID", "\"${project.findProperty("WECHAT_APP_ID") as? String ?: ""}\"")
 
         ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
+            // 仅保留 64 位 ABI：Android 15/16 16KB-page 设备仅加载 64 位 .so
+            // 移除 armeabi-v7a（32 位），因其部分 .so 为 4KB 对齐，且 Google Play 已强制 64 位
+            abiFilters += listOf("arm64-v8a", "x86_64")
         }
     }
 
@@ -130,14 +132,14 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
     implementation("androidx.camera:camera-view:$cameraxVersion")
 
-    // ML Kit
-    implementation("com.google.mlkit:face-detection:16.1.6")
-    implementation("com.google.mlkit:object-detection:17.0.1")
-    implementation("com.google.mlkit:image-labeling:17.0.7")
+    // ML Kit（升级至 16KB page 兼容版本）
+    implementation("com.google.mlkit:face-detection:16.1.7")
+    implementation("com.google.mlkit:object-detection:17.0.2")
+    implementation("com.google.mlkit:image-labeling:17.0.9")
 
-    // TensorFlow Lite
-    implementation("org.tensorflow:tensorflow-lite:2.16.1")
-    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
+    // 注：TFLite 不再直接依赖。ML Kit image-labeling 已内置 com.google.ai.edge.litert
+    // （16KB page 兼容），直接依赖 org.tensorflow:tensorflow-lite 会与 litert 产生重复类冲突。
+    // 应用代码未直接 import org.tensorflow.*，故移除直接依赖。
 
     // Gson
     implementation("com.google.code.gson:gson:2.11.0")
@@ -151,9 +153,8 @@ dependencies {
     // ExifInterface
     implementation("androidx.exifinterface:exifinterface:1.3.7")
 
-    // Bugly 崩溃上报（国内合规）
+    // Bugly 崩溃上报（国内合规）— 仅保留 Java/Kotlin 崩溃上报，移除 nativecrashreport（旧版 native 库 Android 15 兼容风险）
     implementation("com.tencent.bugly:crashreport:4.1.9.3")
-    implementation("com.tencent.bugly:nativecrashreport:3.9.1")
 
     // 微信分享 SDK
     implementation("com.tencent.mm.opensdk:wechat-sdk-android:6.8.0")
