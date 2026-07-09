@@ -150,7 +150,7 @@ fun AppNavigation() {
 
             composable("shooting_guide") {
                 ShootingGuideScreen(
-                    onBack = { navController.popBackStack() }
+                    onClose = { navController.popBackStack() }
                 )
             }
 

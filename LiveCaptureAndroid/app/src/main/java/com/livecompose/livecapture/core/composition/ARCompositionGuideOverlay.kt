@@ -304,7 +304,18 @@ private fun DrawScope.drawBadge(
 ) {
     if (width <= 0f || height <= 0f) return
     val cornerRadius = min(10.dp.toPx(), height / 4f)
-    val gradeColor = Color(score.grade.color)
+    val scoreValue = score.overall
+    val gradeColor = when {
+        scoreValue >= 80 -> Color(0xFF4CAF50)
+        scoreValue >= 60 -> Color(0xFFFFC107)
+        else -> Color(0xFFF44336)
+    }
+    val gradeName = when {
+        scoreValue >= 90 -> "优秀"
+        scoreValue >= 80 -> "良好"
+        scoreValue >= 60 -> "一般"
+        else -> "待改进"
+    }
 
     // 半透明黑色背景
     drawRoundRect(
@@ -346,6 +357,6 @@ private fun DrawScope.drawBadge(
             textAlign = android.graphics.Paint.Align.CENTER
         }
         val gradeBaseline = y + height * 0.85f
-        nativeCanvas.drawText(score.grade.displayName, x + width / 2f, gradeBaseline, gradePaint)
+        nativeCanvas.drawText(gradeName, x + width / 2f, gradeBaseline, gradePaint)
     }
 }

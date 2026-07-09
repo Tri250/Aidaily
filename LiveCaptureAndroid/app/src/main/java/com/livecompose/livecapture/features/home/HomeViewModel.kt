@@ -101,4 +101,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleFlag(id: String) {
         storage.updateRecord(id) { it.copy(flag = !it.flag) }
     }
+
+    suspend fun saveProcessedBitmap(photoId: String, bitmap: Bitmap, method: String = "编辑") {
+        withContext(Dispatchers.IO) {
+            val bytes = java.io.ByteArrayOutputStream().use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                out.toByteArray()
+            }
+            storage.updatePhoto(photoId, bytes, method)
+            fullPhotoCache.remove(photoId)
+            thumbnailCache.remove(photoId)
+        }
+    }
 }

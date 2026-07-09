@@ -362,8 +362,9 @@ fun PhotoAdjustScreen(
                                         val enhanced = withContext(Dispatchers.Default) {
                                             AutoEnhancer().autoEnhance(bitmap)
                                         }
-                                        saveProcessedBitmap(context, enhanced, photoId, viewModel, onBack)
+                                        viewModel.saveProcessedBitmap(photoId, enhanced, "一键增强")
                                         Toast.makeText(context, "一键增强完成", Toast.LENGTH_SHORT).show()
+                                        onBack()
                                     } catch (e: Exception) {
                                         Toast.makeText(context, "增强失败: ${e.message}", Toast.LENGTH_SHORT).show()
                                     }
@@ -382,8 +383,9 @@ fun PhotoAdjustScreen(
                                 if (bitmap != null) {
                                     try {
                                         val dehazed = DehazeProcessor().dehaze(bitmap, strength = 60f)
-                                        saveProcessedBitmap(context, dehazed, photoId, viewModel, onBack)
+                                        viewModel.saveProcessedBitmap(photoId, dehazed, "去雾")
                                         Toast.makeText(context, "去雾处理完成", Toast.LENGTH_SHORT).show()
+                                        onBack()
                                     } catch (e: Exception) {
                                         Toast.makeText(context, "去雾失败: ${e.message}", Toast.LENGTH_SHORT).show()
                                     }
@@ -406,8 +408,9 @@ fun PhotoAdjustScreen(
                                             highlightColor = 0xFFFFCC00.toInt(),
                                             shadowColor = 0xFF0066CC.toInt()
                                         )
-                                        saveProcessedBitmap(context, toned, photoId, viewModel, onBack)
+                                        viewModel.saveProcessedBitmap(photoId, toned, "分离色调")
                                         Toast.makeText(context, "分离色调完成", Toast.LENGTH_SHORT).show()
+                                        onBack()
                                     } catch (e: Exception) {
                                         Toast.makeText(context, "色调分离失败: ${e.message}", Toast.LENGTH_SHORT).show()
                                     }
@@ -447,8 +450,9 @@ fun PhotoAdjustScreen(
                                         val filtered = GradientFilterProcessor().applyLinearGradient(
                                             bitmap, angle = 90f, intensity = 0.5f, exposure = -0.5f
                                         )
-                                        saveProcessedBitmap(context, filtered, photoId, viewModel, onBack)
+                                        viewModel.saveProcessedBitmap(photoId, filtered, "渐变滤镜")
                                         Toast.makeText(context, "渐变滤镜应用完成", Toast.LENGTH_SHORT).show()
+                                        onBack()
                                     } catch (e: Exception) {
                                         Toast.makeText(context, "渐变滤镜失败: ${e.message}", Toast.LENGTH_SHORT).show()
                                     }
@@ -467,8 +471,9 @@ fun PhotoAdjustScreen(
                                 if (bitmap != null) {
                                     try {
                                         val processed = NaturalLightProcessor().apply(bitmap)
-                                        saveProcessedBitmap(context, processed, photoId, viewModel, onBack)
+                                        viewModel.saveProcessedBitmap(photoId, processed, "自然光")
                                         Toast.makeText(context, "自然光效果已应用", Toast.LENGTH_SHORT).show()
+                                        onBack()
                                     } catch (e: Exception) {
                                         Toast.makeText(context, "自然光效果失败: ${e.message}", Toast.LENGTH_SHORT).show()
                                     }
@@ -487,9 +492,10 @@ fun PhotoAdjustScreen(
                                 if (bitmap != null) {
                                     try {
                                         val stacker = MultiFrameStacker()
-                                        val denoised = stacker.stackFrames(listOf(bitmap, bitmap))
-                                        saveProcessedBitmap(context, denoised, photoId, viewModel, onBack)
+                                        val denoised = stacker.stackFrames(bitmap, listOf(bitmap))
+                                        viewModel.saveProcessedBitmap(photoId, denoised, "多帧降噪")
                                         Toast.makeText(context, "降噪处理完成", Toast.LENGTH_SHORT).show()
+                                        onBack()
                                     } catch (e: Exception) {
                                         Toast.makeText(context, "降噪处理失败: ${e.message}", Toast.LENGTH_SHORT).show()
                                     }
