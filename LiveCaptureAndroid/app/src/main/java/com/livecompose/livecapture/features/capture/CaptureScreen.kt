@@ -142,6 +142,12 @@ fun CaptureScreen(
     val zoomPresets by camera.zoomPresets.collectAsState()
     val zoomRange by camera.zoomRange.collectAsState()
     val flashMode by camera.flashMode.collectAsState()
+
+    // === AI 智能引擎状态 ===
+    val aiSceneName by viewModel.aiSceneName.collectAsState()
+    val aiSceneType by viewModel.aiSceneType.collectAsState()
+    val aiPoseSuggestion by viewModel.aiPoseSuggestion.collectAsState()
+    val aiZoomSuggestion by viewModel.aiZoomSuggestion.collectAsState()
     val aeLocked by camera.aeLocked.collectAsState()
     val afLocked by camera.afLocked.collectAsState()
     val focusState by camera.focusState.collectAsState()
@@ -671,6 +677,63 @@ fun CaptureScreen(
                             )
                         }
                     }
+                }
+            }
+
+            // AI 场景识别指示器
+            if (aiSceneName.isNotEmpty() && aiSceneType != com.livecompose.livecapture.core.intelligence.SceneType.UNKNOWN && cameraError == null) {
+                val aiTopPadding = if (selectedMode == CaptureMode.VIDEO) {
+                    val base = if (videoRecordingState.isRecording) 56.dp else 16.dp
+                    if (slowMotionEnabled) base + 40.dp else base
+                } else {
+                    if (hyperfocalEnabled) 56.dp else 16.dp
+                }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(top = aiTopPadding, start = 16.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(DesignSystem.Colors.primary.copy(alpha = 0.7f))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.AutoAwesome,
+                            null,
+                            tint = Color.White,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = "AI $aiSceneName",
+                            style = DesignSystem.Typography.caption2,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+
+            // AI 姿势建议指示器
+            if (aiPoseSuggestion.isNotEmpty() && cameraError == null) {
+                val poseTopPadding = if (aiSceneName.isNotEmpty() && aiSceneType != com.livecompose.livecapture.core.intelligence.SceneType.UNKNOWN) {
+                    val base = if (hyperfocalEnabled) 56.dp else 16.dp
+                    base + 40.dp
+                } else {
+                    if (hyperfocalEnabled) 56.dp else 16.dp
+                }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(top = poseTopPadding, start = 16.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(DesignSystem.Colors.accentWarm.copy(alpha = 0.7f))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = aiPoseSuggestion,
+                        style = DesignSystem.Typography.caption2,
+                        color = Color.White
+                    )
                 }
             }
 

@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.graphics.PointF
 import android.graphics.RectF
 import androidx.lifecycle.AndroidViewModel
+import java.io.ByteArrayOutputStream
 import androidx.lifecycle.viewModelScope
 import com.livecompose.livecapture.core.camera.CameraManager
 import com.livecompose.livecapture.core.camera.ZoomPreset
@@ -370,12 +371,58 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
 
     private fun setupCallbacks() {
         camera.onSampleBuffer = { image ->
+            // AI 引擎始终分析场景（独立于构图管线）
+            analyzeSceneWithAI(image)
             if (isCompositionPipelineEnabled.value) {
                 handleSampleBuffer(image)
             }
         }
         camera.onPhotoDataReady = { data ->
             storage.savePhoto(data, detectionMode.displayName)
+        }
+    }
+
+    /**
+     * AI 场景智能分析
+     * 将相机帧转换为 Bitmap 并送入 SceneIntelligenceEngine 进行实时分析
+     */
+    private fun analyzeSceneWithAI(image: android.media.Image) {
+        viewModelScope.launch {
+            try {
+                val bitmap = imageToBitmap(image)
+                if (bitmap != null) {
+                    sceneEngine.analyzeFrame(bitmap, image.format)
+                }
+            } catch (e: Exception) {
+                // AI 分析失败不应影响拍照流程
+            }
+        }
+    }
+
+    /**
+     * 将 android.media.Image (YUV_420_888) 转换为 Bitmap
+     */
+    private fun imageToBitmap(image: android.media.Image): Bitmap? {
+        return try {
+            val yBuffer = image.planes[0].buffer
+            val uBuffer = image.planes[1].buffer
+            val vBuffer = image.planes[2].buffer
+            val ySize = yBuffer.remaining()
+            val uSize = uBuffer.remaining()
+            val vSize = vBuffer.remaining()
+            val nv21 = ByteArray(ySize + uSize + vSize)
+            yBuffer.get(nv21, 0, ySize)
+            vBuffer.get(nv21, ySize, vSize)
+            uBuffer.get(nv21, ySize + vSize, uSize)
+            val yuvImage = android.graphics.YuvImage(
+                nv21, android.graphics.ImageFormat.NV21, image.width, image.height, null
+            )
+            val out = ByteArrayOutputStream()
+            yuvImage.compressToJpeg(android.graphics.Rect(0, 0, image.width, image.height), 80, out)
+            val jpegBytes = out.toByteArray()
+            BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.size)
+        } catch (e: Exception) {
+            null
         }
     }
 
