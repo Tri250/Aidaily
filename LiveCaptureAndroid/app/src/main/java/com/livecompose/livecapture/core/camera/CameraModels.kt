@@ -59,3 +59,15 @@ sealed class CameraError : Exception() {
     data object SaveFailed : CameraError()
     data object NotAuthorized : CameraError()
 }
+
+/**
+ * 相机错误类型（用于 UI 状态）
+ */
+enum class CameraErrorType {
+    PERMISSION_DENIED,
+    CAMERA_IN_USE,
+    NO_CAMERA_HARDWARE,
+    CAMERA_DISCONNECTED,
+    SESSION_CONFIG_FAILED,
+    UNKNOWN
+}

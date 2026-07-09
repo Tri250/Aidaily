@@ -11,6 +11,7 @@ import com.livecompose.livecapture.core.camera.CameraManager
 import com.livecompose.livecapture.core.camera.ZoomPreset
 import com.livecompose.livecapture.core.camera.ZoomState
 import com.livecompose.livecapture.core.detection.*
+import com.livecompose.livecapture.core.logger.AppLogger
 import com.livecompose.livecapture.core.motion.MotionStabilityMonitor
 import com.livecompose.livecapture.core.storage.PhotoStorageService
 import com.livecompose.livecapture.di.AppContainer
@@ -245,6 +246,14 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
                         resetDetectionState()
                         refreshUserGuidance()
                     }
+                }
+            }
+        }
+        viewModelScope.launch {
+            camera.cameraError.collect { error ->
+                if (error != null) {
+                    AppLogger.w("CaptureViewModel", "相机错误: $error")
+                    setStage(PipelineStage.ERROR, "相机错误: $error")
                 }
             }
         }

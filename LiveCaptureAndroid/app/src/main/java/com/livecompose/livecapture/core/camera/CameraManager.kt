@@ -68,6 +68,12 @@ class CameraManager(private val context: Context) {
     private val _lastPhotoSaved = MutableStateFlow(false)
     val lastPhotoSaved: StateFlow<Boolean> = _lastPhotoSaved.asStateFlow()
 
+    private val _cameraError = MutableStateFlow<CameraErrorType?>(null)
+    val cameraError: StateFlow<CameraErrorType?> = _cameraError.asStateFlow()
+
+    private val _isCameraOpened = MutableStateFlow(false)
+    val isCameraOpened: StateFlow<Boolean> = _isCameraOpened.asStateFlow()
+
     private val _zoomState = MutableStateFlow(ZoomState())
     val zoomState: StateFlow<ZoomState> = _zoomState.asStateFlow()
 
@@ -100,15 +106,21 @@ class CameraManager(private val context: Context) {
      */
     @SuppressLint("MissingPermission")
     fun openCamera(cameraId: String = "0") {
-        if (!hasCameraPermission()) return
+        if (!hasCameraPermission()) {
+            _cameraError.value = CameraErrorType.PERMISSION_DENIED
+            return
+        }
         if (isDestroyed) return
         this.cameraId = cameraId
         this.isFrontCamera = cameraId == "1"
+        _cameraError.value = null
         try {
             closeCamera()
             systemCameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
                 override fun onOpened(device: CameraDevice) {
                     cameraDevice = device
+                    _isCameraOpened.value = true
+                    _cameraError.value = null
                     cameraCharacteristics = try {
                         systemCameraManager.getCameraCharacteristics(cameraId)
                     } catch (e: Exception) {
@@ -121,20 +133,31 @@ class CameraManager(private val context: Context) {
 
                 override fun onDisconnected(device: CameraDevice) {
                     AppLogger.w(TAG, "相机断开连接")
+                    _cameraError.value = CameraErrorType.CAMERA_DISCONNECTED
+                    _isCameraOpened.value = false
                     device.close()
                     cameraDevice = null
                 }
 
                 override fun onError(device: CameraDevice, error: Int) {
                     AppLogger.e(TAG, "相机打开失败, 错误码: $error")
+                    _cameraError.value = when (error) {
+                        CameraDevice.StateCallback.ERROR_CAMERA_IN_USE -> CameraErrorType.CAMERA_IN_USE
+                        CameraDevice.StateCallback.ERROR_CAMERA_DISABLED -> CameraErrorType.CAMERA_DISCONNECTED
+                        CameraDevice.StateCallback.ERROR_CAMERA_DEVICE -> CameraErrorType.NO_CAMERA_HARDWARE
+                        else -> CameraErrorType.UNKNOWN
+                    }
+                    _isCameraOpened.value = false
                     device.close()
                     cameraDevice = null
                 }
             }, backgroundHandler)
         } catch (e: SecurityException) {
             AppLogger.e(TAG, "相机权限不足", e)
+            _cameraError.value = CameraErrorType.PERMISSION_DENIED
         } catch (e: Exception) {
             AppLogger.e(TAG, "相机打开异常", e)
+            _cameraError.value = CameraErrorType.UNKNOWN
         }
     }
 
@@ -147,6 +170,8 @@ class CameraManager(private val context: Context) {
         imageReader?.close()
         imageReader = null
         _isSessionRunning.value = false
+        _isCameraOpened.value = false
+        _cameraError.value = null
     }
 
     /**
@@ -222,6 +247,7 @@ class CameraManager(private val context: Context) {
                 override fun onConfigureFailed(session: CameraCaptureSession) {
                     AppLogger.e(TAG, "相机会话配置失败")
                     _isSessionRunning.value = false
+                    _cameraError.value = CameraErrorType.SESSION_CONFIG_FAILED
                 }
             }, backgroundHandler)
         } catch (e: Exception) {
