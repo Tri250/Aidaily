@@ -65,10 +65,12 @@ import kotlin.math.PI
  */
 object DesignSystem {
 
-    // MARK: - Colors（国潮质感色板）
+    // MARK: - Colors（2026旗舰影像极简色板）
+    // 设计语言：纯黑沉浸 + 精确白色层级 + 微光点缀
+    // 参考：高端原生相机应用，无品牌色侵入拍摄界面
 
     object Colors {
-        // 品牌色 - 国潮质感（霁青主色温润如玉，暮山紫辅色深邃典雅，暖金点缀自信灵动）
+        // 品牌色 - 仅在非拍摄界面使用（设置、图库等）
         val primary = Color(0xFF4A7C96)
         val primaryLight = Color(0xFF7BA8C0)
         val primaryDark = Color(0xFF3A6478)
@@ -77,13 +79,13 @@ object DesignSystem {
         val accentWarm = Color(0xFFD4A84B)
 
         // 渐变色 - 相机模式
-        val gradientStart = Color(0xFF4A7C96)  // 霁青
-        val gradientEnd = Color(0xFF6B5B8C)    // 暮山紫
+        val gradientStart = Color(0xFF4A7C96)
+        val gradientEnd = Color(0xFF6B5B8C)
 
-        // 相机专属色 - 美颜/光环
-        val goldenGlow = Color(0xFFD4A84B)       // 对齐金色光环
-        val recordingRed = Color(0xFFE04545)     // 视频录制红
-        val nightModeBlue = Color(0xFF5B8BA8)   // 夜景蓝
+        // 相机专属色 - 极度克制
+        val goldenGlow = Color(0xFFD4A84B)
+        val recordingRed = Color(0xFFE04545)
+        val nightModeBlue = Color(0xFF5B8BA8)
 
         // 语义色 - 低饱和克制
         val success = Color(0xFF5DA87A)
@@ -128,170 +130,172 @@ object DesignSystem {
         @Composable
         fun backgroundTertiary() = gray2()
 
-        // 极简相机专属色（纯黑背景 + 白色 UI 层级）
+        // ==========================================
+        // 2026 极简相机专属色系统（纯黑沉浸）
+        // ==========================================
         val minimalBackground = Color.Black
-        val minimalOverlay = Color.White.copy(alpha = 0.08f)
-        val minimalBorder = Color.White.copy(alpha = 0.22f)
-        val minimalActiveBorder = Color.White.copy(alpha = 0.92f)
-        val minimalLabel = Color.White.copy(alpha = 0.96f)
-        val minimalSecondaryLabel = Color.White.copy(alpha = 0.50f)
-        val minimalTertiaryLabel = Color.White.copy(alpha = 0.28f)
-        val minimalDarkOverlay = Color.Black.copy(alpha = 0.45f)
+        val minimalSurface = Color(0xFF0A0A0A)
+        val minimalElevated = Color(0xFF141414)
+
+        // 白色层级系统（精确控制透明度）
+        val minimalLabel = Color.White.copy(alpha = 0.96f)        // 主文字/主图标
+        val minimalLabelSecondary = Color.White.copy(alpha = 0.72f) // 次要文字
+        val minimalLabelTertiary = Color.White.copy(alpha = 0.45f)  // 辅助文字
+        val minimalLabelQuaternary = Color.White.copy(alpha = 0.28f) // 禁用/占位
+
+        // 背景层级系统
+        val minimalOverlay = Color.White.copy(alpha = 0.06f)       // 极淡悬浮背景
+        val minimalOverlayMedium = Color.White.copy(alpha = 0.10f)  // 中等悬浮背景
+        val minimalOverlayStrong = Color.White.copy(alpha = 0.16f)  // 强悬浮背景（选中态）
+        val minimalDarkOverlay = Color.Black.copy(alpha = 0.50f)    // 暗色遮罩
+        val minimalDarkOverlayLight = Color.Black.copy(alpha = 0.25f)
+
+        // 边框系统
+        val minimalBorder = Color.White.copy(alpha = 0.12f)        // 默认边框
+        val minimalBorderMedium = Color.White.copy(alpha = 0.20f)   // 中等边框
+        val minimalBorderActive = Color.White.copy(alpha = 0.85f)   // 激活边框
+
+        // 快门按钮专用
         val shutterStroke = Color.White
         val shutterInner = Color.White.copy(alpha = 0.95f)
+        val shutterOuterRing = Color.White.copy(alpha = 0.35f)
+
+        // 胶囊导航专用
+        val pillBackground = Color.White.copy(alpha = 0.08f)
+        val pillBackgroundActive = Color.White.copy(alpha = 0.18f)
+        val pillIndicator = Color.White.copy(alpha = 0.90f)
+
+        // Beta标签
+        val betaBadgeBg = Color.White.copy(alpha = 0.15f)
+        val betaBadgeText = Color.White.copy(alpha = 0.85f)
     }
 
-    // MARK: - Typography（魅族级字体系统）
-    // 对标 iOS Typography：
-    //   标题使用 .rounded 设计风格，正文统一 .default
-    //   Android 系统字体 Roboto 自身具备圆润特征，通过 FontWeight + lineHeight + letterSpacing 还原视觉层级
+    // MARK: - Typography（2026旗舰影像字体系统）
+    // 对标 iOS Typography：SF Pro / SF Pro Rounded / SF Mono
+    // Android 使用 Roboto + 字重/字间距精确还原视觉层级
 
     object Typography {
-        // 字体族 - 对标 iOS SF Pro
+        // 字体族
         val defaultFamily = FontFamily.Default
-        val roundedFamily = FontFamily.Default   // 对标 iOS .rounded（Android 无 SF Pro Rounded，使用默认字体 + 字重区分）
-        val monoFamily = FontFamily.Monospace    // 对标 iOS .monospaced
+        val roundedFamily = FontFamily.Default
+        val monoFamily = FontFamily.Monospace
 
-        // 标题 - Rounded 设计风格
+        // 标题层级
         val largeTitle = TextStyle(
-            fontSize = 34.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = roundedFamily,
-            letterSpacing = titleKerning.sp,
-            lineHeight = lineHeightFor(34f).sp
+            fontSize = 34.sp, fontWeight = FontWeight.Bold, fontFamily = roundedFamily,
+            letterSpacing = titleKerning.sp, lineHeight = lineHeightFor(34f).sp
         )
         val title1 = TextStyle(
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = roundedFamily,
-            letterSpacing = titleKerning.sp,
-            lineHeight = lineHeightFor(28f).sp
+            fontSize = 28.sp, fontWeight = FontWeight.Bold, fontFamily = roundedFamily,
+            letterSpacing = titleKerning.sp, lineHeight = lineHeightFor(28f).sp
         )
         val title2 = TextStyle(
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = roundedFamily,
-            letterSpacing = titleKerning.sp,
-            lineHeight = lineHeightFor(22f).sp
+            fontSize = 22.sp, fontWeight = FontWeight.Bold, fontFamily = roundedFamily,
+            letterSpacing = titleKerning.sp, lineHeight = lineHeightFor(22f).sp
         )
         val title3 = TextStyle(
-            fontSize = 20.sp,
-            fontWeight = FontWeight.SemiBold,
-            fontFamily = roundedFamily,
-            letterSpacing = titleKerning.sp,
-            lineHeight = lineHeightFor(20f).sp
+            fontSize = 20.sp, fontWeight = FontWeight.SemiBold, fontFamily = roundedFamily,
+            letterSpacing = titleKerning.sp, lineHeight = lineHeightFor(20f).sp
         )
 
-        // 正文 - 统一 Default 设计风格
+        // 正文层级
         val headline = TextStyle(
-            fontSize = 17.sp,
-            fontWeight = FontWeight.SemiBold,
-            fontFamily = defaultFamily,
-            letterSpacing = bodyKerning.sp,
-            lineHeight = lineHeightFor(17f).sp
+            fontSize = 17.sp, fontWeight = FontWeight.SemiBold, fontFamily = defaultFamily,
+            letterSpacing = bodyKerning.sp, lineHeight = lineHeightFor(17f).sp
         )
         val body = TextStyle(
-            fontSize = 17.sp,
-            fontWeight = FontWeight.Normal,
-            fontFamily = defaultFamily,
-            letterSpacing = bodyKerning.sp,
-            lineHeight = lineHeightFor(17f).sp
+            fontSize = 17.sp, fontWeight = FontWeight.Normal, fontFamily = defaultFamily,
+            letterSpacing = bodyKerning.sp, lineHeight = lineHeightFor(17f).sp
         )
         val callout = TextStyle(
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Normal,
-            fontFamily = defaultFamily,
-            letterSpacing = bodyKerning.sp,
-            lineHeight = lineHeightFor(16f).sp
+            fontSize = 16.sp, fontWeight = FontWeight.Normal, fontFamily = defaultFamily,
+            letterSpacing = bodyKerning.sp, lineHeight = lineHeightFor(16f).sp
         )
         val subheadline = TextStyle(
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Normal,
-            fontFamily = defaultFamily,
-            letterSpacing = bodyKerning.sp,
-            lineHeight = lineHeightFor(15f).sp
+            fontSize = 15.sp, fontWeight = FontWeight.Normal, fontFamily = defaultFamily,
+            letterSpacing = bodyKerning.sp, lineHeight = lineHeightFor(15f).sp
         )
         val footnote = TextStyle(
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Normal,
-            fontFamily = defaultFamily,
-            letterSpacing = captionKerning.sp,
-            lineHeight = lineHeightFor(13f).sp
+            fontSize = 13.sp, fontWeight = FontWeight.Normal, fontFamily = defaultFamily,
+            letterSpacing = captionKerning.sp, lineHeight = lineHeightFor(13f).sp
         )
         val caption1 = TextStyle(
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Normal,
-            fontFamily = defaultFamily,
-            letterSpacing = captionKerning.sp,
-            lineHeight = lineHeightFor(12f).sp
+            fontSize = 12.sp, fontWeight = FontWeight.Normal, fontFamily = defaultFamily,
+            letterSpacing = captionKerning.sp, lineHeight = lineHeightFor(12f).sp
         )
         val caption2 = TextStyle(
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Normal,
-            fontFamily = defaultFamily,
-            letterSpacing = captionKerning.sp,
-            lineHeight = lineHeightFor(11f).sp
+            fontSize = 11.sp, fontWeight = FontWeight.Normal, fontFamily = defaultFamily,
+            letterSpacing = captionKerning.sp, lineHeight = lineHeightFor(11f).sp
         )
 
-        // 等宽数字（用于 EXIF 数据、计时器）
+        // 等宽数字（EXIF、计时器、变焦）
         val monoBody = TextStyle(
-            fontSize = 17.sp,
-            fontWeight = FontWeight.Normal,
-            fontFamily = monoFamily,
+            fontSize = 17.sp, fontWeight = FontWeight.Normal, fontFamily = monoFamily,
             lineHeight = lineHeightFor(17f).sp
         )
         val monoCaption = TextStyle(
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-            fontFamily = monoFamily,
+            fontSize = 13.sp, fontWeight = FontWeight.Medium, fontFamily = monoFamily,
             lineHeight = lineHeightFor(13f).sp
         )
         val monoDigit = TextStyle(
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Normal,
-            fontFamily = monoFamily,
+            fontSize = 12.sp, fontWeight = FontWeight.Normal, fontFamily = monoFamily,
             lineHeight = lineHeightFor(12f).sp
         )
 
-        // 极简模式专用字体
-        val minimalModeLabel = TextStyle(
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            fontFamily = defaultFamily,
-            lineHeight = lineHeightFor(11f).sp
+        // ==========================================
+        // 2026 极简相机专用字体层级
+        // ==========================================
+        // 变焦指示器 - 等宽，清晰易读
+        val zoomIndicator = TextStyle(
+            fontSize = 14.sp, fontWeight = FontWeight.Medium, fontFamily = monoFamily,
+            letterSpacing = (-0.3f).sp, lineHeight = 18.sp
         )
-        val minimalFilterName = TextStyle(
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Medium,
-            fontFamily = defaultFamily,
-            lineHeight = lineHeightFor(10f).sp
-        )
-        val minimalControlLabel = TextStyle(
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-            fontFamily = defaultFamily,
-            lineHeight = lineHeightFor(13f).sp
-        )
-        val minimalTimer = TextStyle(
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-            fontFamily = monoFamily,
-            lineHeight = lineHeightFor(14f).sp
-        )
-        val minimalZoomIndicator = TextStyle(
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Normal,
-            fontFamily = monoFamily,
-            lineHeight = lineHeightFor(12f).sp
+        val zoomIndicatorActive = TextStyle(
+            fontSize = 14.sp, fontWeight = FontWeight.SemiBold, fontFamily = monoFamily,
+            letterSpacing = (-0.3f).sp, lineHeight = 18.sp
         )
 
-        // 行高（Line Height）- 基于字体大小的 1.4 倍（对标 iOS lineHeight(for:)）
+        // 底部功能图标标签
+        val toolLabel = TextStyle(
+            fontSize = 10.sp, fontWeight = FontWeight.Medium, fontFamily = defaultFamily,
+            letterSpacing = 0.3f.sp, lineHeight = 12.sp
+        )
+
+        // 底部导航标签
+        val navLabel = TextStyle(
+            fontSize = 14.sp, fontWeight = FontWeight.Medium, fontFamily = defaultFamily,
+            letterSpacing = 0.5f.sp, lineHeight = 18.sp
+        )
+        val navLabelActive = TextStyle(
+            fontSize = 14.sp, fontWeight = FontWeight.SemiBold, fontFamily = defaultFamily,
+            letterSpacing = 0.5f.sp, lineHeight = 18.sp
+        )
+
+        // 模式标签（AI构图等）
+        val modeLabel = TextStyle(
+            fontSize = 11.sp, fontWeight = FontWeight.Medium, fontFamily = defaultFamily,
+            letterSpacing = 0.2f.sp, lineHeight = 14.sp
+        )
+
+        // 快拍提示
+        val captureHint = TextStyle(
+            fontSize = 12.sp, fontWeight = FontWeight.Normal, fontFamily = defaultFamily,
+            letterSpacing = 0.1f.sp, lineHeight = 16.sp
+        )
+
+        // Beta标签
+        val betaBadge = TextStyle(
+            fontSize = 9.sp, fontWeight = FontWeight.SemiBold, fontFamily = defaultFamily,
+            letterSpacing = 0.4f.sp, lineHeight = 10.sp
+        )
+
+        // 行高计算
         fun lineHeightFor(size: Float): Float = size * 1.4f
 
-        // 字间距（Kerning）- 对标 iOS Kerning 常量
-        const val titleKerning: Float = -0.3f   // 标题：轻微负字间距提升紧凑感
-        const val bodyKerning: Float = 0f       // 正文：保持默认
-        const val captionKerning: Float = 0.2f  // 说明文字：轻微正字间距提升可读性
+        // 字间距常量
+        const val titleKerning: Float = -0.3f
+        const val bodyKerning: Float = 0f
+        const val captionKerning: Float = 0.2f
     }
 
     // MARK: - Spacing（严格 4pt 基准网格）
@@ -342,22 +346,61 @@ object DesignSystem {
         }
     }
 
-    // MARK: - Corner Radius（统一圆角系统）
+    // MARK: - Corner Radius（2026统一圆角系统）
 
     object CornerRadius {
-        // 从小到大的圆角层级
         val micro: Dp = 4.dp
         val small: Dp = 8.dp
         val medium: Dp = 12.dp
         val large: Dp = 16.dp
         val xLarge: Dp = 20.dp
         val xxLarge: Dp = 24.dp
-        val xxxLarge: Dp = 28.dp   // 面板顶部超椭圆
+        val xxxLarge: Dp = 28.dp
+        val preview: Dp = 32.dp      // 预览区域大圆角
+        val previewInner: Dp = 28.dp  // 预览区域内嵌圆角
         val circle: Dp = 999.dp
-        val pill: Dp = 999.dp       // 胶囊形（替代原来的 circle）
+        val pill: Dp = 999.dp
 
-        // 嵌套圆角规则：内层 = 外层 - 差值，差值默认 4pt
+        // 嵌套圆角规则
         fun nested(outer: Dp): Dp = maxOf(outer - 4.dp, 4.dp)
+    }
+
+    // MARK: - Dimensions（2026相机界面专用尺寸）
+
+    object Dimensions {
+        // 预览区域
+        val previewMarginHorizontal: Dp = 12.dp
+        val previewMarginTop: Dp = 8.dp
+        val previewMarginBottom: Dp = 12.dp
+
+        // 底部控制区
+        val bottomControlHeight: Dp = 220.dp
+        val bottomNavHeight: Dp = 56.dp
+
+        // 快门按钮
+        val shutterButtonOuter: Dp = 88.dp
+        val shutterButtonInner: Dp = 72.dp
+        val shutterButtonRingWidth: Dp = 3.dp
+
+        // 功能图标
+        val toolIconSize: Dp = 28.dp
+        val toolIconContainer: Dp = 44.dp
+
+        // 底部导航
+        val navPillHeight: Dp = 44.dp
+        val navPillPadding: Dp = 4.dp
+
+        // 变焦条
+        val zoomBarHeight: Dp = 36.dp
+        val zoomItemMinWidth: Dp = 48.dp
+
+        // 最近照片缩略图
+        val thumbnailSize: Dp = 48.dp
+        val thumbnailRadius: Dp = 10.dp
+
+        // 状态栏安全区
+        val statusBarSafeArea: Dp = 8.dp
+        val navigationBarSafeArea: Dp = 8.dp
     }
 
     // MARK: - Shapes
