@@ -118,9 +118,17 @@ final class CameraEnhancementManager: ObservableObject {
     @Published var hdrMode: HDRMode = .auto
 
     enum HDRMode: String, CaseIterable {
-        case auto = "自动"
-        case on = "开启"
-        case off = "关闭"
+        case auto
+        case on
+        case off
+
+        var displayName: String {
+            switch self {
+            case .auto: return "自动"
+            case .on: return "开启"
+            case .off: return "关闭"
+            }
+        }
 
         var icon: String {
             switch self {
@@ -232,9 +240,17 @@ final class CameraEnhancementManager: ObservableObject {
     @Published var isLeftHanded = false
 
     enum OneHandMode: String, CaseIterable {
-        case center = "居中"
-        case left = "靠左"
-        case right = "靠右"
+        case center
+        case left
+        case right
+
+        var displayName: String {
+            switch self {
+            case .center: return "居中"
+            case .left: return "靠左"
+            case .right: return "靠右"
+            }
+        }
 
         var alignment: HorizontalAlignment {
             switch self {
@@ -250,10 +266,19 @@ final class CameraEnhancementManager: ObservableObject {
     @Published var performanceMode: PerformanceMode = .balanced
 
     enum PerformanceMode: String, CaseIterable {
-        case quality = "画质优先"
-        case balanced = "均衡"
-        case speed = "速度优先"
-        case battery = "省电"
+        case quality
+        case balanced
+        case speed
+        case battery
+
+        var displayName: String {
+            switch self {
+            case .quality: return "画质优先"
+            case .balanced: return "均衡"
+            case .speed: return "速度优先"
+            case .battery: return "省电"
+            }
+        }
 
         var reduceAIInference: Bool {
             switch self {

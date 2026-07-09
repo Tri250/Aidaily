@@ -53,43 +53,45 @@ struct MinimalMainView: View {
 	}
 
 	var body: some View {
-		ZStack {
-			// 相机始终作为背景主视图
-			CaptureView(
-				detectionMode: detectionMode,
-				isAutoCaptureEnabled: autoCaptureEnabled,
-				captureDelay: captureDelay
-			)
-			.preferredColorScheme(.dark)
-			.zIndex(0)
+		GeometryReader { geo in
+			ZStack {
+				// 相机始终作为背景主视图
+				CaptureView(
+					detectionMode: detectionMode,
+					isAutoCaptureEnabled: autoCaptureEnabled,
+					captureDelay: captureDelay
+				)
+				.preferredColorScheme(.dark)
+				.zIndex(0)
 
-			// 拍摄模式选择器
-			VStack {
-				Spacer()
-				captureModeSelector
-					.padding(.bottom, 40)
-			}
-			.zIndex(1)
+				// 拍摄模式选择器
+				VStack {
+					Spacer()
+					captureModeSelector
+						.padding(.bottom, 40)
+				}
+				.zIndex(1)
 
-			// 相册面板 - 从左滑入
-			if showAlbum {
-				albumPanelView
-					.zIndex(5)
-					.transition(.move(edge: .leading))
-			}
+				// 相册面板 - 从左滑入
+				if showAlbum {
+					albumPanelView(size: geo.size)
+						.zIndex(5)
+						.transition(.move(edge: .leading))
+				}
 
-			// 设置面板 - 从右滑入
-			if showSettings {
-				settingsPanelView
-					.zIndex(5)
-					.transition(.move(edge: .trailing))
-			}
+				// 设置面板 - 从右滑入
+				if showSettings {
+					settingsPanelView(size: geo.size)
+						.zIndex(5)
+						.transition(.move(edge: .trailing))
+				}
 
-			// 社区面板 - 从底部滑入
-			if showCommunity {
-				communityPanelView
-					.zIndex(6)
-					.transition(.move(edge: .bottom))
+				// 社区面板 - 从底部滑入
+				if showCommunity {
+					communityPanelView(size: geo.size)
+						.zIndex(6)
+						.transition(.move(edge: .bottom))
+				}
 			}
 		}
 		.gesture(
@@ -149,6 +151,13 @@ struct MinimalMainView: View {
 				showCommunity = false
 			}
 		}
+		.onReceive(NotificationCenter.default.publisher(for: .navigateToSettings)) { _ in
+			withAnimation(DesignSystem.Animation.modeSlide) {
+				showSettings = true
+				showAlbum = false
+				showCommunity = false
+			}
+		}
 	}
 
 	// MARK: - Capture Mode Selector
@@ -203,7 +212,7 @@ struct MinimalMainView: View {
 
 	// MARK: - Album Panel
 
-	private var albumPanelView: some View {
+	private func albumPanelView(size: CGSize) -> some View {
 		ZStack(alignment: .leading) {
 			// 半透明背景，点击关闭
 			Color.black.opacity(0.5)
@@ -217,7 +226,7 @@ struct MinimalMainView: View {
 			// 相册内容
 			HStack(spacing: 0) {
 				LiveComposeView()
-					.frame(width: UIScreen.main.bounds.width * 0.85)
+					.frame(width: size.width * 0.85)
 					.background(Color(uiColor: .systemBackground))
 
 				Spacer()
@@ -228,7 +237,7 @@ struct MinimalMainView: View {
 
 	// MARK: - Settings Panel
 
-	private var settingsPanelView: some View {
+	private func settingsPanelView(size: CGSize) -> some View {
 		ZStack(alignment: .trailing) {
 			// 半透明背景，点击关闭
 			Color.black.opacity(0.5)
@@ -244,7 +253,7 @@ struct MinimalMainView: View {
 				Spacer()
 
 				SettingsView()
-					.frame(width: UIScreen.main.bounds.width * 0.85)
+					.frame(width: size.width * 0.85)
 					.background(Color(uiColor: .systemBackground))
 			}
 			.ignoresSafeArea()
@@ -253,7 +262,7 @@ struct MinimalMainView: View {
 
 	// MARK: - Community Panel
 
-	private var communityPanelView: some View {
+	private func communityPanelView(size: CGSize) -> some View {
 		ZStack(alignment: .bottom) {
 			// 半透明背景，点击关闭
 			Color.black.opacity(0.5)
@@ -269,7 +278,7 @@ struct MinimalMainView: View {
 				Spacer()
 
 				CommunityView()
-					.frame(height: UIScreen.main.bounds.height * 0.85)
+					.frame(height: size.height * 0.85)
 					.background(Color(uiColor: .systemBackground))
 					.clipShape(
 						RoundedCorner(radius: DesignSystem.CornerRadius.xLarge, corners: [.topLeft, .topRight])
@@ -302,4 +311,5 @@ struct RoundedCorner: Shape {
 
 extension Notification.Name {
     static let navigateToCamera = Notification.Name("com.livecapture.navigateToCamera")
+    static let navigateToSettings = Notification.Name("com.livecapture.navigateToSettings")
 }

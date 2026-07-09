@@ -55,19 +55,32 @@ import AVFoundation
 
 extension CameraManager {
     /// 检查权限并在授权后配置会话。
+    /// 权限被拒绝时，通过 PermissionManager 引导用户到系统设置。
     func checkAndConfigure(completion: @escaping (Result<Void, Error>) -> Void) {
+        let permManager = PermissionManager.shared
+        permManager.refreshCameraStatus()
+
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
             configureSessionAsync(completion: completion)
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { granted in
+                permManager.refreshCameraStatus()
                 if granted {
                     self.configureSessionAsync(completion: completion)
                 } else {
-                    completion(.failure(CameraError.notAuthorized))
+                    DispatchQueue.main.async {
+                        completion(.failure(CameraError.notAuthorized))
+                    }
                 }
             }
-        default:
+        case .denied, .restricted:
+            // 权限被拒绝，引导用户到系统设置
+            DispatchQueue.main.async {
+                permManager.openSystemSettings()
+                completion(.failure(CameraError.notAuthorized))
+            }
+        @unknown default:
             completion(.failure(CameraError.notAuthorized))
         }
     }
@@ -126,11 +139,36 @@ extension CameraManager {
     }
 
     /// 启动捕获会话，如果已运行或 shouldBeRunning 为 false 则忽略。
+    /// 包含超时保护和错误恢复机制。
     func startSession() {
         sessionQueue.async { [weak self] in
-            guard let self, self.shouldBeRunning, !self.session.isRunning else { return }
+            guard let self, self.shouldBeRunning else { return }
+            guard !self.session.isRunning else {
+                DispatchQueue.main.async { self.isSessionRunning = true }
+                return
+            }
+
+            // 检查会话是否已配置输入输出
+            guard !self.session.inputs.isEmpty else {
+                LiveCaptureLogger.shared.error("CameraManager: 会话未配置输入，尝试重新配置")
+                DispatchQueue.main.async {
+                    self.isSessionRunning = false
+                }
+                return
+            }
+
             self.session.startRunning()
-            DispatchQueue.main.async { self.isSessionRunning = true }
+
+            // 超时检测：如果 2 秒后仍未运行，标记失败
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                guard let self, self.shouldBeRunning else { return }
+                if !self.session.isRunning {
+                    LiveCaptureLogger.shared.error("CameraManager: 会话启动超时")
+                    self.isSessionRunning = false
+                }
+            }
+
+            DispatchQueue.main.async { self.isSessionRunning = self.session.isRunning }
         }
     }
 

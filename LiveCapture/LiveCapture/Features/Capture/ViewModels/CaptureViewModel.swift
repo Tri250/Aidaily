@@ -180,6 +180,7 @@ final class CaptureViewModel: ObservableObject {
 	private let motion = MotionStabilityMonitor()
 	private let detector: CropDetectionStrategy
 	private let boxCenterManager = BoxCenterManager()
+	private let intelligenceEngine = SceneIntelligenceEngine()
 
 	// MARK: - Published State
 	
@@ -200,6 +201,10 @@ final class CaptureViewModel: ObservableObject {
 	@Published var captureDelay: Double = 1.0
 	@Published var isSwitchingCamera: Bool = false
 	@Published var isCompositionPipelineEnabled: Bool = false
+	@Published var isAIEngineActive: Bool = false
+	@Published var currentSceneName: String = "未知场景"
+	@Published var aiSuggestedLens: String = ""
+	@Published var aiSuggestedZoom: CGFloat = 1.0
 	
 	var onCaptureTriggered: (() -> Void)?
 	
@@ -391,6 +396,21 @@ final class CaptureViewModel: ObservableObject {
 		// 🔥 统一刷新引导文本
 		refreshUserGuidance()
 	}
+
+	func toggleAIEngine() {
+		isAIEngineActive.toggle()
+		if isAIEngineActive {
+			HapticManager.shared.success()
+			ToastManager.shared.info("AI 场景引擎已激活")
+		} else {
+			HapticManager.shared.light()
+			intelligenceEngine.reset()
+			currentSceneName = "未知场景"
+			aiSuggestedLens = ""
+			aiSuggestedZoom = 1.0
+			ToastManager.shared.info("AI 场景引擎已关闭")
+		}
+	}
 	
 	// MARK: - User Guidance
 	
@@ -462,13 +482,30 @@ final class CaptureViewModel: ObservableObject {
 					if self.pipelineStage == .savingPhoto {
 						self.isCompositionPipelineEnabled = false
 						self.resetDetectionState()
-						// 🔥 使用统一刷新机制
 						self.refreshUserGuidance()
 					}
 				}
 			}
 			.store(in: &cancellables)
-		
+
+		// AI 场景智能引擎绑定
+		intelligenceEngine.$currentScene
+			.receive(on: DispatchQueue.main)
+			.sink { [weak self] scene in
+				self?.currentSceneName = scene.displayName
+			}
+			.store(in: &cancellables)
+
+		intelligenceEngine.$isReady
+			.receive(on: DispatchQueue.main)
+			.sink { [weak self] ready in
+				if ready {
+					self?.aiSuggestedLens = self?.intelligenceEngine.getSuggestedLens() ?? "wide"
+					self?.aiSuggestedZoom = self?.intelligenceEngine.getSuggestedZoomFactor() ?? 1.0
+				}
+			}
+			.store(in: &cancellables)
+
 		camera.$zoomState
 			.receive(on: DispatchQueue.main)
 			.sink { [weak self] state in
@@ -509,8 +546,13 @@ final class CaptureViewModel: ObservableObject {
 	private func handleSampleBuffer(_ sample: CMSampleBuffer) {
 		guard let rawPixel = CMSampleBufferGetImageBuffer(sample) else { return }
 		let orientation = pixelOrientation(for: rawPixel)
-		
-		// 🔥 只有在流水线开启时才执行检测流程
+
+		// AI 场景智能引擎：始终分析帧（独立于构图流水线）
+		if isAIEngineActive {
+			intelligenceEngine.analyzeFrame(rawPixel, orientation: orientation)
+		}
+
+		// 构图流水线：仅在开启时执行检测流程
 		guard isCompositionPipelineEnabled else { return }
 		
 		guard motion.isStable else {

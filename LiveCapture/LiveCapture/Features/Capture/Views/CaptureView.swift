@@ -17,6 +17,20 @@ struct CaptureView: View {
 	@StateObject private var enhancementManager = CameraEnhancementManager.shared
 	@StateObject private var levelMonitor = LevelMonitor()
 
+	// 从设置中读取持久化配置
+	@AppStorage("defaultCompositionGuide") private var defaultCompositionGuide: String = "grid"
+	@AppStorage("showLevelIndicator") private var showLevelIndicatorDefault = false
+	@AppStorage("showHistogram") private var showHistogramDefault = false
+	@AppStorage("timerEnabled") private var timerEnabledDefault = false
+	@AppStorage("timerDuration") private var timerDurationDefault = 3
+	@AppStorage("burstModeEnabled") private var burstModeEnabledDefault = false
+	@AppStorage("hdrMode") private var hdrModeDefault: String = "auto"
+	@AppStorage("livePhotoEnabled") private var livePhotoEnabledDefault = false
+	@AppStorage("performanceMode") private var performanceModeDefault: String = "balanced"
+	@AppStorage("oneHandMode") private var oneHandModeDefault: String = "center"
+	@AppStorage("isLeftHanded") private var isLeftHandedDefault = false
+	@AppStorage("exportQuality") private var exportQualityDefault: String = "original"
+
 	// UI 状态
 	@State private var showControls = true
 	@State private var showFilterStrip = false
@@ -27,7 +41,7 @@ struct CaptureView: View {
 	@State private var selectedCaptureMode: ModeSelectorView.CaptureMode = .photo
 	@State private var zoomLevelText: String = "1×"
 
-	// 构图引导
+	// 构图引导 - 从设置初始化
 	@State private var compositionGuideType: CompositionGuideType = .grid
 	@State private var showLevelIndicator = false
 	@State private var showHistogram = false
@@ -260,6 +274,8 @@ struct CaptureView: View {
 			viewModel.onCaptureTriggered = {
 				triggerCaptureAnimation()
 			}
+			// 从设置中恢复持久化配置
+			applySettingsFromStorage()
 			resetAutoHideTimer()
 			levelMonitor.startMonitoring()
 			enhancementManager.startBatteryMonitoring()
@@ -272,6 +288,15 @@ struct CaptureView: View {
 			levelMonitor.stopMonitoring()
 			enhancementManager.unregisterVolumeButtonShutter()
 		}
+		.onChange(of: compositionGuideType) { _, newValue in
+			defaultCompositionGuide = newValue.rawValue
+		}
+		.onChange(of: showLevelIndicator) { _, newValue in
+			showLevelIndicatorDefault = newValue
+		}
+		.onChange(of: showHistogram) { _, newValue in
+			showHistogramDefault = newValue
+		}
 		.onChange(of: viewModel.zoomState.displayedFactor) { _, newFactor in
 			updateZoomDisplay(newFactor)
 		}
@@ -280,6 +305,30 @@ struct CaptureView: View {
 		}
 		.onChange(of: proManager.histogramData) { _, _ in
 			// 直方图数据自动更新
+		}
+		.onChange(of: enhancementManager.timerEnabled) { _, newValue in
+			timerEnabledDefault = newValue
+		}
+		.onChange(of: enhancementManager.timerDuration) { _, newValue in
+			timerDurationDefault = newValue.rawValue
+		}
+		.onChange(of: enhancementManager.burstModeEnabled) { _, newValue in
+			burstModeEnabledDefault = newValue
+		}
+		.onChange(of: enhancementManager.hdrMode) { _, newValue in
+			hdrModeDefault = newValue.rawValue
+		}
+		.onChange(of: enhancementManager.livePhotoEnabled) { _, newValue in
+			livePhotoEnabledDefault = newValue
+		}
+		.onChange(of: enhancementManager.performanceMode) { _, newValue in
+			performanceModeDefault = newValue.rawValue
+		}
+		.onChange(of: enhancementManager.oneHandMode) { _, newValue in
+			oneHandModeDefault = newValue.rawValue
+		}
+		.onChange(of: enhancementManager.isLeftHanded) { _, newValue in
+			isLeftHandedDefault = newValue
 		}
 	}
 
@@ -625,6 +674,37 @@ struct CaptureView: View {
 
 	// MARK: - Actions
 
+	private func applySettingsFromStorage() {
+		// 应用构图引导设置
+		if let guideType = CompositionGuideType(rawValue: defaultCompositionGuide) {
+			compositionGuideType = guideType
+		}
+		// 应用水平仪设置
+		showLevelIndicator = showLevelIndicatorDefault
+		// 应用直方图设置
+		showHistogram = showHistogramDefault
+		// 应用定时拍摄设置
+		enhancementManager.timerEnabled = timerEnabledDefault
+		enhancementManager.timerDuration = CameraEnhancementManager.TimerDuration(rawValue: timerDurationDefault) ?? .threeSeconds
+		// 应用连拍设置
+		enhancementManager.burstModeEnabled = burstModeEnabledDefault
+		// 应用 HDR 设置
+		if let hdr = CameraEnhancementManager.HDRMode(rawValue: hdrModeDefault) {
+			enhancementManager.hdrMode = hdr
+		}
+		// 应用 Live Photo 设置
+		enhancementManager.livePhotoEnabled = livePhotoEnabledDefault
+		// 应用性能模式
+		if let perf = CameraEnhancementManager.PerformanceMode(rawValue: performanceModeDefault) {
+			enhancementManager.performanceMode = perf
+		}
+		// 应用单手操作设置
+		if let hand = CameraEnhancementManager.OneHandMode(rawValue: oneHandModeDefault) {
+			enhancementManager.oneHandMode = hand
+		}
+		enhancementManager.isLeftHanded = isLeftHandedDefault
+	}
+
 	private func cycleFlashMode() {
 		flashMode = flashMode.next
 	}
@@ -670,7 +750,8 @@ struct CaptureView: View {
 
 	private func presentSettings() {
 		HapticManager.shared.light()
-		dismiss()
+		// 通过通知机制让父视图打开设置面板，而不是 dismiss 整个相机界面
+		NotificationCenter.default.post(name: .navigateToSettings, object: nil)
 		resetAutoHideTimer()
 	}
 
