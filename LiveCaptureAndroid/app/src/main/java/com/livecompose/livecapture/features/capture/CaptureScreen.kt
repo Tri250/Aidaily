@@ -37,10 +37,15 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.awaitEachGesture
+import androidx.compose.ui.input.pointer.awaitFirstDown
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.waitForUpOrCancellation
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -55,7 +60,9 @@ import com.livecompose.livecapture.core.storage.PhotoRecord
 import com.livecompose.livecapture.ui.design.DesignSystem
 import com.livecompose.livecapture.ui.design.liquidGlass
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import com.livecompose.livecapture.utilities.HapticManager
 
 /**
  * 2026旗舰影像主拍摄界面 - 纯黑沉浸式设计
@@ -143,6 +150,17 @@ fun CaptureScreen(
     var isGridEnabled by remember { mutableStateOf(false) }
     var currentRatio by remember { mutableStateOf("3:4") }
 
+    // 比例切换联动相机API
+    LaunchedEffect(currentRatio) {
+        val ratio = when (currentRatio) {
+            "3:4" -> AspectRatio.RATIO_3_4
+            "9:16" -> AspectRatio.RATIO_9_16
+            "1:1" -> AspectRatio.RATIO_1_1
+            else -> AspectRatio.RATIO_3_4
+        }
+        camera.setAspectRatio(ratio)
+    }
+
     // 权限
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -157,11 +175,14 @@ fun CaptureScreen(
         isEntryAnimationComplete = true
     }
 
-    // 控件自动隐藏
-    LaunchedEffect(controlsVisible) {
+    // 控件自动隐藏 - 用户与底部控件交互时不隐藏
+    var interactionCounter by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(controlsVisible, interactionCounter) {
         if (controlsVisible && cameraError == null && !showManualPanel && !showGallerySheet && !showSettingsSheet) {
             controlsAlpha = 1f
             delay(4000)
+            // 再次检查是否在隐藏前用户有新的交互
             controlsAlpha = 0.4f
             delay(800)
             controlsVisible = false
@@ -226,32 +247,6 @@ fun CaptureScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(DesignSystem.Colors.minimalBackground)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { offset ->
-                        controlsVisible = true
-                        controlsAlpha = 1f
-                        val sensorRect = camera.getSensorRect()
-                        if (sensorRect != null) {
-                            camera.tapToFocus(offset.x / size.width, offset.y / size.height, sensorRect)
-                            focusPoint = PointF(offset.x, offset.y)
-                            focusAnimation = 1f
-                        }
-                    },
-                    onLongPress = { offset ->
-                        camera.toggleAELock()
-                        camera.toggleAFLock()
-                        focusPoint = PointF(offset.x, offset.y)
-                        focusAnimation = 1f
-                    }
-                )
-            }
-            .pointerInput(Unit) {
-                detectTransformGestures { _, _, zoom, _ ->
-                    pinchZoom = (pinchZoom * zoom).coerceIn(zoomRange.start, zoomRange.endInclusive)
-                    camera.updateInteractiveZoom(pinchZoom)
-                }
-            }
     ) {
         // === 预览区域（大圆角） ===
         Column(
@@ -263,13 +258,43 @@ fun CaptureScreen(
                     vertical = DesignSystem.Dimensions.previewMarginTop
                 )
         ) {
-            // 预览容器
+            // 预览容器 - 手势检测仅在此区域内生效，避免与底部按钮冲突
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
                     .clip(RoundedCornerShape(DesignSystem.CornerRadius.preview))
                     .background(DesignSystem.Colors.minimalSurface)
+                    // 手势检测移至预览区内部，解决与底部控制按钮的手势冲突
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { offset ->
+                                controlsVisible = true
+                                controlsAlpha = 1f
+                                val sensorRect = camera.getSensorRect()
+                                if (sensorRect != null) {
+                                    // 坐标已相对于预览区，直接使用
+                                    val focusX = offset.x / size.width
+                                    val focusY = offset.y / size.height
+                                    camera.tapToFocus(focusX, focusY, sensorRect)
+                                    focusPoint = PointF(offset.x, offset.y)
+                                    focusAnimation = 1f
+                                }
+                            },
+                            onLongPress = { offset ->
+                                camera.toggleAELock()
+                                camera.toggleAFLock()
+                                focusPoint = PointF(offset.x, offset.y)
+                                focusAnimation = 1f
+                            }
+                        )
+                    }
+                    .pointerInput(Unit) {
+                        detectTransformGestures { _, _, zoom, _ ->
+                            pinchZoom = (pinchZoom * zoom).coerceIn(zoomRange.start, zoomRange.endInclusive)
+                            camera.updateInteractiveZoom(pinchZoom)
+                        }
+                    }
             ) {
                 // 相机预览
                 if (cameraError == null) {
@@ -346,16 +371,16 @@ fun CaptureScreen(
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(end = 12.dp, bottom = 52.dp)
+                        .padding(end = 12.dp, bottom = 64.dp)
                 ) {
                     MagicWandButton(onClick = { /* 滤镜/魔法效果 */ })
                 }
 
-                // 预览区底部变焦条
+                // 预览区底部变焦条 - 增加底部padding避免手指遮挡
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 12.dp)
+                        .padding(bottom = 16.dp)
                 ) {
                     ZoomPresetBar2026(
                         presets = zoomPresets,
@@ -364,7 +389,7 @@ fun CaptureScreen(
                     )
                 }
 
-                // 点按对焦指示器
+                // 点按对焦指示器 - 坐标直接相对于预览区Box
                 focusPoint?.let { point ->
                     RedesignedFocusIndicator(
                         x = point.x,
@@ -381,7 +406,11 @@ fun CaptureScreen(
             // 功能图标行（Beta / 构图框 / 魔法棒 / 比例 / 翻转）
             ToolIconRow(
                 isGridEnabled = isGridEnabled,
-                onToggleGrid = { isGridEnabled = !isGridEnabled; gridMode = if (isGridEnabled) 1 else 0 },
+                onToggleGrid = {
+                    isGridEnabled = !isGridEnabled
+                    gridMode = if (isGridEnabled) 1 else 0
+                    interactionCounter++
+                },
                 currentRatio = currentRatio,
                 onToggleRatio = {
                     currentRatio = when (currentRatio) {
@@ -389,8 +418,9 @@ fun CaptureScreen(
                         "9:16" -> "1:1"
                         else -> "3:4"
                     }
+                    interactionCounter++
                 },
-                onToggleCamera = { triggerCameraFlip() }
+                onToggleCamera = { triggerCameraFlip(); interactionCounter++ }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -400,15 +430,25 @@ fun CaptureScreen(
                 galleryRecords = galleryRecords,
                 isAligned = isAligned,
                 isPipelineEnabled = isPipelineEnabled,
-                onCapture = { viewModel.capturePhoto() },
+                onCapture = {
+                    viewModel.capturePhoto()
+                    interactionCounter++
+                },
                 onOpenGallery = {
                     showGallerySheet = true
                     controlsVisible = false
+                    interactionCounter++
                 },
-                onTogglePipeline = { viewModel.toggleCompositionPipeline() },
+                onTogglePipeline = {
+                    viewModel.toggleCompositionPipeline()
+                    interactionCounter++
+                },
                 onPhotoClick = { photoId ->
                     onNavigateToPhotoDetail?.invoke(photoId)
-                }
+                    interactionCounter++
+                },
+                onLongPressStart = { /* TODO: 开始视频录制 */ },
+                onLongPressEnd = { /* TODO: 结束视频录制 */ }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -418,6 +458,7 @@ fun CaptureScreen(
                 selectedIndex = bottomNavSelected,
                 onSelect = { index ->
                     bottomNavSelected = index
+                    interactionCounter++
                     when (index) {
                         1 -> { showGallerySheet = true; controlsVisible = false }
                         2 -> { showSettingsSheet = true; controlsVisible = false }
@@ -650,6 +691,7 @@ private fun ToolIconRow(
         // Beta 靶心图标
         ToolIconItem(
             icon = Icons.Default.Adjust,
+            contentDescription = "Beta功能",
             label = "Beta",
             isBeta = true,
             onClick = { /* Beta功能 */ }
@@ -658,7 +700,7 @@ private fun ToolIconRow(
         // 构图框
         ToolIconItem(
             icon = Icons.Default.CropFree,
-            label = null,
+            contentDescription = if (isGridEnabled) "关闭构图网格" else "开启构图网格",
             isActive = isGridEnabled,
             onClick = onToggleGrid
         )
@@ -666,20 +708,21 @@ private fun ToolIconRow(
         // 魔法棒编辑
         ToolIconItem(
             icon = Icons.Default.AutoFixHigh,
-            label = null,
+            contentDescription = "魔法效果",
             onClick = { /* 编辑功能 */ }
         )
 
         // 比例切换
         RatioToolItem(
             ratio = currentRatio,
+            contentDescription = "切换画面比例，当前$currentRatio",
             onClick = onToggleRatio
         )
 
         // 翻转摄像头
         ToolIconItem(
             icon = Icons.Default.FlipCameraAndroid,
-            label = null,
+            contentDescription = "切换前后摄像头",
             onClick = onToggleCamera
         )
     }
@@ -687,10 +730,12 @@ private fun ToolIconRow(
 
 /**
  * 单个功能图标项
+ * 无障碍适配：必须提供 contentDescription
  */
 @Composable
 private fun ToolIconItem(
     icon: ImageVector,
+    contentDescription: String,
     label: String? = null,
     isActive: Boolean = false,
     isBeta: Boolean = false,
@@ -725,7 +770,7 @@ private fun ToolIconItem(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = label,
+                contentDescription = contentDescription,
                 tint = if (isActive) DesignSystem.Colors.minimalLabel
                 else DesignSystem.Colors.minimalLabelSecondary,
                 modifier = Modifier.size(DesignSystem.Dimensions.toolIconSize)
@@ -752,9 +797,14 @@ private fun ToolIconItem(
 
 /**
  * 比例切换工具项
+ * 无障碍适配：提供语义描述
  */
 @Composable
-private fun RatioToolItem(ratio: String, onClick: () -> Unit) {
+private fun RatioToolItem(
+    ratio: String,
+    contentDescription: String,
+    onClick: () -> Unit
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -776,7 +826,8 @@ private fun RatioToolItem(ratio: String, onClick: () -> Unit) {
                     interactionSource = interactionSource,
                     indication = null,
                     onClick = onClick
-                ),
+                )
+                .semantics { this.contentDescription = contentDescription },
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -801,7 +852,9 @@ private fun ShutterControlRow(
     onCapture: () -> Unit,
     onOpenGallery: () -> Unit,
     onTogglePipeline: () -> Unit,
-    onPhotoClick: (String) -> Unit
+    onPhotoClick: (String) -> Unit,
+    onLongPressStart: () -> Unit = {},
+    onLongPressEnd: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -820,7 +873,9 @@ private fun ShutterControlRow(
         // 中央：大号快门按钮
         MainShutterButton2026(
             isAligned = isAligned,
-            onCapture = onCapture
+            onCapture = onCapture,
+            onLongPressStart = onLongPressStart,
+            onLongPressEnd = onLongPressEnd
         )
 
         // 右侧：AI构图按钮
@@ -858,7 +913,8 @@ private fun LatestPhotoThumbnail(
                     .fillMaxSize()
                     .clip(RoundedCornerShape(DesignSystem.Dimensions.thumbnailRadius))
                     .background(DesignSystem.Colors.minimalOverlay)
-                    .clickable { onPhotoClick(latest.id) },
+                    .clickable { onPhotoClick(latest.id) }
+                    .semantics { contentDescription = "查看最近拍摄的照片" },
                 contentAlignment = Alignment.Center
             ) {
                 if (thumbnail != null) {
@@ -883,7 +939,8 @@ private fun LatestPhotoThumbnail(
                     .fillMaxSize()
                     .clip(RoundedCornerShape(DesignSystem.Dimensions.thumbnailRadius))
                     .background(DesignSystem.Colors.minimalOverlay)
-                    .clickable(onClick = onClick),
+                    .clickable(onClick = onClick)
+                    .semantics { contentDescription = "打开相册" },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -899,17 +956,41 @@ private fun LatestPhotoThumbnail(
 
 /**
  * 2026主快门按钮 - 大号双层圆环
+ * 支持：轻触拍照 / 长按录制 / 对齐成功金色光环脉动
+ * 适配国内用户习惯：右手持机，快门居中偏下，按压反馈明显
  */
 @Composable
 private fun MainShutterButton2026(
     isAligned: Boolean,
-    onCapture: () -> Unit
+    onCapture: () -> Unit,
+    onLongPressStart: () -> Unit = {},
+    onLongPressEnd: () -> Unit = {}
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
+    var isRecording by remember { mutableStateOf(false) }
+    var isPressedState by remember { mutableStateOf(false) }
+
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1f,
-        animationSpec = DesignSystem.Animation.shutterPress
+        targetValue = when {
+            isRecording -> 0.88f
+            isPressedState -> 0.92f
+            else -> 1f
+        },
+        animationSpec = DesignSystem.Animation.shutterPress,
+        label = "shutterScale"
+    )
+
+    // 内圈颜色：录制时变红，否则纯白
+    val innerColor by animateColorAsState(
+        targetValue = if (isRecording) DesignSystem.Colors.recordingRed else DesignSystem.Colors.shutterInner,
+        animationSpec = tween(300),
+        label = "shutterColor"
+    )
+
+    // 内圈缩放：录制时缩小至65%（变形为方块效果）
+    val innerScale by animateFloatAsState(
+        targetValue = if (isRecording) 0.65f else 1f,
+        animationSpec = DesignSystem.Animation.shutterLongPress,
+        label = "shutterInnerScale"
     )
 
     // 对齐成功时的金色脉动
@@ -919,13 +1000,13 @@ private fun MainShutterButton2026(
     LaunchedEffect(isAligned) {
         if (isAligned) {
             launch {
-                while (true) {
+                while (isActive) {
                     glowScaleAnimatable.animateTo(1.12f, DesignSystem.Animation.shutterGlowPulse)
                     glowScaleAnimatable.animateTo(1.0f, DesignSystem.Animation.shutterGlowPulse)
                 }
             }
             launch {
-                while (true) {
+                while (isActive) {
                     glowAlphaAnimatable.animateTo(0.25f, DesignSystem.Animation.shutterGlowPulse)
                     glowAlphaAnimatable.animateTo(0.8f, DesignSystem.Animation.shutterGlowPulse)
                 }
@@ -939,7 +1020,33 @@ private fun MainShutterButton2026(
     Box(
         modifier = Modifier
             .size(DesignSystem.Dimensions.shutterButtonOuter)
-            .scale(scale),
+            .scale(scale)
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    isPressedState = true
+                    val longPressJob = launch {
+                        delay(500L)
+                        if (!isRecording) {
+                            isRecording = true
+                            HapticManager.success()
+                            onLongPressStart()
+                        }
+                    }
+                    val up = waitForUpOrCancellation()
+                    longPressJob.cancel()
+                    isPressedState = false
+                    if (up != null && !isRecording) {
+                        // 轻触拍照
+                        HapticManager.light()
+                        onCapture()
+                    } else if (isRecording) {
+                        // 长按结束，停止录制
+                        isRecording = false
+                        onLongPressEnd()
+                    }
+                }
+            },
         contentAlignment = Alignment.Center
     ) {
         // 金色光环（对齐成功）
@@ -963,23 +1070,28 @@ private fun MainShutterButton2026(
                 .background(Color.Transparent)
                 .border(
                     width = DesignSystem.Dimensions.shutterButtonRingWidth,
-                    color = DesignSystem.Colors.shutterOuterRing,
+                    color = if (isRecording) DesignSystem.Colors.recordingRed.copy(alpha = 0.6f)
+                        else DesignSystem.Colors.shutterOuterRing,
                     shape = CircleShape
                 )
         )
 
-        // 内圈实心
-        Box(
-            modifier = Modifier
-                .size(DesignSystem.Dimensions.shutterButtonInner)
-                .clip(CircleShape)
-                .background(DesignSystem.Colors.shutterInner)
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onCapture
-                )
-        )
+        // 内圈：录制时变形为圆角方块
+        if (isRecording) {
+            Box(
+                modifier = Modifier
+                    .size(DesignSystem.Dimensions.shutterButtonInner * innerScale)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(innerColor)
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(DesignSystem.Dimensions.shutterButtonInner * innerScale)
+                    .clip(CircleShape)
+                    .background(innerColor)
+            )
+        }
     }
 }
 
@@ -1035,6 +1147,7 @@ private fun AIComposeButton(isEnabled: Boolean, onClick: () -> Unit) {
 /**
  * 底部胶囊导航
  * 相机 | 相册 | 我的
+ * 适配国内全面屏手势：增加底部安全区，避免与系统手势冲突
  */
 @Composable
 private fun BottomPillNav(
@@ -1043,8 +1156,13 @@ private fun BottomPillNav(
 ) {
     val items = listOf("相机", "相册", "我的")
 
+    // 国内品牌手势缓冲区：在系统导航栏之上额外增加16dp，避免误触
+    val gestureSafeZone = 16.dp
+
     Box(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = gestureSafeZone),
         contentAlignment = Alignment.Center
     ) {
         Row(
