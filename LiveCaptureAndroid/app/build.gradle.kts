@@ -153,11 +153,13 @@ dependencies {
     // ExifInterface
     implementation("androidx.exifinterface:exifinterface:1.3.7")
 
-    // Bugly 崩溃上报（国内合规）— 仅保留 Java/Kotlin 崩溃上报，移除 nativecrashreport（旧版 native 库 Android 15 兼容风险）
+    // Bugly 崩溃上报（国内合规）— 仅 Java/Kotlin 崩溃上报
+    // 注：4.1.9.3 的 libBugly.so 已 16KB 对齐，但 SDK 本身可能有 Android 15 运行时兼容风险
+    // 如遇 Bugly 初始化崩溃，可尝试移除此依赖
     implementation("com.tencent.bugly:crashreport:4.1.9.3")
 
-    // 微信分享 SDK
-    implementation("com.tencent.mm.opensdk:wechat-sdk-android:6.8.0")
+    // 微信分享 SDK — 升级至 Android 15 兼容版本（6.8.0 的 PendingIntent 不兼容 Android 15）
+    implementation("com.tencent.mm.opensdk:wechat-sdk-android:6.8.34")
 
     // 测试依赖
     testImplementation("junit:junit:4.13.2")

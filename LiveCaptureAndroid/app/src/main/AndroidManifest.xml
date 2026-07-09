@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-feature android:name="android.hardware.camera" android:required="true" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
@@ -112,6 +113,14 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- 禁用 ML Kit 自动初始化 ContentProvider（Android 15 QPR2 上已知崩溃:
+             ArrayIndexOutOfBoundsException in MlKitInitProvider.onCreate）
+             改为在 LiveCaptureApp.onCreate() 中手动初始化 -->
+        <provider
+            android:name="com.google.mlkit.common.internal.MlKitInitProvider"
+            android:authorities="${applicationId}.mlkitinitprovider"
+            tools:node="remove" />
 
         <!-- 微信分享回调 Activity（包名路径 wxapi.WXEntryActivity 为微信SDK强制要求） -->
         <activity
