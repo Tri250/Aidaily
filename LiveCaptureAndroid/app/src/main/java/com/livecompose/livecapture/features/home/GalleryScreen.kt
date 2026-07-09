@@ -1,12 +1,17 @@
 package com.livecompose.livecapture.features.home
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -14,9 +19,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -54,6 +62,15 @@ fun GalleryScreen(
     var filterRating by remember { mutableIntStateOf(0) }
     var filterFlaggedOnly by remember { mutableStateOf(false) }
     var showFilterMenu by remember { mutableStateOf(false) }
+    var emptyStateVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(records.isEmpty()) {
+        if (records.isEmpty()) {
+            emptyStateVisible = true
+        } else {
+            emptyStateVisible = false
+        }
+    }
 
     val filteredRecords = remember(records, filterRating, filterFlaggedOnly) {
         records.filter { record ->
@@ -68,10 +85,18 @@ fun GalleryScreen(
             .fillMaxSize()
             .background(DesignSystem.Colors.backgroundPrimary())
     ) {
-        // 顶部栏
+        // 顶部栏 - 国潮质感渐变
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            DesignSystem.Colors.gradientStart.copy(alpha = 0.08f),
+                            DesignSystem.Colors.gradientEnd.copy(alpha = 0.05f)
+                        )
+                    )
+                )
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -101,7 +126,7 @@ fun GalleryScreen(
                         Icon(
                             Icons.Default.FilterList,
                             contentDescription = "筛选",
-                            tint = if (filterRating > 0 || filterFlaggedOnly) DesignSystem.Colors.primary
+                            tint = if (filterRating > 0 || filterFlaggedOnly) DesignSystem.Colors.accentWarm
                             else DesignSystem.Colors.textSecondary()
                         )
                     }
@@ -157,7 +182,7 @@ fun GalleryScreen(
                                 },
                                 leadingIcon = {
                                     if (filterRating == stars) {
-                                        Icon(Icons.Default.Check, null, tint = DesignSystem.Colors.primary)
+                                        Icon(Icons.Default.Check, null, tint = DesignSystem.Colors.accentWarm)
                                     }
                                 }
                             )
@@ -173,37 +198,46 @@ fun GalleryScreen(
         }
 
         if (records.isEmpty()) {
-            // 空状态 - 液态玻璃卡片
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+            // 空状态 - 液态玻璃卡片 + 入场动画
+            AnimatedVisibility(
+                visible = emptyStateVisible,
+                enter = fadeIn(animationSpec = DesignSystem.Animation.entryFadeIn) +
+                        slideInVertically(
+                            initialOffsetY = { it / 4 },
+                            animationSpec = DesignSystem.Animation.entrySlideUp
+                        )
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .padding(32.dp)
-                        .liquidGlass(cornerRadius = 24.dp, intensity = 0.08f)
-                        .padding(40.dp)
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        Icons.Default.PhotoLibrary,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = DesignSystem.Colors.textTertiary()
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "暂无照片",
-                        style = DesignSystem.Typography.title2,
-                        color = DesignSystem.Colors.textSecondary(),
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "使用下方拍摄按钮开始创作",
-                        style = DesignSystem.Typography.subheadline,
-                        color = DesignSystem.Colors.textTertiary()
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .padding(32.dp)
+                            .liquidGlass(cornerRadius = 24.dp, intensity = 0.08f)
+                            .padding(40.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.PhotoLibrary,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = DesignSystem.Colors.textTertiary()
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "暂无照片",
+                            style = DesignSystem.Typography.title2,
+                            color = DesignSystem.Colors.textSecondary(),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "使用下方拍摄按钮开始创作",
+                            style = DesignSystem.Typography.subheadline,
+                            color = DesignSystem.Colors.textTertiary()
+                        )
+                    }
                 }
             }
         } else {
@@ -214,34 +248,36 @@ fun GalleryScreen(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
                 contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
             ) {
-                items(filteredRecords, key = { it.id }) { record ->
-                    PhotoCard(
-                        record = record,
-                        viewModel = viewModel,
-                        isSelected = record.id in selectedIds,
-                        isSelectionMode = isSelectionMode,
-                        onClick = {
-                            if (isSelectionMode) {
-                                selectedIds = if (record.id in selectedIds) {
-                                    val new = selectedIds - record.id
-                                    if (new.isEmpty()) isSelectionMode = false
-                                    new
-                                } else selectedIds + record.id
-                            } else {
-                                if (onPhotoClick != null) {
-                                    onPhotoClick(record.id)
+                itemsIndexed(filteredRecords, key = { _, it -> it.id }) { index, record ->
+                    StaggeredEntryItem(index = index) {
+                        PhotoCard(
+                            record = record,
+                            viewModel = viewModel,
+                            isSelected = record.id in selectedIds,
+                            isSelectionMode = isSelectionMode,
+                            onClick = {
+                                if (isSelectionMode) {
+                                    selectedIds = if (record.id in selectedIds) {
+                                        val new = selectedIds - record.id
+                                        if (new.isEmpty()) isSelectionMode = false
+                                        new
+                                    } else selectedIds + record.id
                                 } else {
-                                    selectedPhotoIndex = records.indexOf(record)
+                                    if (onPhotoClick != null) {
+                                        onPhotoClick(record.id)
+                                    } else {
+                                        selectedPhotoIndex = records.indexOf(record)
+                                    }
+                                }
+                            },
+                            onLongClick = {
+                                if (!isSelectionMode) {
+                                    isSelectionMode = true
+                                    selectedIds = setOf(record.id)
                                 }
                             }
-                        },
-                        onLongClick = {
-                            if (!isSelectionMode) {
-                                isSelectionMode = true
-                                selectedIds = setOf(record.id)
-                            }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -278,10 +314,23 @@ private fun PhotoCard(
         thumbnail = viewModel.getThumbnail(record.id)
     }
 
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = DesignSystem.Animation.quick,
+        label = "photoCardScale"
+    )
+
     Box(
         modifier = Modifier
             .aspectRatio(1f)
-            .clickable(onClick = onClick)
+            .scale(scale)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
     ) {
         if (thumbnail != null) {
             val thumb = thumbnail!!
@@ -373,7 +422,7 @@ private fun PhotoCard(
             Icon(
                 if (isSelected) Icons.Default.CheckCircle else Icons.Default.Circle,
                 contentDescription = null,
-                tint = if (isSelected) DesignSystem.Colors.primary
+                tint = if (isSelected) DesignSystem.Colors.accentWarm
                 else DesignSystem.Colors.minimalSecondaryLabel,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -532,5 +581,40 @@ private fun ExifRow(label: String, value: String) {
             style = DesignSystem.Typography.monoCaption,
             color = DesignSystem.Colors.textSecondary()
         )
+    }
+}
+
+/**
+ * 网格项交错入场动画 - 国潮质感动效
+ * 从 0.9 缩放 + 渐显进入，每项间隔 30ms
+ */
+@Composable
+private fun StaggeredEntryItem(
+    index: Int,
+    content: @Composable () -> Unit
+) {
+    var visible by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (visible) 1f else 0.9f,
+        animationSpec = DesignSystem.Animation.entryScaleIn,
+        label = "staggeredScale_$index"
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = DesignSystem.Animation.entryScaleIn,
+        label = "staggeredAlpha_$index"
+    )
+
+    LaunchedEffect(Unit) {
+        delay(index * 30L)
+        visible = true
+    }
+
+    Box(
+        modifier = Modifier
+            .scale(scale)
+            .graphicsLayer(alpha = alpha)
+    ) {
+        content()
     }
 }

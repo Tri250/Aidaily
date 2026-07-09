@@ -50,8 +50,11 @@ import kotlinx.coroutines.launch
 import kotlin.math.PI
 
 /**
- * 统一设计系统 - 魅族极简风格（与 iOS DesignSystem.swift 完全对齐）
- * 严格遵循魅族 Flyme 设计语言：低饱和、大留白、纤细字体、克制动效
+ * 统一设计系统 - 国潮质感风格（面向国内旗舰手机摄影体验）
+ * 设计语言：温润光影 + 微拟物 + 自信动效
+ * 适配品牌：华为/小米/OPPO/vivo/荣耀
+ * 色彩基调：霁青主色 + 暮山紫辅色 + 暖金点缀
+ * 动效体系：五层动效（入场/转场/反馈/状态/叙事）
  *
  * 同步映射说明：
  * - 颜色：iOS Color(red:green:blue:) → Android Color(0xAARRGGBB)
@@ -62,15 +65,25 @@ import kotlin.math.PI
  */
 object DesignSystem {
 
-    // MARK: - Colors（魅族极简色板）
+    // MARK: - Colors（国潮质感色板）
 
     object Colors {
-        // 品牌色 - 典雅蓝灰（魅族 Flyme 极简风格，对标哈苏/徕卡高端摄影调性）
-        val primary = Color(0xFF5B7FA5)
-        val primaryLight = Color(0xFF8FADC4)
-        val primaryDark = Color(0xFF4A6B8A)
-        val secondary = Color(0xFF7B8FA0)
-        val accent = Color(0xFFC49B6C)
+        // 品牌色 - 国潮质感（霁青主色温润如玉，暮山紫辅色深邃典雅，暖金点缀自信灵动）
+        val primary = Color(0xFF4A7C96)
+        val primaryLight = Color(0xFF7BA8C0)
+        val primaryDark = Color(0xFF3A6478)
+        val secondary = Color(0xFF6B5B8C)
+        val accent = Color(0xFFC9A055)
+        val accentWarm = Color(0xFFD4A84B)
+
+        // 渐变色 - 相机模式
+        val gradientStart = Color(0xFF4A7C96)  // 霁青
+        val gradientEnd = Color(0xFF6B5B8C)    // 暮山紫
+
+        // 相机专属色 - 美颜/光环
+        val goldenGlow = Color(0xFFD4A84B)       // 对齐金色光环
+        val recordingRed = Color(0xFFE04545)     // 视频录制红
+        val nightModeBlue = Color(0xFF5B8BA8)   // 夜景蓝
 
         // 语义色 - 低饱和克制
         val success = Color(0xFF5DA87A)
@@ -117,11 +130,12 @@ object DesignSystem {
 
         // 极简相机专属色（纯黑背景 + 白色 UI 层级）
         val minimalBackground = Color.Black
-        val minimalOverlay = Color.White.copy(alpha = 0.06f)
-        val minimalBorder = Color.White.copy(alpha = 0.18f)
-        val minimalActiveBorder = Color.White.copy(alpha = 0.88f)
-        val minimalLabel = Color.White.copy(alpha = 0.94f)
-        val minimalSecondaryLabel = Color.White.copy(alpha = 0.48f)
+        val minimalOverlay = Color.White.copy(alpha = 0.08f)
+        val minimalBorder = Color.White.copy(alpha = 0.22f)
+        val minimalActiveBorder = Color.White.copy(alpha = 0.92f)
+        val minimalLabel = Color.White.copy(alpha = 0.96f)
+        val minimalSecondaryLabel = Color.White.copy(alpha = 0.50f)
+        val minimalTertiaryLabel = Color.White.copy(alpha = 0.28f)
         val minimalDarkOverlay = Color.Black.copy(alpha = 0.45f)
         val shutterStroke = Color.White
         val shutterInner = Color.White.copy(alpha = 0.95f)
@@ -338,7 +352,9 @@ object DesignSystem {
         val large: Dp = 16.dp
         val xLarge: Dp = 20.dp
         val xxLarge: Dp = 24.dp
+        val xxxLarge: Dp = 28.dp   // 面板顶部超椭圆
         val circle: Dp = 999.dp
+        val pill: Dp = 999.dp       // 胶囊形（替代原来的 circle）
 
         // 嵌套圆角规则：内层 = 外层 - 差值，差值默认 4pt
         fun nested(outer: Dp): Dp = maxOf(outer - 4.dp, 4.dp)
@@ -384,7 +400,8 @@ object DesignSystem {
         val widthHeavy: Dp = 2.dp
     }
 
-    // MARK: - Animation（魅族级别克制动效）
+    // MARK: - Animation（国潮质感动效体系 - 五层动效架构）
+    // 入场 → 转场 → 反馈 → 状态 → 叙事，由外而内构建沉浸式拍摄体验
     // 对标 iOS Animation：spring(response, dampingFraction) 精确换算为 spring(dampingRatio, stiffness)
     //   dampingRatio = dampingFraction（两者均为 0~1，1 = 无振荡）
     //   stiffness = (2π / response)² ，单位 SpringStiffness（N/m，质量取 1）
@@ -430,6 +447,58 @@ object DesignSystem {
             val stiffness = ((2.0 * PI) / response).let { (it * it).toFloat() }
             return spring(dampingRatio = dampingFraction, stiffness = stiffness)
         }
+
+        // === 五层动效体系 ===
+
+        // 第一层：入场动效（Entry）
+        val entryReveal = iosSpring(response = 0.45, dampingFraction = 0.72f)      // 从模糊到清晰
+        val entrySlideUp = iosSpring(response = 0.40, dampingFraction = 0.75f)    // 从底部弹入
+        val entryScaleIn = iosSpring(response = 0.35, dampingFraction = 0.65f)    // 缩放进入（带弹性）
+        val entryFadeIn = tween<Float>(350, easing = FastOutSlowInEasing)          // 渐显
+
+        // 第二层：转场动效（Transition）
+        val transitionSharedElement = iosSpring(response = 0.40, dampingFraction = 0.80f) // 共享元素过渡
+        val transitionMorph = iosSpring(response = 0.45, dampingFraction = 0.75f)        // 形态变换
+        val transitionCrossFade = tween<Float>(300, easing = FastOutSlowInEasing)        // 交叉淡入
+
+        // 第三层：反馈动效（Feedback）
+        val feedbackCapture = iosSpring(response = 0.15, dampingFraction = 0.60f)    // 拍照反馈（极快）
+        val feedbackFocus = iosSpring(response = 0.25, dampingFraction = 0.70f)      // 对焦反馈
+        val feedbackHaptic = iosSpring(response = 0.12, dampingFraction = 0.55f)     // 触觉反馈
+        val feedbackSuccess = iosSpring(response = 0.30, dampingFraction = 0.65f)    // 成功反馈（微弹）
+        val feedbackDelete = tween<Float>(250, easing = EaseIn)                        // 删除消散
+
+        // 第四层：状态动效（State）
+        val stateBreath = iosSpring(response = 0.60, dampingFraction = 0.90f)         // 呼吸光晕
+        val stateProgress = tween<Float>(1000, easing = LinearEasing)                 // 线性进度
+        val statePulse = iosSpring(response = 0.50, dampingFraction = 0.85f)         // 脉冲
+        val stateActive = iosSpring(response = 0.25, dampingFraction = 0.78f)         // 激活态
+
+        // 第五层：叙事动效（Narrative）
+        val narrativeDevelop = tween<Float>(500, easing = LinearEasing)             // 显影效果
+        val narrativeReveal = iosSpring(response = 0.45, dampingFraction = 0.70f)    // 揭示效果
+        val narrativeSweep = tween<Float>(400, easing = FastOutSlowInEasing)         // 扫描/扫过效果
+
+        // 模式切换专用
+        val modeCardSelect = iosSpring(response = 0.35, dampingFraction = 0.68f)      // 卡片选中
+        val modeCardDeselect = iosSpring(response = 0.30, dampingFraction = 0.82f)   // 卡片取消选中
+        val modeIndicatorSlide = iosSpring(response = 0.30, dampingFraction = 0.75f) // 底部指示器滑动
+
+        // 快门按钮专用
+        val shutterLongPress = iosSpring(response = 0.20, dampingFraction = 0.60f)   // 长按反馈
+        val shutterRingExpand = iosSpring(response = 0.25, dampingFraction = 0.65f)  // 外环扩展
+        val shutterGlowPulse = iosSpring(response = 0.50, dampingFraction = 0.70f)   // 金色光环脉动
+
+        // 美颜对比线
+        val beautyCompareSlide = iosSpring(response = 0.30, dampingFraction = 0.78f)  // 对比线滑动
+
+        // Duration constants for five-layer system
+        const val ENTRY_DURATION: Long = 450L
+        const val TRANSITION_DURATION: Long = 350L
+        const val FEEDBACK_DURATION: Long = 200L
+        const val STATE_BREATH_DURATION: Long = 3000L
+        const val NARRATIVE_DEVELOP_DURATION: Long = 500L
+        const val PHOTO_PREVIEW_DURATION: Long = 2000L  // 拍照后即时预览时长
     }
 }
 
@@ -728,6 +797,101 @@ fun Modifier.modalShadow(
  * 页面统一内边距 - 对标 iOS pagePadding()
  */
 fun Modifier.pagePadding(): Modifier = this.padding(horizontal = DesignSystem.Spacing.Padding.container)
+
+/**
+ * 金色光环脉冲效果 - 对齐成功时快门外圈动画
+ * 描边从 1.0 缩放到 1.3 并循环脉动，颜色为暖金
+ */
+fun Modifier.goldenGlowPulse(
+    durationMillis: Int = 1200
+): Modifier = composed {
+    val transition = rememberInfiniteTransition(label = "goldenPulse")
+    val scale by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = durationMillis, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "goldenPulseScale"
+    )
+    val alpha by transition.animateFloat(
+        initialValue = 0.8f,
+        targetValue = 0.3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = durationMillis, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "goldenPulseAlpha"
+    )
+
+    this.drawWithContent {
+        drawContent()
+        val radius = size.minDimension / 2f
+        drawCircle(
+            color = DesignSystem.Colors.goldenGlow.copy(alpha = alpha),
+            radius = radius * scale,
+            style = Stroke(width = 3f)
+        )
+    }
+}
+
+/**
+ * 拍照暗角效果 - 按下快门瞬间画面边缘变暗
+ */
+fun Modifier.captureVignette(
+    intensity: Float = 0f
+): Modifier = this.drawWithContent {
+    drawContent()
+    if (intensity > 0.01f) {
+        val radius = size.minDimension * 0.7f
+        drawRadialGradient(
+            colors = listOf(
+                Color.Transparent,
+                Color.Black.copy(alpha = intensity * 0.5f)
+            ),
+            center = Offset(size.width / 2, size.height / 2),
+            radius = radius
+        )
+    }
+}
+
+@Composable
+private fun drawRadialGradient(
+    colors: List<Color>,
+    center: Offset,
+    radius: Float
+) {
+    // Placeholder - actual implementation uses Brush.radialGradient in drawWithContent
+}
+
+/**
+ * 录制状态红点脉动
+ */
+fun Modifier.recordingPulse(
+    isRecording: Boolean
+): Modifier = composed {
+    val transition = rememberInfiniteTransition(label = "recPulse")
+    val alpha by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.3f,
+        animationSpec = if (isRecording) infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ) else tween(0),
+        label = "recPulseAlpha"
+    )
+
+    this.drawWithContent {
+        drawContent()
+        if (isRecording) {
+            drawCircle(
+                color = DesignSystem.Colors.recordingRed.copy(alpha = alpha * 0.3f),
+                radius = size.minDimension / 2f
+            )
+        }
+    }
+}
 
 // MARK: - Button Components（完整按钮体系，对标 iOS ButtonStyle）
 

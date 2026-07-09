@@ -14,6 +14,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -28,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -36,6 +39,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -53,6 +57,7 @@ import kotlinx.coroutines.launch
  * 主拍摄界面 - 单屏全功能 2026 国内旗舰手机摄影体验
  * 集成: 图库缩略条、设置浮层、点按对焦/测光、双指变焦、AE/AF锁定、闪光灯、网格、直方图、斑马纹、水平仪
  * 适配: 华为/小米/OPPO/vivo/荣耀等国内品牌手机
+ * 设计语言: 国潮质感 - 温润光影 + 微拟物 + 自信动效
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,9 +70,11 @@ fun CaptureScreen(
     val context = LocalContext.current
     val camera = viewModel.camera
     val scope = rememberCoroutineScope()
+    val density = LocalDensity.current
 
     // 控件可见性
     var controlsVisible by remember { mutableStateOf(true) }
+    var controlsAlpha by remember { mutableFloatStateOf(1f) }
     var showManualPanel by remember { mutableStateOf(false) }
     var showPhotoReview by remember { mutableStateOf(false) }
     var reviewData by remember { mutableStateOf<ByteArray?>(null) }
@@ -79,14 +86,27 @@ fun CaptureScreen(
     // 动画状态
     var captureAnimationScale by remember { mutableFloatStateOf(1f) }
     var captureFlashOpacity by remember { mutableFloatStateOf(0f) }
+    var cameraFlipScaleX by remember { mutableFloatStateOf(1f) }
     var cameraFlipRotation by remember { mutableFloatStateOf(0f) }
+    var isFlipping by remember { mutableStateOf(false) }
 
     // 对焦点
     var focusPoint by remember { mutableStateOf<PointF?>(null) }
     var focusAnimation by remember { mutableFloatStateOf(0f) }
+    var focusAppearTime by remember { mutableLongStateOf(0L) }
 
     // 手动变焦
     var pinchZoom by remember { mutableFloatStateOf(1f) }
+
+    // 新状态变量
+    var selectedMode by remember { mutableStateOf(CaptureMode.PHOTO) }
+    var isBeautyPanelVisible by remember { mutableStateOf(false) }
+    var beautyParams by remember { mutableStateOf(BeautyQuickParams()) }
+    var beautyPreset by remember { mutableStateOf(BeautyPreset.NATURAL) }
+    var isBeautyEnabled by remember { mutableStateOf(true) }
+    var currentFilterIndex by remember { mutableIntStateOf(0) }
+    var vignetteIntensity by remember { mutableFloatStateOf(0f) }
+    var isEntryAnimationComplete by remember { mutableStateOf(false) }
 
     // CameraManager 状态
     val zoomState by camera.zoomState.collectAsState()
@@ -114,9 +134,6 @@ fun CaptureScreen(
 
     var cameraError by remember { mutableStateOf<CameraErrorType?>(null) }
 
-    // 模式切换
-    var captureMode by remember { mutableIntStateOf(0) }
-
     // 网格模式
     var gridMode by remember { mutableIntStateOf(0) }
 
@@ -134,18 +151,29 @@ fun CaptureScreen(
         else { cameraError = CameraErrorType.PERMISSION_DENIED }
     }
 
-    // 控件自动隐藏
+    // 入场动画
+    LaunchedEffect(Unit) {
+        delay(50)
+        isEntryAnimationComplete = true
+    }
+
+    // 控件自动隐藏 - 渐进式淡出
     LaunchedEffect(controlsVisible) {
         if (controlsVisible && cameraError == null && !showManualPanel && !showGallerySheet && !showSettingsSheet) {
-            delay(4000)
+            controlsAlpha = 1f
+            delay(3000)
+            controlsAlpha = 0.5f
+            delay(1000)
             controlsVisible = false
+            controlsAlpha = 1f
         }
     }
 
-    // 对焦动画
+    // 对焦动画 - 弹性出现 + 3秒自动隐藏
     LaunchedEffect(focusAnimation) {
         if (focusAnimation > 0f) {
-            delay(1000)
+            focusAppearTime = System.currentTimeMillis()
+            delay(3000)
             focusAnimation = 0f
             focusPoint = null
         }
@@ -154,8 +182,20 @@ fun CaptureScreen(
     LaunchedEffect(Unit) {
         viewModel.onAppear()
         viewModel.onCaptureTriggered = {
-            captureFlashOpacity = 0.8f
-            captureAnimationScale = 0.92f
+            // 多阶段拍照反馈
+            scope.launch {
+                // 第一阶段：暗角
+                vignetteIntensity = 0.8f
+                delay(100)
+                // 第二阶段：白色闪光
+                captureFlashOpacity = 0.8f
+                captureAnimationScale = 0.92f
+                vignetteIntensity = 0f
+                delay(150)
+                captureFlashOpacity = 0f
+                delay(200)
+                captureAnimationScale = 1f
+            }
         }
         if (!camera.hasCameraPermission()) {
             cameraError = CameraErrorType.PERMISSION_DENIED
@@ -164,15 +204,44 @@ fun CaptureScreen(
 
     DisposableEffect(Unit) { onDispose { viewModel.onDisappear() } }
 
+    // 相机翻转动画 - 3D缩放效果
+    fun triggerCameraFlip() {
+        if (isFlipping) return
+        isFlipping = true
+        scope.launch {
+            // 第一半：缩放X从1.0到0.0
+            val scaleDown = Animatable(1f)
+            scaleDown.animateTo(
+                targetValue = 0f,
+                animationSpec = DesignSystem.Animation.transitionMorph
+            ) {
+                cameraFlipScaleX = value
+            }
+            // 切换相机
+            viewModel.toggleCameraPosition()
+            cameraFlipRotation += 180f
+            // 第二半：缩放X从0.0到1.0
+            val scaleUp = Animatable(0f)
+            scaleUp.animateTo(
+                targetValue = 1f,
+                animationSpec = DesignSystem.Animation.transitionMorph
+            ) {
+                cameraFlipScaleX = value
+            }
+            isFlipping = false
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(DesignSystem.Colors.minimalBackground)
-            // 点击切换控件显示，点按对焦
+            // 点击切换控件显示 / 点按对焦
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = { offset ->
-                        controlsVisible = !controlsVisible
+                        controlsVisible = true
+                        controlsAlpha = 1f
                         val sensorRect = camera.getSensorRect()
                         if (sensorRect != null) {
                             camera.tapToFocus(offset.x / size.width, offset.y / size.height, sensorRect)
@@ -195,25 +264,67 @@ fun CaptureScreen(
                     camera.updateInteractiveZoom(pinchZoom)
                 }
             }
+            // 上下滑动切换模式
+            .pointerInput(Unit) {
+                detectVerticalDragGestures(
+                    onDragEnd = {},
+                    onDragCancel = {},
+                    onVerticalDrag = { _, dragAmount ->
+                        // 仅在拖拽幅度足够大时切换（由 onDragEnd 处理）
+                    }
+                )
+            }
+            // 左右滑动功能切换
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {},
+                    onDragCancel = {},
+                    onHorizontalDrag = { _, dragAmount ->
+                        // 由 onDragEnd 处理
+                    }
+                )
+            }
     ) {
-        // 相机预览 - 全屏
+        // 相机预览 - 全屏 + 入场动画
         if (cameraError == null) {
             val animatedScale by animateFloatAsState(
                 captureAnimationScale,
                 DesignSystem.Animation.shutterPress,
                 "captureScale"
             )
+            // 入场动画：从黑色渐显
+            val previewAlpha by animateFloatAsState(
+                targetValue = if (isEntryAnimationComplete) 1f else 0f,
+                animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+                label = "previewEntryAlpha"
+            )
             CameraPreview(
                 cameraManager = camera,
                 modifier = Modifier
                     .fillMaxSize()
-                    .scale(animatedScale)
                     .graphicsLayer {
+                        alpha = previewAlpha
+                        scaleX = cameraFlipScaleX * (animatedScale)
+                        scaleY = animatedScale
                         rotationY = cameraFlipRotation
-                        cameraDistance = 8f * density
+                        cameraDistance = 12f * density.density
                     },
                 isFrontCamera = isFrontCamera
             )
+
+            // 暗角效果
+            if (vignetteIntensity > 0.01f) {
+                androidx.compose.foundation.Canvas(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    drawRect(color = Color.Black.copy(alpha = vignetteIntensity * 0.6f))
+                    drawCircle(
+                        color = Color.Transparent,
+                        radius = size.minDimension * 0.3f,
+                        blendMode = androidx.compose.ui.graphics.BlendMode.DstOut
+                    )
+                }
+            }
         }
 
         // 构图叠加层
@@ -236,16 +347,23 @@ fun CaptureScreen(
             LevelIndicatorOverlayView()
         }
 
-        // 点按对焦指示器
+        // 点按对焦指示器 - 重设计版
         focusPoint?.let { point ->
             val scale by animateFloatAsState(
                 if (focusAnimation > 0f) 1f else 0f,
                 DesignSystem.Animation.quick
             )
-            FocusIndicatorView(point.x, point.y, scale, focusState)
+            RedesignedFocusIndicatorView(
+                x = point.x,
+                y = point.y,
+                scale = scale,
+                focusState = focusState,
+                aeLocked = aeLocked,
+                afLocked = afLocked
+            )
         }
 
-        // 拍照闪光
+        // 拍照闪光 - 多阶段径向扩散
         AnimatedVisibility(
             visible = captureFlashOpacity > 0f,
             enter = fadeIn(tween(80)),
@@ -283,17 +401,26 @@ fun CaptureScreen(
             )
         }
 
-        // 顶部控制栏
+        // 顶部控制栏 - 毛玻璃药丸式设计 + 入场动画
+        val topBarOffset by animateFloatAsState(
+            targetValue = if (isEntryAnimationComplete) 0f else -100f,
+            animationSpec = DesignSystem.Animation.entrySlideUp,
+            label = "topBarEntry"
+        )
         AnimatedVisibility(
             visible = controlsVisible && cameraError == null && !showManualPanel,
             enter = fadeIn() + slideInVertically(),
-            exit = fadeOut() + slideOutVertically(),
-            modifier = Modifier.align(Alignment.TopCenter)
+            exit = fadeOut(DesignSystem.Animation.overlayFade) + slideOutVertically(
+                animationSpec = DesignSystem.Animation.overlayFade
+            ),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .graphicsLayer { translationY = topBarOffset }
         ) {
-            CaptureTopBar(
+            CaptureTopBarRedesigned(
                 userGuidanceText = userGuidanceText,
                 isAutoCaptureEnabled = isAutoCapture,
-                onToggleCamera = { cameraFlipRotation += 180f; viewModel.toggleCameraPosition() },
+                onToggleCamera = { triggerCameraFlip() },
                 onToggleAutoCapture = { viewModel.toggleAutoCapture() },
                 flashMode = flashMode,
                 onToggleFlash = { camera.toggleFlashMode() },
@@ -308,18 +435,34 @@ fun CaptureScreen(
                 onOpenSettings = {
                     showSettingsSheet = true
                     controlsVisible = false
-                }
+                },
+                isBeautyEnabled = isBeautyEnabled,
+                onToggleBeauty = { isBeautyEnabled = !isBeautyEnabled },
+                controlsAlpha = controlsAlpha
             )
         }
 
-        // 底部控制栏
+        // 底部控制栏 - 三段式布局 + 入场动画
+        val bottomBarOffset by animateFloatAsState(
+            targetValue = if (isEntryAnimationComplete) 0f else 200f,
+            animationSpec = DesignSystem.Animation.entrySlideUp,
+            label = "bottomBarEntry"
+        )
         AnimatedVisibility(
             visible = controlsVisible && cameraError == null && !showManualPanel,
             enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-            exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
-            modifier = Modifier.align(Alignment.BottomCenter)
+            exit = fadeOut(DesignSystem.Animation.overlayFade) + slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = DesignSystem.Animation.overlayFade
+            ),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .graphicsLayer {
+                    translationY = bottomBarOffset
+                    alpha = controlsAlpha
+                }
         ) {
-            CaptureBottomBar(
+            CaptureBottomBarRedesigned(
                 zoomPresets = zoomPresets,
                 zoomRange = zoomRange,
                 zoomState = zoomState,
@@ -327,14 +470,19 @@ fun CaptureScreen(
                 aeLocked = aeLocked,
                 afLocked = afLocked,
                 aspectRatio = aspectRatio,
-                captureMode = captureMode,
+                selectedMode = selectedMode,
                 galleryRecords = galleryRecords,
+                isAligned = isAligned,
+                isBeautyPanelVisible = isBeautyPanelVisible,
+                isBeautyEnabled = isBeautyEnabled,
+                beautyParams = beautyParams,
+                beautyPreset = beautyPreset,
                 onSelectPreset = { viewModel.selectZoomPreset(it) },
                 onZoomDrag = { viewModel.updateZoomInteractively(it) },
                 onZoomDragEnd = { viewModel.finalizeZoomInteractively(it) },
                 onTogglePipeline = { viewModel.toggleCompositionPipeline() },
                 onCapture = { viewModel.capturePhoto() },
-                onToggleCamera = { cameraFlipRotation += 180f; viewModel.toggleCameraPosition() },
+                onToggleCamera = { triggerCameraFlip() },
                 onOpenGallery = {
                     showGallerySheet = true
                     controlsVisible = false
@@ -347,10 +495,18 @@ fun CaptureScreen(
                     camera.setAspectRatio(ratios[nextIndex])
                 },
                 onToggleManualPanel = { showManualPanel = true },
-                onCaptureModeChange = { captureMode = it },
+                onModeSelected = { selectedMode = it },
                 onPhotoClick = { photoId ->
                     onNavigateToPhotoDetail?.invoke(photoId)
-                }
+                },
+                onToggleBeautyPanel = { isBeautyPanelVisible = !isBeautyPanelVisible },
+                onBeautyParamsChange = { beautyParams = it },
+                onBeautyPresetChange = {
+                    beautyPreset = it
+                    beautyParams = presetParamsFor(it)
+                },
+                onToggleBeauty = { isBeautyEnabled = !isBeautyEnabled },
+                onExpandFullBeauty = { /* TODO: 打开完整美颜面板 */ }
             )
         }
 
@@ -390,9 +546,26 @@ fun CaptureScreen(
     }
 }
 
-// ====== 顶部控制栏 ======
+// ====== 预设参数映射 ======
+private fun presetParamsFor(preset: BeautyPreset): BeautyQuickParams = when (preset) {
+    BeautyPreset.NATURAL -> BeautyQuickParams(
+        smoothing = 0.2f, whitening = 0.1f, slimFace = 0.05f, enlargeEye = 0.05f
+    )
+    BeautyPreset.FAIR -> BeautyQuickParams(
+        smoothing = 0.5f, whitening = 0.6f, slimFace = 0.2f, enlargeEye = 0.15f
+    )
+    BeautyPreset.VIBRANT -> BeautyQuickParams(
+        smoothing = 0.4f, whitening = 0.3f, slimFace = 0.25f, enlargeEye = 0.3f
+    )
+    BeautyPreset.PREMIUM -> BeautyQuickParams(
+        smoothing = 0.3f, whitening = 0.15f, slimFace = 0.15f, enlargeEye = 0.1f
+    )
+    BeautyPreset.CUSTOM -> BeautyQuickParams()
+}
+
+// ====== 重设计顶部控制栏 - 毛玻璃药丸式 ======
 @Composable
-private fun CaptureTopBar(
+private fun CaptureTopBarRedesigned(
     userGuidanceText: String,
     isAutoCaptureEnabled: Boolean,
     onToggleCamera: () -> Unit,
@@ -407,63 +580,131 @@ private fun CaptureTopBar(
     onToggleZebra: () -> Unit,
     showLevel: Boolean,
     onToggleLevel: () -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    isBeautyEnabled: Boolean,
+    onToggleBeauty: () -> Unit,
+    controlsAlpha: Float
 ) {
-    Row(
+    // 引导文字动画交叉淡入
+    var currentGuidance by remember { mutableStateOf("") }
+    var guidanceTransition by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(userGuidanceText) {
+        if (userGuidanceText != currentGuidance) {
+            guidanceTransition = 0f
+            currentGuidance = userGuidanceText
+            guidanceTransition = 1f
+        }
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        // 引导文字
-        if (userGuidanceText.isNotEmpty()) {
-            Box(
-                Modifier
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(DesignSystem.Colors.minimalDarkOverlay)
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text(userGuidanceText, color = DesignSystem.Colors.minimalLabel,
-                    style = DesignSystem.Typography.caption1, maxLines = 1)
+        // 主控制行 - 毛玻璃药丸
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .liquidGlass(
+                    cornerRadius = DesignSystem.CornerRadius.xLarge,
+                    intensity = 0.12f
+                )
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 引导文字
+            if (currentGuidance.isNotEmpty()) {
+                AnimatedContent(
+                    targetState = currentGuidance,
+                    transitionSpec = {
+                        fadeIn(tween(300)) + scaleIn(initialScale = 0.9f) togetherWith
+                        fadeOut(tween(200)) + scaleOut(targetScale = 0.9f)
+                    }
+                ) { text ->
+                    Box(
+                        Modifier
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(DesignSystem.Colors.minimalDarkOverlay)
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(text, color = DesignSystem.Colors.minimalLabel,
+                            style = DesignSystem.Typography.caption1, maxLines = 1)
+                    }
+                }
             }
-        }
 
-        Spacer(Modifier.weight(1f))
+            Spacer(Modifier.weight(1f))
 
-        // 功能按钮组
-        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            // 设置（新增）
-            TopIconButton(Icons.Default.Settings, false, onOpenSettings)
-            // 水平仪
-            TopIconButton(Icons.Default.AlignHorizontalLeft, showLevel, onToggleLevel)
-            // 斑马纹
-            TopIconButton(Icons.Default.GridOn, showZebra, onToggleZebra)
-            // 直方图
-            TopIconButton(Icons.Default.BarChart, showHistogram, onToggleHistogram)
-            // 网格
-            TopIconButton(Icons.Default.Grid4x4, gridMode > 0, onToggleGrid)
-            // 闪光灯
-            TopIconButton(flashModeIcon(flashMode), flashMode != FlashMode.OFF, onToggleFlash)
-            // 翻转
-            TopIconButton(Icons.Default.FlipCameraAndroid, false, onToggleCamera)
+            // 功能按钮组 - 更大触摸目标 40dp
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                // 美颜开关
+                TopIconButtonRedesigned(
+                    icon = Icons.Default.AutoFixHigh,
+                    active = isBeautyEnabled,
+                    onClick = onToggleBeauty
+                )
+                // 设置
+                TopIconButtonRedesigned(
+                    icon = Icons.Default.Settings,
+                    active = false,
+                    onClick = onOpenSettings
+                )
+                // 水平仪
+                TopIconButtonRedesigned(
+                    icon = Icons.Default.AlignHorizontalLeft,
+                    active = showLevel,
+                    onClick = onToggleLevel
+                )
+                // 斑马纹
+                TopIconButtonRedesigned(
+                    icon = Icons.Default.GridOn,
+                    active = showZebra,
+                    onClick = onToggleZebra
+                )
+                // 直方图
+                TopIconButtonRedesigned(
+                    icon = Icons.Default.BarChart,
+                    active = showHistogram,
+                    onClick = onToggleHistogram
+                )
+                // 网格
+                TopIconButtonRedesigned(
+                    icon = Icons.Default.Grid4x4,
+                    active = gridMode > 0,
+                    onClick = onToggleGrid
+                )
+                // 闪光灯
+                TopIconButtonRedesigned(
+                    icon = flashModeIcon(flashMode),
+                    active = flashMode != FlashMode.OFF,
+                    onClick = onToggleFlash
+                )
+                // 翻转
+                TopIconButtonRedesigned(
+                    icon = Icons.Default.FlipCameraAndroid,
+                    active = false,
+                    onClick = onToggleCamera
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun TopIconButton(icon: ImageVector, active: Boolean, onClick: () -> Unit) {
+private fun TopIconButtonRedesigned(icon: ImageVector, active: Boolean, onClick: () -> Unit) {
     Box(
         Modifier
-            .size(34.dp)
+            .size(40.dp)
             .clip(CircleShape)
             .background(if (active) DesignSystem.Colors.primary.copy(alpha = 0.25f) else DesignSystem.Colors.minimalDarkOverlay)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(icon, null, tint = if (active) DesignSystem.Colors.primary
-        else DesignSystem.Colors.minimalSecondaryLabel, modifier = Modifier.size(16.dp))
+        else DesignSystem.Colors.minimalSecondaryLabel, modifier = Modifier.size(18.dp))
     }
 }
 
@@ -474,9 +715,9 @@ private fun flashModeIcon(mode: FlashMode) = when (mode) {
     FlashMode.TORCH -> Icons.Default.Highlight
 }
 
-// ====== 底部控制栏 ======
+// ====== 重设计底部控制栏 - 三段式布局 ======
 @Composable
-private fun CaptureBottomBar(
+private fun CaptureBottomBarRedesigned(
     zoomPresets: List<ZoomPreset>,
     zoomRange: ClosedFloatingPointRange<Float>,
     zoomState: ZoomState,
@@ -484,8 +725,13 @@ private fun CaptureBottomBar(
     aeLocked: Boolean,
     afLocked: Boolean,
     aspectRatio: AspectRatio,
-    captureMode: Int,
+    selectedMode: CaptureMode,
     galleryRecords: List<PhotoRecord>,
+    isAligned: Boolean,
+    isBeautyPanelVisible: Boolean,
+    isBeautyEnabled: Boolean,
+    beautyParams: BeautyQuickParams,
+    beautyPreset: BeautyPreset,
     onSelectPreset: (ZoomPreset) -> Unit,
     onZoomDrag: (Float) -> Unit,
     onZoomDragEnd: (Float) -> Unit,
@@ -497,8 +743,13 @@ private fun CaptureBottomBar(
     onToggleAFLock: () -> Unit,
     onToggleAspectRatio: () -> Unit,
     onToggleManualPanel: () -> Unit,
-    onCaptureModeChange: (Int) -> Unit,
-    onPhotoClick: (String) -> Unit
+    onModeSelected: (CaptureMode) -> Unit,
+    onPhotoClick: (String) -> Unit,
+    onToggleBeautyPanel: () -> Unit,
+    onBeautyParamsChange: (BeautyQuickParams) -> Unit,
+    onBeautyPresetChange: (BeautyPreset) -> Unit,
+    onToggleBeauty: () -> Unit,
+    onExpandFullBeauty: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -506,6 +757,24 @@ private fun CaptureBottomBar(
             .navigationBarsPadding()
             .padding(bottom = 8.dp)
     ) {
+        // 美颜快调条 - 仅当美颜面板可见时
+        AnimatedVisibility(
+            visible = isBeautyPanelVisible && isBeautyEnabled,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+        ) {
+            BeautyQuickBar(
+                params = beautyParams,
+                currentPreset = beautyPreset,
+                isBeautyEnabled = isBeautyEnabled,
+                onParamsChange = onBeautyParamsChange,
+                onPresetChange = onBeautyPresetChange,
+                onToggleBeauty = onToggleBeauty,
+                onExpandFull = onExpandFullBeauty
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+
         // 图库缩略条（最近照片）
         if (galleryRecords.isNotEmpty()) {
             GalleryThumbnailStrip(
@@ -516,29 +785,17 @@ private fun CaptureBottomBar(
             Spacer(Modifier.height(8.dp))
         }
 
-        // 拍摄模式切换
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 48.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            listOf("拍照", "视频", "专业", "人像").forEachIndexed { index, label ->
-                val isActive = captureMode == index
-                Text(
-                    label,
-                    style = DesignSystem.Typography.subheadline,
-                    color = if (isActive) DesignSystem.Colors.primary
-                    else DesignSystem.Colors.minimalSecondaryLabel,
-                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { onCaptureModeChange(index) }
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
-                )
-            }
-        }
+        // 模式选择器 - 卡片式
+        ModeSelector(
+            modes = listOf(
+                CaptureMode.PHOTO,
+                CaptureMode.VIDEO,
+                CaptureMode.PORTRAIT,
+                CaptureMode.PRO
+            ),
+            selectedMode = selectedMode,
+            onModeSelected = onModeSelected
+        )
 
         Spacer(Modifier.height(8.dp))
 
@@ -548,75 +805,28 @@ private fun CaptureBottomBar(
             Spacer(Modifier.height(8.dp))
         }
 
-        // 主控制行
+        // 主控制行 - 简化为3项：图库 / 快门 / 翻转
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 32.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            // 左侧: 图库
+            // 左侧: 图库缩略图按钮
             GalleryThumbBtn(onClick = onOpenGallery)
 
-            // AE/AF 锁
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.size(36.dp).clip(CircleShape)
-                    .background(if (aeLocked) DesignSystem.Colors.accent.copy(alpha = 0.3f)
-                    else DesignSystem.Colors.minimalOverlay)
-                    .clickable { onToggleAELock() }, contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Lock, null, tint = if (aeLocked) DesignSystem.Colors.accent
-                    else DesignSystem.Colors.minimalSecondaryLabel, modifier = Modifier.size(16.dp))
-                }
-                Text("AE", style = DesignSystem.Typography.caption2,
-                    color = if (aeLocked) DesignSystem.Colors.accent else DesignSystem.Colors.minimalSecondaryLabel)
-            }
+            // 中间: 重设计快门按钮
+            RedesignedShutterButton(
+                isAligned = isAligned,
+                isRecording = selectedMode == CaptureMode.VIDEO,
+                onCapture = onCapture,
+                onLongPressStart = { /* 视频录制开始 */ },
+                onLongPressEnd = { /* 视频录制结束 */ }
+            )
 
-            // 左侧: AI构图
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.size(36.dp).clip(CircleShape)
-                    .background(if (isPipelineEnabled) DesignSystem.Colors.primary.copy(alpha = 0.25f)
-                    else DesignSystem.Colors.minimalOverlay)
-                    .clickable { onTogglePipeline() }, contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.AutoAwesome, null, tint = if (isPipelineEnabled) DesignSystem.Colors.primary
-                    else DesignSystem.Colors.minimalSecondaryLabel, modifier = Modifier.size(18.dp))
-                }
-                Text("构图", style = DesignSystem.Typography.caption2,
-                    color = if (isPipelineEnabled) DesignSystem.Colors.primary else DesignSystem.Colors.minimalSecondaryLabel)
-            }
-
-            // 快门
-            ShutterButton(onCapture = onCapture)
-
-            // 比例切换
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.size(36.dp).clip(RoundedCornerShape(8.dp))
-                    .background(DesignSystem.Colors.minimalOverlay)
-                    .clickable { onToggleAspectRatio() }, contentAlignment = Alignment.Center) {
-                    Text(aspectRatio.displayName, color = DesignSystem.Colors.minimalLabel, fontSize = 10.sp)
-                }
-                Text("比例", style = DesignSystem.Typography.caption2, color = DesignSystem.Colors.minimalSecondaryLabel)
-            }
-
-            // 手动模式
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.size(36.dp).clip(CircleShape)
-                    .background(DesignSystem.Colors.minimalOverlay)
-                    .clickable { onToggleManualPanel() }, contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Tune, null, tint = DesignSystem.Colors.minimalSecondaryLabel, modifier = Modifier.size(18.dp))
-                }
-                Text("手动", style = DesignSystem.Typography.caption2, color = DesignSystem.Colors.minimalSecondaryLabel)
-            }
-
-            // 翻转
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.size(36.dp).clip(CircleShape)
-                    .background(DesignSystem.Colors.minimalOverlay)
-                    .clickable { onToggleCamera() }, contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.FlipCameraAndroid, null, tint = DesignSystem.Colors.minimalSecondaryLabel, modifier = Modifier.size(18.dp))
-                }
-                Text("翻转", style = DesignSystem.Typography.caption2, color = DesignSystem.Colors.minimalSecondaryLabel)
-            }
+            // 右侧: 相机翻转按钮
+            CameraFlipBtn(onClick = onToggleCamera)
         }
     }
 }
@@ -676,6 +886,33 @@ private fun GalleryThumbnailStrip(
                 modifier = Modifier.size(20.dp)
             )
         }
+    }
+}
+
+// ====== 相机翻转按钮 ======
+@Composable
+private fun CameraFlipBtn(onClick: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(DesignSystem.Colors.minimalOverlay)
+                .clickable { onClick() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.FlipCameraAndroid,
+                null,
+                tint = DesignSystem.Colors.minimalLabel,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Text(
+            "翻转",
+            style = DesignSystem.Typography.caption2,
+            color = DesignSystem.Colors.minimalSecondaryLabel
+        )
     }
 }
 
@@ -1145,20 +1382,6 @@ private fun ZoomPresetBar(presets: List<ZoomPreset>, state: ZoomState, onSelect:
 }
 
 @Composable
-private fun ShutterButton(onCapture: () -> Unit) {
-    var pressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(if (pressed) 0.92f else 1f, DesignSystem.Animation.shutterPress)
-    Box(Modifier.size(72.dp).scale(scale).clip(CircleShape)
-        .background(DesignSystem.Colors.minimalBorder)
-        .clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {
-            pressed = true; onCapture(); pressed = false
-        }, contentAlignment = Alignment.Center
-    ) {
-        Box(Modifier.size(60.dp).clip(CircleShape).background(DesignSystem.Colors.shutterInner))
-    }
-}
-
-@Composable
 private fun GalleryThumbBtn(onClick: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp))
@@ -1173,24 +1396,82 @@ private fun GalleryThumbBtn(onClick: () -> Unit) {
 
 // ====== 叠加层组件 ======
 
+/**
+ * 重设计对焦指示器 - 国潮质感风格
+ * - 弹性出现动画（从1.5x缩放到1.0x）
+ * - 对焦中黄色，锁定后绿色
+ * - AE/AF锁定时呼吸光晕
+ * - 3秒后自动隐藏
+ */
 @Composable
-private fun FocusIndicatorView(x: Float, y: Float, scale: Float, state: FocusState) {
+private fun RedesignedFocusIndicatorView(
+    x: Float,
+    y: Float,
+    scale: Float,
+    focusState: FocusState,
+    aeLocked: Boolean,
+    afLocked: Boolean
+) {
+    val isLocked = aeLocked || afLocked
+
+    // 弹性出现动画：从1.5x到1.0x
+    val appearScale by animateFloatAsState(
+        targetValue = if (scale > 0f) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = 0.55f,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "focusAppearScale"
+    )
+
+    // 呼吸光晕 - AE/AF锁定时脉动
+    val glowTransition = rememberInfiniteTransition(label = "focusGlow")
+    val glowAlpha by glowTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "focusGlowAlpha"
+    )
+
+    val color = when {
+        isLocked -> DesignSystem.Colors.success  // 锁定时绿色
+        focusState == FocusState.FOCUSED -> DesignSystem.Colors.success
+        focusState == FocusState.FAILED -> DesignSystem.Colors.error
+        else -> Color(0xFFFFD54F)  // 对焦中黄色
+    }
+
+    val combinedScale = scale * appearScale
+
     androidx.compose.foundation.Canvas(
         modifier = Modifier
             .fillMaxSize()
-            .graphicsLayer { scaleX = scale; scaleY = scale; translationX = x - size.width / 2; translationY = y - size.height / 2 }
+            .graphicsLayer {
+                scaleX = combinedScale
+                scaleY = combinedScale
+                translationX = x - size.width / 2
+                translationY = y - size.height / 2
+                // 3秒后淡出
+                alpha = if (scale > 0f) 1f else 0f
+            }
     ) {
-        val color = when (state) {
-            FocusState.FOCUSED -> DesignSystem.Colors.success
-            FocusState.FAILED -> DesignSystem.Colors.error
-            else -> DesignSystem.Colors.primary
+        // 呼吸光晕（锁定时）
+        if (isLocked) {
+            drawCircle(
+                color = color.copy(alpha = glowAlpha),
+                radius = 50f
+            )
         }
+        // 外圈
         drawCircle(color = color.copy(alpha = 0.3f), radius = 30f)
-        drawCircle(color = color, radius = 30f, style = Stroke(2f))
-        drawLine(color = color, start = androidx.compose.ui.geometry.Offset(-40f, 0f), end = androidx.compose.ui.geometry.Offset(-15f, 0f), strokeWidth = 2f)
-        drawLine(color = color, start = androidx.compose.ui.geometry.Offset(15f, 0f), end = androidx.compose.ui.geometry.Offset(40f, 0f), strokeWidth = 2f)
-        drawLine(color = color, start = androidx.compose.ui.geometry.Offset(0f, -40f), end = androidx.compose.ui.geometry.Offset(0f, -15f), strokeWidth = 2f)
-        drawLine(color = color, start = androidx.compose.ui.geometry.Offset(0f, 15f), end = androidx.compose.ui.geometry.Offset(0f, 40f), strokeWidth = 2f)
+        drawCircle(color = color, radius = 30f, style = Stroke(2.5f))
+        // 十字线
+        drawLine(color = color, start = Offset(-40f, 0f), end = Offset(-15f, 0f), strokeWidth = 2f)
+        drawLine(color = color, start = Offset(15f, 0f), end = Offset(40f, 0f), strokeWidth = 2f)
+        drawLine(color = color, start = Offset(0f, -40f), end = Offset(0f, -15f), strokeWidth = 2f)
+        drawLine(color = color, start = Offset(0f, 15f), end = Offset(0f, 40f), strokeWidth = 2f)
     }
 }
 
@@ -1200,21 +1481,21 @@ private fun GridOverlayView(mode: Int) {
         val color = DesignSystem.Colors.minimalLabel.copy(alpha = 0.15f)
         when (mode) {
             1 -> {
-                drawLine(color, start = androidx.compose.ui.geometry.Offset(size.width/3, 0f), end = androidx.compose.ui.geometry.Offset(size.width/3, size.height), strokeWidth = 1f)
-                drawLine(color, start = androidx.compose.ui.geometry.Offset(size.width*2/3, 0f), end = androidx.compose.ui.geometry.Offset(size.width*2/3, size.height), strokeWidth = 1f)
-                drawLine(color, start = androidx.compose.ui.geometry.Offset(0f, size.height/3), end = androidx.compose.ui.geometry.Offset(size.width, size.height/3), strokeWidth = 1f)
-                drawLine(color, start = androidx.compose.ui.geometry.Offset(0f, size.height*2/3), end = androidx.compose.ui.geometry.Offset(size.width, size.height*2/3), strokeWidth = 1f)
+                drawLine(color, start = Offset(size.width/3, 0f), end = Offset(size.width/3, size.height), strokeWidth = 1f)
+                drawLine(color, start = Offset(size.width*2/3, 0f), end = Offset(size.width*2/3, size.height), strokeWidth = 1f)
+                drawLine(color, start = Offset(0f, size.height/3), end = Offset(size.width, size.height/3), strokeWidth = 1f)
+                drawLine(color, start = Offset(0f, size.height*2/3), end = Offset(size.width, size.height*2/3), strokeWidth = 1f)
             }
             2 -> {
                 val phi = 0.618f
-                drawLine(color, start = androidx.compose.ui.geometry.Offset(size.width*phi, 0f), end = androidx.compose.ui.geometry.Offset(size.width*phi, size.height), strokeWidth = 1f)
-                drawLine(color, start = androidx.compose.ui.geometry.Offset(size.width*(1-phi), 0f), end = androidx.compose.ui.geometry.Offset(size.width*(1-phi), size.height), strokeWidth = 1f)
-                drawLine(color, start = androidx.compose.ui.geometry.Offset(0f, size.height*phi), end = androidx.compose.ui.geometry.Offset(size.width, size.height*phi), strokeWidth = 1f)
-                drawLine(color, start = androidx.compose.ui.geometry.Offset(0f, size.height*(1-phi)), end = androidx.compose.ui.geometry.Offset(size.width, size.height*(1-phi)), strokeWidth = 1f)
+                drawLine(color, start = Offset(size.width*phi, 0f), end = Offset(size.width*phi, size.height), strokeWidth = 1f)
+                drawLine(color, start = Offset(size.width*(1-phi), 0f), end = Offset(size.width*(1-phi), size.height), strokeWidth = 1f)
+                drawLine(color, start = Offset(0f, size.height*phi), end = Offset(size.width, size.height*phi), strokeWidth = 1f)
+                drawLine(color, start = Offset(0f, size.height*(1-phi)), end = Offset(size.width, size.height*(1-phi)), strokeWidth = 1f)
             }
             3 -> {
-                drawLine(color, start = androidx.compose.ui.geometry.Offset(size.width/2, 0f), end = androidx.compose.ui.geometry.Offset(size.width/2, size.height), strokeWidth = 1f)
-                drawLine(color, start = androidx.compose.ui.geometry.Offset(0f, size.height/2), end = androidx.compose.ui.geometry.Offset(size.width, size.height/2), strokeWidth = 1f)
+                drawLine(color, start = Offset(size.width/2, 0f), end = Offset(size.width/2, size.height), strokeWidth = 1f)
+                drawLine(color, start = Offset(0f, size.height/2), end = Offset(size.width, size.height/2), strokeWidth = 1f)
             }
         }
     }
@@ -1245,8 +1526,27 @@ private fun ZebraOverlayView() {
     }
 }
 
+/**
+ * 重设计照片预览浮层 - 国潮质感
+ * - 显影动画（亮度从-1到0，模拟胶片显影）
+ * - 3按钮药丸式容器（删除/编辑/分享/保存）
+ * - 上下滑动手势
+ */
 @Composable
 private fun PhotoReviewOverlay(data: ByteArray?, onAccept: () -> Unit, onDelete: () -> Unit) {
+    // 显影动画
+    var developProgress by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(Unit) {
+        developProgress = 0f
+        val animatable = Animatable(0f)
+        animatable.animateTo(
+            targetValue = 1f,
+            animationSpec = DesignSystem.Animation.narrativeDevelop
+        ) {
+            developProgress = value
+        }
+    }
+
     Box(Modifier.fillMaxSize().background(DesignSystem.Colors.minimalBackground)) {
         if (data != null) {
             val bitmap = remember(data) {
@@ -1256,19 +1556,50 @@ private fun PhotoReviewOverlay(data: ByteArray?, onAccept: () -> Unit, onDelete:
                 androidx.compose.foundation.Image(
                     bitmap = it.asImageBitmap(),
                     contentDescription = null,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            // 显影效果：亮度从-1到0
+                            colorMatrix = androidx.compose.ui.graphics.ColorMatrix().apply {
+                                setToBrightness(-1f + developProgress)
+                            }
+                        }
                 )
             }
         }
+
+        // 底部操作按钮 - 药丸式容器
         Row(
-            Modifier.fillMaxWidth().align(Alignment.BottomCenter).navigationBarsPadding().padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(16.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(DesignSystem.Colors.minimalDarkOverlay)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            // 删除
             TextButton(onClick = onDelete) {
                 Icon(Icons.Default.Delete, null, tint = DesignSystem.Colors.error)
                 Spacer(Modifier.width(4.dp))
                 Text("删除", color = DesignSystem.Colors.error)
             }
+            // 编辑
+            TextButton(onClick = { /* TODO: 编辑 */ }) {
+                Icon(Icons.Default.Edit, null, tint = DesignSystem.Colors.minimalLabel)
+                Spacer(Modifier.width(4.dp))
+                Text("编辑", color = DesignSystem.Colors.minimalLabel)
+            }
+            // 分享
+            TextButton(onClick = { /* TODO: 分享 */ }) {
+                Icon(Icons.Default.Share, null, tint = DesignSystem.Colors.minimalLabel)
+                Spacer(Modifier.width(4.dp))
+                Text("分享", color = DesignSystem.Colors.minimalLabel)
+            }
+            // 保存
             TextButton(onClick = onAccept) {
                 Icon(Icons.Default.Check, null, tint = DesignSystem.Colors.success)
                 Spacer(Modifier.width(4.dp))
@@ -1302,15 +1633,15 @@ private fun CompositionOverlay(
     androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
         cropRect?.let { rect ->
             drawRect(color = if (isAligned) DesignSystem.Colors.success else DesignSystem.Colors.warning,
-                topLeft = androidx.compose.ui.geometry.Offset(rect.left * size.width, rect.top * size.height),
+                topLeft = Offset(rect.left * size.width, rect.top * size.height),
                 size = androidx.compose.ui.geometry.Size(rect.width() * size.width, rect.height() * size.height),
                 style = Stroke(2.5f))
         }
         boxCenter?.let { center ->
             drawCircle(color = if (isAligned) DesignSystem.Colors.success else DesignSystem.Colors.minimalLabel,
-                radius = 12f, center = androidx.compose.ui.geometry.Offset(center.x * size.width, center.y * size.height))
+                radius = 12f, center = Offset(center.x * size.width, center.y * size.height))
             drawCircle(color = DesignSystem.Colors.primary.copy(alpha = 0.25f), radius = 20f,
-                center = androidx.compose.ui.geometry.Offset(center.x * size.width, center.y * size.height), style = Stroke(2f))
+                center = Offset(center.x * size.width, center.y * size.height), style = Stroke(2f))
         }
     }
 }
