@@ -11,6 +11,9 @@ import com.livecompose.livecapture.core.camera.CameraManager
 import com.livecompose.livecapture.core.camera.ZoomPreset
 import com.livecompose.livecapture.core.camera.ZoomState
 import com.livecompose.livecapture.core.detection.*
+import com.livecompose.livecapture.core.filter.AiFilterRecommender
+import com.livecompose.livecapture.core.filter.FilterRecommendation
+import com.livecompose.livecapture.core.intelligence.*
 import com.livecompose.livecapture.core.logger.AppLogger
 import com.livecompose.livecapture.core.motion.MotionStabilityMonitor
 import com.livecompose.livecapture.core.storage.PhotoStorageService
@@ -32,6 +35,12 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
     private val detector: CropDetectionStrategy
     val boxCenterManager = BoxCenterManager()
     private val storage = appContainer.photoStorageService
+
+    // AI 智能引擎
+    private val sceneEngine = appContainer.sceneIntelligenceEngine
+    private val poseEngine = appContainer.poseRecommendationEngine
+    private val filterRecommender = appContainer.aiFilterRecommender
+    private val inspirationLibrary = InspirationLibrary
 
     // Published State
     private val _cropRectInView = MutableStateFlow<RectF?>(null)
@@ -72,6 +81,22 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
 
     private val _userGuidanceText = MutableStateFlow("")
     val userGuidanceText: StateFlow<String> = _userGuidanceText.asStateFlow()
+
+    // AI 智能状态
+    private val _aiSceneType = MutableStateFlow(SceneType.UNKNOWN)
+    val aiSceneType: StateFlow<SceneType> = _aiSceneType.asStateFlow()
+
+    private val _aiSceneName = MutableStateFlow("")
+    val aiSceneName: StateFlow<String> = _aiSceneName.asStateFlow()
+
+    private val _aiFilterRecommendations = MutableStateFlow<List<FilterRecommendation>>(emptyList())
+    val aiFilterRecommendations: StateFlow<List<FilterRecommendation>> = _aiFilterRecommendations.asStateFlow()
+
+    private val _aiPoseSuggestion = MutableStateFlow("")
+    val aiPoseSuggestion: StateFlow<String> = _aiPoseSuggestion.asStateFlow()
+
+    private val _aiZoomSuggestion = MutableStateFlow(1.0f)
+    val aiZoomSuggestion: StateFlow<Float> = _aiZoomSuggestion.asStateFlow()
 
     val isAutoCaptureEnabled = MutableStateFlow(true)
     val captureDelay = MutableStateFlow(1.0)
@@ -117,6 +142,7 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
         boxCenterManager.setFrontCamera(false)
         bindMotion()
         bindCamera()
+        bindAISceneEngine()
         refreshUserGuidance()
     }
 
@@ -209,6 +235,61 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
             if (_detectionReady.value) _pipelineStage.value.guidanceText else "构图流水线已开启"
         } else {
             "点击魔术棒开启智能构图"
+        }
+    }
+
+    // MARK: - AI 智能引擎绑定
+
+    /**
+     * 绑定场景智能引擎，持续收集 AI 分析结果
+     */
+    private fun bindAISceneEngine() {
+        // 监听场景识别结果
+        viewModelScope.launch {
+            sceneEngine.currentScene.collect { scene ->
+                _aiSceneType.value = scene
+                _aiSceneName.value = scene.name
+                updateAIInsights(scene)
+            }
+        }
+        // 监听变焦建议
+        viewModelScope.launch {
+            sceneEngine.isReady.collect { ready ->
+                if (ready) {
+                    _aiZoomSuggestion.value = sceneEngine.getSuggestedZoomFactor()
+                }
+            }
+        }
+    }
+
+    /**
+     * 根据当前场景更新 AI 智能建议
+     */
+    private fun updateAIInsights(scene: SceneType) {
+        // 更新滤镜推荐
+        viewModelScope.launch {
+            try {
+                val lightAnalysis = sceneEngine.lightAnalysis.value
+                val recommendations = if (lightAnalysis != null) {
+                    filterRecommender.recommend(scene, lightAnalysis)
+                } else {
+                    filterRecommender.recommend(scene, LightAnalysis.DEFAULT)
+                }
+                _aiFilterRecommendations.value = recommendations
+            } catch (e: Exception) {
+                AppLogger.w("CaptureViewModel", "滤镜推荐失败: ${e.message}")
+            }
+        }
+        // 更新姿势推荐
+        viewModelScope.launch {
+            try {
+                val subject = sceneEngine.subjectDetection.value ?: SubjectDetection()
+                val confidence = sceneEngine.sceneConfidence.value
+                val result = poseEngine.generateRecommendations(scene, confidence, subject)
+                _aiPoseSuggestion.value = result.primaryRecommendation?.title ?: ""
+            } catch (e: Exception) {
+                AppLogger.w("CaptureViewModel", "姿势推荐失败: ${e.message}")
+            }
         }
     }
 

@@ -1,6 +1,7 @@
 package com.livecompose.livecapture.core.lut
 
 import android.graphics.Bitmap
+import com.livecompose.livecapture.core.filter.SkinProtectionFilter
 import com.livecompose.livecapture.core.processing.BloomProcessor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -14,6 +15,9 @@ import kotlin.math.roundToInt
 class LutProcessor {
 
     private val bloomProcessor = BloomProcessor()
+
+    /** 皮肤保护滤镜（延迟初始化，避免循环依赖） */
+    val skinProtectionFilter by lazy { SkinProtectionFilter(this) }
 
     /**
      * 应用 LUT 预设到 Bitmap
@@ -139,6 +143,18 @@ class LutProcessor {
             result?.recycle()
             throw RuntimeException("LUT 预设处理内存不足，请尝试降低图像分辨率", e)
         }
+    }
+
+    /**
+     * 应用带皮肤保护的 LUT 预设
+     * 自动检测人脸区域，在皮肤区域使用弱滤镜以保护肤色
+     */
+    suspend fun applyPresetWithSkinProtection(
+        source: Bitmap,
+        preset: LutPreset,
+        intensity: Float = 1f
+    ): Bitmap {
+        return skinProtectionFilter.applyFilterWithSkinProtection(source, preset, intensity)
     }
 
     /**

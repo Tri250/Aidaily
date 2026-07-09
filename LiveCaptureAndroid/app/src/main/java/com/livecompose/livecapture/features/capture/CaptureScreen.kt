@@ -448,6 +448,63 @@ fun CaptureScreen(
             )
         }
 
+        // AI 智能信息条 — 场景识别 + 滤镜推荐 + 姿势提示
+        val aiSceneName by viewModel.aiSceneName.collectAsState()
+        val aiFilterRecs by viewModel.aiFilterRecommendations.collectAsState()
+        val aiPoseSuggestion by viewModel.aiPoseSuggestion.collectAsState()
+        if (aiSceneName.isNotEmpty() && controlsVisible && cameraError == null && !showManualPanel) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = 100.dp, start = 16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .background(
+                            Color.Black.copy(alpha = 0.45f),
+                            RoundedCornerShape(12.dp)
+                        )
+                        .padding(12.dp)
+                ) {
+                    // 场景识别
+                    Text(
+                        "AI ${aiSceneName}",
+                        color = DesignSystem.Colors.primary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    // 姿势提示
+                    if (aiPoseSuggestion.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            aiPoseSuggestion,
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 12.sp
+                        )
+                    }
+                    // 滤镜推荐（最多显示 2 个）
+                    if (aiFilterRecs.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            aiFilterRecs.take(2).forEach { rec ->
+                                Text(
+                                    rec.preset.name,
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    fontSize = 10.sp,
+                                    modifier = Modifier
+                                        .background(
+                                            DesignSystem.Colors.primary.copy(alpha = 0.2f),
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // 底部控制栏 - 三段式布局 + 入场动画
         val bottomBarOffset by animateFloatAsState(
             targetValue = if (isEntryAnimationComplete) 0f else 200f,

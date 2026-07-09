@@ -4,6 +4,7 @@ import android.content.Context
 import com.livecompose.livecapture.core.camera.CameraManager
 import com.livecompose.livecapture.core.camera.ProCameraManager
 import com.livecompose.livecapture.core.composition.LevelMonitor
+import com.livecompose.livecapture.core.editing.AIEditViewModel
 import com.livecompose.livecapture.core.editing.AutoEnhancer
 import com.livecompose.livecapture.core.editing.BatchProcessor
 import com.livecompose.livecapture.core.community.CommunityManager
@@ -12,8 +13,11 @@ import com.livecompose.livecapture.core.compliance.YouthModeManager
 import com.livecompose.livecapture.core.errorhandling.AppErrorHandler
 import com.livecompose.livecapture.core.filter.AiFilterRecommender
 import com.livecompose.livecapture.core.filter.SkinProtectionFilter
+import com.livecompose.livecapture.core.intelligence.ImageQualityAssessor
+import com.livecompose.livecapture.core.intelligence.PoseRecommendationEngine
 import com.livecompose.livecapture.core.intelligence.SceneIntelligenceEngine
 import com.livecompose.livecapture.core.logger.AppLogger
+import com.livecompose.livecapture.core.lut.AiColorMatcher
 import com.livecompose.livecapture.core.lut.LutImporter
 import com.livecompose.livecapture.core.motion.MotionStabilityMonitor
 import com.livecompose.livecapture.core.performance.MemoryMonitor
@@ -93,6 +97,26 @@ class AppContainer(context: Context) {
         BatchProcessor(photoStorageService, applicationContext)
     }
 
+    /** AI 编辑视图模型 */
+    val aiEditViewModel by lazy {
+        AIEditViewModel(applicationContext)
+    }
+
+    /** AI 仿色匹配器 */
+    val aiColorMatcher by lazy {
+        AiColorMatcher
+    }
+
+    /** 姿势推荐引擎 */
+    val poseRecommendationEngine by lazy {
+        PoseRecommendationEngine.create()
+    }
+
+    /** 图像质量评估器 */
+    val imageQualityAssessor by lazy {
+        ImageQualityAssessor()
+    }
+
     // MARK: - 存储与错误处理
 
     /** 照片存储服务 */
@@ -162,6 +186,7 @@ class AppContainer(context: Context) {
             memoryMonitor.dispose()
             // VideoViewModel 的 onCleared 会在 ViewModel 销毁时调用，此处确保音频/录制资源释放
             videoViewModel.stopRecording()
+            aiEditViewModel.onCleared()
             cameraManager.destroy()
             lutImporter.dispose()
             communityManager.dispose()

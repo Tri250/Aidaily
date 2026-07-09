@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Vignette
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +30,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.livecompose.livecapture.core.lut.AiColorMatcher
+import com.livecompose.livecapture.core.intelligence.ImageQualityAssessor
+import com.livecompose.livecapture.di.AppContainer
 import com.livecompose.livecapture.features.home.HomeViewModel
 import com.livecompose.livecapture.ui.design.DesignSystem
 import kotlinx.coroutines.Dispatchers
@@ -309,6 +313,27 @@ fun PhotoAdjustScreen(
                         title = "暗角效果",
                         subtitle = "径向暗角与光照叠加",
                         onClick = { onNavigateToVignette(photoId) }
+                    )
+                    HorizontalDivider(color = DesignSystem.Colors.minimalOverlay)
+                    EditorToolItem(
+                        icon = Icons.Default.AutoAwesome,
+                        title = "AI 仿色",
+                        subtitle = "AI 智能分析色彩并生成 LUT",
+                        onClick = {
+                            scope.launch {
+                                val bitmap = originalBitmap
+                                if (bitmap != null) {
+                                    try {
+                                        val result = withContext(Dispatchers.Default) {
+                                            AiColorMatcher.matchFromStyleImage(bitmap)
+                                        }
+                                        Toast.makeText(context, "AI 仿色完成，已生成 LUT 预设", Toast.LENGTH_SHORT).show()
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "AI 仿色失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }
                     )
                 }
             }

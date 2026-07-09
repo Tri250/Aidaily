@@ -35,10 +35,17 @@ import com.livecompose.livecapture.core.metadata.ExifData
 import com.livecompose.livecapture.core.metadata.ExifReader
 import com.livecompose.livecapture.core.storage.PhotoRecord
 import com.livecompose.livecapture.features.home.HomeViewModel
+import com.livecompose.livecapture.di.AppContainer
+import com.livecompose.livecapture.core.intelligence.ImageQualityAssessor
+import com.livecompose.livecapture.core.intelligence.EnhancementAdvisor
+import com.livecompose.livecapture.core.intelligence.QualityGrade
+import com.livecompose.livecapture.core.intelligence.LightAnalysis
+import com.livecompose.livecapture.core.intelligence.SceneType
 import com.livecompose.livecapture.ui.design.DesignSystem
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.roundToInt
 
 /**
  * 照片详情页
@@ -334,6 +341,14 @@ fun PhotoDetailScreen(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // AI 质量评估卡片
+                if (bitmap != null) {
+                    AIQualityAssessmentCard(bitmap!!, context)
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }
@@ -469,6 +484,158 @@ private fun computeRgbHistogram(bitmap: Bitmap): HistogramData {
     }
 
     return HistogramData(red, green, blue)
+}
+
+/**
+ * AI 质量评估卡片
+ */
+@Composable
+private fun AIQualityAssessmentCard(bitmap: Bitmap, context: android.content.Context) {
+    val appContainer = remember { AppContainer.getInstance(context) }
+    val assessor = remember { appContainer.imageQualityAssessor }
+    val advisor = remember { EnhancementAdvisor() }
+
+    val pixels = remember(bitmap) {
+        val scaled = if (bitmap.width > 256 || bitmap.height > 256) {
+            Bitmap.createScaledBitmap(bitmap, 256, 256, true)
+        } else bitmap
+        val arr = IntArray(scaled.width * scaled.height)
+        scaled.getPixels(arr, 0, scaled.width, 0, 0, scaled.width, scaled.height)
+        if (scaled !== bitmap) scaled.recycle()
+        arr
+    }
+
+    val quality = remember(bitmap) {
+        assessor.assessQuality(pixels, bitmap.width, bitmap.height)
+    }
+
+    val enhancements = remember(bitmap) {
+        try {
+            val light = LightAnalysis.DEFAULT
+            val scene = SceneType.UNKNOWN
+            advisor.generateSuggestions(quality, scene, light)
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.gray1()),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = DesignSystem.Colors.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "AI 画质评估",
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 质量等级
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("综合评分: ", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 13.sp)
+                Text(
+                    "${quality.overallScore.roundToInt()}分",
+                    color = when (quality.qualityGrade) {
+                        QualityGrade.EXCELLENT -> Color(0xFF4CAF50)
+                        QualityGrade.GOOD -> Color(0xFF8BC34A)
+                        QualityGrade.FAIR -> Color(0xFFFFC107)
+                        QualityGrade.POOR -> Color(0xFFF44336)
+                    },
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    quality.qualityGrade.displayName,
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontSize = 12.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // 各维度进度条
+            QualityBar("锐度", quality.sharpnessScore)
+            QualityBar("噪声", quality.noiseLevel)
+            QualityBar("曝光", quality.exposureScore)
+            QualityBar("色彩", quality.colorHarmonyScore)
+
+            // 增强建议
+            if (enhancements.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "AI 增强建议",
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                enhancements.take(3).forEach { suggestion ->
+                    Text(
+                        "• ${suggestion.title}",
+                        color = DesignSystem.Colors.minimalSecondaryLabel,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QualityBar(label: String, score: Float) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 1.dp)
+    ) {
+        Text(
+            label,
+            color = Color.White.copy(alpha = 0.6f),
+            fontSize = 11.sp,
+            modifier = Modifier.width(32.dp)
+        )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(Color.White.copy(alpha = 0.1f))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(score / 100f)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(
+                        when {
+                            score >= 80 -> Color(0xFF4CAF50)
+                            score >= 60 -> Color(0xFFFFC107)
+                            else -> Color(0xFFF44336)
+                        }
+                    )
+            )
+        }
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            "${score.toInt()}",
+            color = Color.White.copy(alpha = 0.5f),
+            fontSize = 10.sp
+        )
+    }
 }
 
 /**
