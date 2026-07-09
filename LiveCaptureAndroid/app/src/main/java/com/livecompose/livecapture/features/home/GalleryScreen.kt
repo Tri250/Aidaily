@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -31,12 +32,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.livecompose.livecapture.core.storage.PhotoRecord
 import com.livecompose.livecapture.ui.design.DesignSystem
+import com.livecompose.livecapture.ui.design.liquidGlass
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * 图库界面
+ * 图库界面 - 液态玻璃风格 2026 高端摄影体验
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,12 +51,10 @@ fun GalleryScreen(
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf(setOf<String>()) }
 
-    // 筛选状态
     var filterRating by remember { mutableIntStateOf(0) }
     var filterFlaggedOnly by remember { mutableStateOf(false) }
     var showFilterMenu by remember { mutableStateOf(false) }
 
-    // 应用筛选
     val filteredRecords = remember(records, filterRating, filterFlaggedOnly) {
         records.filter { record ->
             val ratingMatch = filterRating == 0 || record.rating == filterRating
@@ -66,7 +66,7 @@ fun GalleryScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(DesignSystem.Colors.backgroundPrimary())
     ) {
         // 顶部栏
         Row(
@@ -87,7 +87,7 @@ fun GalleryScreen(
                     selectedIds = emptySet()
                     isSelectionMode = false
                 }) {
-                    Icon(Icons.Default.Delete, contentDescription = "删除", tint = Color.Red)
+                    Icon(Icons.Default.Delete, contentDescription = "删除", tint = DesignSystem.Colors.error)
                 }
                 TextButton(onClick = {
                     isSelectionMode = false
@@ -96,7 +96,6 @@ fun GalleryScreen(
                     Text("取消", color = DesignSystem.Colors.textPrimary())
                 }
             } else if (records.isNotEmpty()) {
-                // 筛选按钮
                 Box {
                     IconButton(onClick = { showFilterMenu = true }) {
                         Icon(
@@ -145,8 +144,7 @@ fun GalleryScreen(
                                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                                         repeat(stars) {
                                             Icon(
-                                                Icons.Default.Star,
-                                                null,
+                                                Icons.Default.Star, null,
                                                 tint = DesignSystem.Colors.accent,
                                                 modifier = Modifier.size(16.dp)
                                             )
@@ -159,11 +157,7 @@ fun GalleryScreen(
                                 },
                                 leadingIcon = {
                                     if (filterRating == stars) {
-                                        Icon(
-                                            Icons.Default.Check,
-                                            null,
-                                            tint = DesignSystem.Colors.primary
-                                        )
+                                        Icon(Icons.Default.Check, null, tint = DesignSystem.Colors.primary)
                                     }
                                 }
                             )
@@ -171,7 +165,7 @@ fun GalleryScreen(
                     }
                 }
                 Text(
-                    "${records.size} 张照片",
+                    "${records.size} 张",
                     style = DesignSystem.Typography.caption1,
                     color = DesignSystem.Colors.textTertiary()
                 )
@@ -179,22 +173,37 @@ fun GalleryScreen(
         }
 
         if (records.isEmpty()) {
-            // 空状态
+            // 空状态 - 液态玻璃卡片
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Spacer(modifier = Modifier.height(60.dp))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .padding(32.dp)
+                        .liquidGlass(cornerRadius = 24.dp, intensity = 0.08f)
+                        .padding(40.dp)
+                ) {
                     Icon(
                         Icons.Default.PhotoLibrary,
                         contentDescription = null,
-                        modifier = Modifier.size(56.dp),
+                        modifier = Modifier.size(64.dp),
                         tint = DesignSystem.Colors.textTertiary()
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("暂无照片", style = DesignSystem.Typography.title3, color = DesignSystem.Colors.textSecondary())
-                    Text("使用下方拍摄按钮开始创作", style = DesignSystem.Typography.subheadline, color = DesignSystem.Colors.textTertiary())
+                    Text(
+                        "暂无照片",
+                        style = DesignSystem.Typography.title2,
+                        color = DesignSystem.Colors.textSecondary(),
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "使用下方拍摄按钮开始创作",
+                        style = DesignSystem.Typography.subheadline,
+                        color = DesignSystem.Colors.textTertiary()
+                    )
                 }
             }
         } else {
@@ -202,7 +211,8 @@ fun GalleryScreen(
                 columns = GridCells.Fixed(3),
                 modifier = Modifier.fillMaxSize(),
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
             ) {
                 items(filteredRecords, key = { it.id }) { record ->
                     PhotoCard(
@@ -282,12 +292,12 @@ private fun PhotoCard(
                 contentScale = ContentScale.Crop
             )
         } else {
-            // Shimmer placeholder 效果
+            // Shimmer 占位 - 使用 DesignSystem 颜色
             val shimmerColors = remember {
                 listOf(
-                    Color(0xFF1F1F1F),
-                    Color(0xFF292929),
-                    Color(0xFF1F1F1F)
+                    DesignSystem.Colors.gray2(),
+                    DesignSystem.Colors.gray3(),
+                    DesignSystem.Colors.gray2()
                 )
             }
             val transition = rememberInfiniteTransition()
@@ -310,7 +320,11 @@ private fun PhotoCard(
                     .background(brush),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Image, contentDescription = null, tint = Color.Gray)
+                Icon(
+                    Icons.Default.Image,
+                    contentDescription = null,
+                    tint = DesignSystem.Colors.textTertiary()
+                )
             }
         }
 
@@ -320,14 +334,16 @@ private fun PhotoCard(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(4.dp)
-                    .background(DesignSystem.Colors.minimalDarkOverlay, RoundedCornerShape(4.dp))
+                    .background(
+                        DesignSystem.Colors.minimalDarkOverlay,
+                        RoundedCornerShape(4.dp)
+                    )
                     .padding(horizontal = 4.dp, vertical = 1.dp),
                 horizontalArrangement = Arrangement.spacedBy(1.dp)
             ) {
                 repeat(record.rating) {
                     Icon(
-                        Icons.Default.Star,
-                        null,
+                        Icons.Default.Star, null,
                         tint = DesignSystem.Colors.accent,
                         modifier = Modifier.size(10.dp)
                     )
@@ -357,7 +373,8 @@ private fun PhotoCard(
             Icon(
                 if (isSelected) Icons.Default.CheckCircle else Icons.Default.Circle,
                 contentDescription = null,
-                tint = if (isSelected) DesignSystem.Colors.primary else DesignSystem.Colors.minimalSecondaryLabel,
+                tint = if (isSelected) DesignSystem.Colors.primary
+                else DesignSystem.Colors.minimalSecondaryLabel,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(6.dp)
@@ -384,10 +401,17 @@ private fun PhotoDetailDialog(
     var currentRating by remember { mutableIntStateOf(record.rating) }
     var isFlagged by remember { mutableStateOf(record.flag) }
 
+    val dateFormat = remember { SimpleDateFormat("yyyy年M月d日 HH:mm", Locale.CHINA) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = DesignSystem.Colors.backgroundPrimary(),
+        titleContentColor = DesignSystem.Colors.textPrimary(),
+        textContentColor = DesignSystem.Colors.textSecondary(),
+        icon = {
+            Icon(Icons.Default.Info, null, tint = DesignSystem.Colors.primary)
+        },
         title = {
-            val dateFormat = SimpleDateFormat("yyyy年M月d日 HH:mm", Locale.CHINA)
             Text(dateFormat.format(Date(record.creationDate)))
         },
         text = {
@@ -400,7 +424,6 @@ private fun PhotoDetailDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
                 } else {
-                    // Shimmer placeholder for detail photo
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -432,7 +455,8 @@ private fun PhotoDetailDialog(
                             Icon(
                                 if (star <= currentRating) Icons.Default.Star else Icons.Default.StarOutline,
                                 contentDescription = "$star 星",
-                                tint = if (star <= currentRating) DesignSystem.Colors.accent else Color.Gray,
+                                tint = if (star <= currentRating) DesignSystem.Colors.accent
+                                else DesignSystem.Colors.textTertiary(),
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -453,37 +477,60 @@ private fun PhotoDetailDialog(
                         Icon(
                             if (isFlagged) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
                             contentDescription = null,
-                            tint = if (isFlagged) DesignSystem.Colors.primary else Color.Gray,
+                            tint = if (isFlagged) DesignSystem.Colors.primary
+                            else DesignSystem.Colors.textTertiary(),
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             if (isFlagged) "已收藏" else "收藏",
-                            color = if (isFlagged) DesignSystem.Colors.primary else Color.Gray
+                            color = if (isFlagged) DesignSystem.Colors.primary
+                            else DesignSystem.Colors.textSecondary()
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                record.detectionMethod?.let { Text("检测方法: $it") }
-                record.iso?.let { Text("ISO: ${it.toInt()}") }
-                record.shutterSpeed?.let { Text("快门: 1/${(1.0 / it).toInt()}s") }
-                record.aperture?.let { Text("光圈: f/%.1f".format(it)) }
+                // EXIF 信息
+                record.iso?.let { ExifRow("ISO", "${it.toInt()}") }
+                record.shutterSpeed?.let { ExifRow("快门", "1/${(1.0 / it).toInt()}s") }
+                record.aperture?.let { ExifRow("光圈", "f/%.1f".format(it)) }
                 record.imageWidth?.let { w ->
-                    record.imageHeight?.let { h -> Text("分辨率: ${w}×${h}") }
+                    record.imageHeight?.let { h -> ExifRow("分辨率", "${w}×${h}") }
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onDelete) {
-                Text("删除", color = Color.Red)
+                Text("删除", color = DesignSystem.Colors.error)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("关闭")
+                Text("关闭", color = DesignSystem.Colors.textSecondary())
             }
         }
     )
+}
+
+@Composable
+private fun ExifRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            label,
+            style = DesignSystem.Typography.caption1,
+            color = DesignSystem.Colors.textTertiary()
+        )
+        Text(
+            value,
+            style = DesignSystem.Typography.monoCaption,
+            color = DesignSystem.Colors.textSecondary()
+        )
+    }
 }

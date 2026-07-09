@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -450,6 +451,55 @@ fun Modifier.glassmorphism(
         color = Color.White.copy(alpha = 0.10f),
         shape = RoundedCornerShape(cornerRadius)
     )
+
+/**
+ * 液态玻璃效果（Liquid Glass）- 对标 iOS 2026 液态玻璃设计语言
+ * 多层叠加模拟真实玻璃质感：
+ *  - 底层：微弱的半透明扩散
+ *  - 中层：顶部高光渐变
+ *  - 边框：超细白色描边 + 内侧微光
+ *  - 内阴影：顶部边缘柔和内发光
+ *
+ * 使用构成：background(glassGradient) + border(glassBorder) + innerGlow
+ */
+@Composable
+fun Modifier.liquidGlass(
+    cornerRadius: Dp = DesignSystem.CornerRadius.medium,
+    intensity: Float = 0.12f
+): Modifier {
+    val isDark = isSystemInDarkTheme()
+    val baseColor = if (isDark) Color.White else Color.Black
+    val glassGradient = Brush.verticalGradient(
+        colors = listOf(
+            baseColor.copy(alpha = intensity * 1.4f),
+            baseColor.copy(alpha = intensity * 0.6f),
+            baseColor.copy(alpha = intensity * 0.8f)
+        )
+    )
+    return this
+        .clip(RoundedCornerShape(cornerRadius))
+        .background(glassGradient, RoundedCornerShape(cornerRadius))
+        .border(
+            width = 0.5.dp,
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    baseColor.copy(alpha = if (isDark) 0.18f else 0.10f),
+                    baseColor.copy(alpha = if (isDark) 0.08f else 0.04f)
+                )
+            ),
+            shape = RoundedCornerShape(cornerRadius)
+        )
+}
+
+/**
+ * 液态玻璃卡片 - 预设样式，对标 iOS LiquidGlassCard 组件
+ */
+@Composable
+fun Modifier.liquidGlassCard(
+    cornerRadius: Dp = DesignSystem.CornerRadius.large
+): Modifier = this
+    .liquidGlass(cornerRadius = cornerRadius, intensity = 0.10f)
+    .padding(DesignSystem.Spacing.small)
 
 /**
  * 涟漪效果 - 对标 iOS RippleModifier
