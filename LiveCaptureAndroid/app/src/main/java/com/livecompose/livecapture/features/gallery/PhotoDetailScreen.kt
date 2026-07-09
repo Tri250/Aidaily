@@ -41,6 +41,8 @@ import com.livecompose.livecapture.core.intelligence.EnhancementAdvisor
 import com.livecompose.livecapture.core.intelligence.QualityGrade
 import com.livecompose.livecapture.core.intelligence.LightAnalysis
 import com.livecompose.livecapture.core.intelligence.SceneType
+import com.livecompose.livecapture.core.intelligence.CompositionAnalysis
+import com.livecompose.livecapture.features.gallery.AIEditScreen
 import com.livecompose.livecapture.ui.design.DesignSystem
 import java.io.File
 import java.text.SimpleDateFormat
@@ -81,6 +83,7 @@ fun PhotoDetailScreen(
 
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showShareSheet by remember { mutableStateOf(false) }
+    var showAIEdit by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -102,6 +105,10 @@ fun PhotoDetailScreen(
                 // 编辑按钮
                 IconButton(onClick = { onEdit(photoId) }) {
                     Icon(Icons.Default.Edit, contentDescription = "编辑", tint = Color.White)
+                }
+                // AI编辑按钮
+                IconButton(onClick = { showAIEdit = true }) {
+                    Icon(Icons.Default.AutoAwesome, contentDescription = "AI编辑", tint = DesignSystem.Colors.primary)
                 }
                 // 调整按钮
                 IconButton(onClick = { onAdjust(photoId) }) {
@@ -354,6 +361,15 @@ fun PhotoDetailScreen(
         }
     }
 
+    // AI编辑界面
+    if (showAIEdit) {
+        AIEditScreen(
+            photoId = photoId,
+            sourceBitmap = bitmap,
+            onBack = { showAIEdit = false }
+        )
+    }
+
     // 删除确认对话框
     if (showDeleteConfirm) {
         AlertDialog(
@@ -509,6 +525,14 @@ private fun AIQualityAssessmentCard(bitmap: Bitmap, context: android.content.Con
         assessor.assessQuality(pixels, bitmap.width, bitmap.height)
     }
 
+    val composition = remember(bitmap) {
+        try {
+            assessor.analyzeComposition(bitmap)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     val enhancements = remember(bitmap) {
         try {
             val light = LightAnalysis.DEFAULT
@@ -571,6 +595,32 @@ private fun AIQualityAssessmentCard(bitmap: Bitmap, context: android.content.Con
             QualityBar("噪声", quality.noiseLevel)
             QualityBar("曝光", quality.exposureScore)
             QualityBar("色彩", quality.colorHarmonyScore)
+
+            // 构图分析
+            if (composition != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "AI 构图分析",
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    "类型: ${composition.compositionType}",
+                    color = DesignSystem.Colors.minimalSecondaryLabel,
+                    fontSize = 12.sp
+                )
+                QualityBar("三分法", composition.ruleOfThirdsScore)
+                QualityBar("对称性", composition.symmetryScore)
+                QualityBar("视觉平衡", composition.visualBalanceScore)
+                Text(
+                    composition.feedback,
+                    color = DesignSystem.Colors.minimalSecondaryLabel,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
 
             // 增强建议
             if (enhancements.isNotEmpty()) {
