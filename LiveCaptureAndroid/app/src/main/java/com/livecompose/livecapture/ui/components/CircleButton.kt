@@ -11,12 +11,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
- * 圆形按钮组件
+ * 圆形按钮组件 - 液态玻璃风格
  */
 @Composable
 fun SecondaryCircleButton(
@@ -30,14 +30,14 @@ fun SecondaryCircleButton(
         modifier = modifier
             .size(size.dp)
             .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.5f))
+            .liquidGlass(cornerRadius = 0.dp, intensity = 0.15f)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = Color.White,
+            tint = DesignSystem.Colors.minimalLabel,
             modifier = Modifier.size(iconSize.dp)
         )
     }
@@ -55,15 +55,21 @@ fun TopCircleButton(
         modifier = modifier
             .size(size.dp)
             .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.5f))
+            .liquidGlass(cornerRadius = 0.dp, intensity = 0.12f)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = Color.White,
+            tint = DesignSystem.Colors.minimalLabel,
             modifier = Modifier.size(iconSize.dp)
         )
     }
+}
+
+private fun Modifier.liquidGlass(cornerRadius: androidx.compose.ui.unit.Dp, intensity: Float): Modifier {
+    return this.then(
+        com.livecompose.livecapture.ui.design.liquidGlass(cornerRadius, intensity)
+    )
 }

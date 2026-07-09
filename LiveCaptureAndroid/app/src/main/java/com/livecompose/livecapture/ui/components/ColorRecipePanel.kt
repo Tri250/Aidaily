@@ -46,14 +46,14 @@ fun ColorRecipePanel(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-            .background(Color(0xFF1A1A1A))
+            .background(DesignSystem.Colors.minimalBackground)
             .padding(16.dp)
     ) {
         // 标题行
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("色彩配方", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            Text("色彩配方", color = DesignSystem.Colors.minimalLabel, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = onReset) { Text("重置", color = Color.White.copy(alpha = 0.7f)) }
+            TextButton(onClick = onReset) { Text("重置", color = DesignSystem.Colors.minimalSecondaryLabel) }
             TextButton(onClick = onApply) { Text("应用", color = DesignSystem.Colors.primary) }
         }
 
@@ -63,7 +63,7 @@ fun ColorRecipePanel(
         ScrollableTabRow(
             selectedTabIndex = LutCategory.entries.indexOf(selectedCategory),
             containerColor = Color.Transparent,
-            contentColor = Color.White,
+            contentColor = DesignSystem.Colors.minimalLabel,
             edgePadding = 0.dp,
             divider = {}
         ) {
@@ -105,7 +105,7 @@ fun ColorRecipePanel(
         Spacer(Modifier.height(16.dp))
 
         // 手动调整滑块
-        Text("手动调整", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
+        Text("手动调整", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 14.sp)
         Spacer(Modifier.height(8.dp))
 
         AdjustableSlider("曝光", currentParams.exposure, -2f..2f) { onParamsChanged(currentParams.copy(exposure = it)) }
@@ -118,7 +118,7 @@ fun ColorRecipePanel(
 
         // 高级选项
         TextButton(onClick = { showAdvanced = !showAdvanced }) {
-            Text(if (showAdvanced) "收起高级选项" else "展开高级选项", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+            Text(if (showAdvanced) "收起高级选项" else "展开高级选项", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 12.sp)
         }
 
         if (showAdvanced) {
@@ -140,13 +140,13 @@ private fun PresetChip(preset: LutPreset, isSelected: Boolean, onClick: () -> Un
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(if (isSelected) DesignSystem.Colors.primary else Color.White.copy(alpha = 0.1f))
+            .background(if (isSelected) DesignSystem.Colors.primary else DesignSystem.Colors.minimalOverlay)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(preset.name, color = if (isSelected) Color.White else Color.White.copy(alpha = 0.8f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
-            Text(preset.category.displayName, color = if (isSelected) Color.White.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.4f), fontSize = 9.sp)
+            Text(preset.name, color = if (isSelected) DesignSystem.Colors.minimalLabel else DesignSystem.Colors.minimalSecondaryLabel, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text(preset.category.displayName, color = if (isSelected) DesignSystem.Colors.minimalSecondaryLabel else DesignSystem.Colors.minimalSecondaryLabel.copy(alpha = 0.5f), fontSize = 9.sp)
         }
     }
 }
@@ -159,21 +159,21 @@ private fun AdjustableSlider(
     onValueChange: (Float) -> Unit
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Text(label, color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp, modifier = Modifier.width(52.dp))
+        Text(label, color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 12.sp, modifier = Modifier.width(52.dp))
         Slider(
             value = value,
             onValueChange = onValueChange,
             valueRange = range,
             modifier = Modifier.weight(1f),
             colors = SliderDefaults.colors(
-                thumbColor = Color.White,
+                thumbColor = DesignSystem.Colors.minimalLabel,
                 activeTrackColor = DesignSystem.Colors.primary,
-                inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                inactiveTrackColor = DesignSystem.Colors.minimalBorder
             )
         )
         Text(
             "%.1f".format(value),
-            color = Color.White.copy(alpha = 0.6f),
+            color = DesignSystem.Colors.minimalSecondaryLabel,
             fontSize = 11.sp,
             modifier = Modifier.width(40.dp)
         )

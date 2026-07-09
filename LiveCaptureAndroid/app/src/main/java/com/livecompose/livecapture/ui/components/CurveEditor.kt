@@ -23,6 +23,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.livecompose.livecapture.ui.design.DesignSystem
 import kotlin.math.*
 
 /**
@@ -62,7 +63,7 @@ fun CurveEditor(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color.Black.copy(alpha = 0.8f), RoundedCornerShape(16.dp))
+            .background(DesignSystem.Colors.minimalDarkOverlay, RoundedCornerShape(16.dp))
             .padding(16.dp)
     ) {
         // 通道选择器
@@ -115,7 +116,7 @@ fun CurveEditor(
                     onCurveChanged(curveData)
                     selectedPointIndex = -1
                 },
-                colors = ButtonDefaults.textButtonColors(contentColor = Color.White.copy(alpha = 0.7f))
+                colors = ButtonDefaults.textButtonColors(contentColor = DesignSystem.Colors.minimalSecondaryLabel)
             ) {
                 Text("重置", fontSize = 12.sp)
             }
@@ -131,7 +132,7 @@ fun CurveEditor(
                     }
                 },
                 enabled = selectedPointIndex >= 0 && selectedPointIndex < points.size,
-                colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFFF9500))
+                colors = ButtonDefaults.textButtonColors(contentColor = DesignSystem.Colors.accent)
             ) {
                 Text("删除点", fontSize = 12.sp)
             }
@@ -142,7 +143,7 @@ fun CurveEditor(
             TextButton(
                 onClick = { showHistogram = !showHistogram },
                 colors = ButtonDefaults.textButtonColors(
-                    contentColor = if (showHistogram) Color(0xFFFF9500) else Color.White.copy(alpha = 0.5f)
+                    contentColor = if (showHistogram) DesignSystem.Colors.accent else DesignSystem.Colors.minimalSecondaryLabel
                 )
             ) {
                 Text("直方图", fontSize = 12.sp)
@@ -258,12 +259,12 @@ private fun ChannelSelector(
             Surface(
                 modifier = Modifier.clickable { onChannelSelected(channel) },
                 shape = RoundedCornerShape(8.dp),
-                color = if (isSelected) channel.lineColor.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.08f),
+                color = if (isSelected) channel.lineColor.copy(alpha = 0.25f) else DesignSystem.Colors.minimalLabel.copy(alpha = 0.08f),
                 border = if (isSelected) androidx.compose.foundation.BorderStroke(1.5.dp, channel.lineColor) else null
             ) {
                 Text(
                     text = channel.displayName,
-                    color = if (isSelected) channel.lineColor else Color.White.copy(alpha = 0.5f),
+                    color = if (isSelected) channel.lineColor else DesignSystem.Colors.minimalSecondaryLabel,
                     fontSize = 12.sp,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
@@ -288,7 +289,7 @@ private fun CurveCanvas(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(Color(0xFF1A1A2E))
+            .background(DesignSystem.Colors.gray2())
     ) {
         Canvas(
             modifier = Modifier
@@ -408,8 +409,8 @@ private fun findNearestPoint(
 }
 
 private fun DrawScope.drawGrid(rect: Rect) {
-    val gridColor = Color.White.copy(alpha = 0.08f)
-    val axisColor = Color.White.copy(alpha = 0.25f)
+    val gridColor = DesignSystem.Colors.minimalLabel.copy(alpha = 0.08f)
+    val axisColor = DesignSystem.Colors.minimalLabel.copy(alpha = 0.25f)
 
     // 垂直网格线
     for (i in 0..4) {
@@ -427,7 +428,7 @@ private fun DrawScope.drawGrid(rect: Rect) {
 
     // 对角线
     drawLine(
-        Color.White.copy(alpha = 0.06f),
+        DesignSystem.Colors.minimalLabel.copy(alpha = 0.06f),
         Offset(rect.left, rect.bottom),
         Offset(rect.right, rect.top),
         1f
@@ -436,7 +437,7 @@ private fun DrawScope.drawGrid(rect: Rect) {
 
 private fun DrawScope.drawHistogramBackground(rect: Rect) {
     // 绘制模拟直方图（山峰形状）
-    val histColor = Color.White.copy(alpha = 0.1f)
+    val histColor = DesignSystem.Colors.minimalLabel.copy(alpha = 0.1f)
     val path = Path()
     val segments = 50
     path.moveTo(rect.left, rect.bottom)
@@ -557,15 +558,13 @@ private fun DrawScope.drawControlPoints(
 
         // 外圈
         drawCircle(
-            color = if (isSelected) color else Color.White.copy(alpha = 0.7f),
-            radius = radius,
-            center = center,
-            style = Stroke(width = if (isSelected) 3f else 2f)
-        )
-
-        // 填充
-        drawCircle(
-            color = if (isSelected) color.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.3f),
+            color = if (isSelected) color else DesignSystem.Colors.minimalLabel.copy(alpha = 0.7f),
+                radius = radius,
+                center = center,
+                style = Stroke(width = if (isSelected) 3f else 2f)
+            )
+            drawCircle(
+                color = if (isSelected) color.copy(alpha = 0.4f) else DesignSystem.Colors.minimalLabel.copy(alpha = 0.3f),
             radius = radius - 2f,
             center = center
         )
@@ -585,7 +584,7 @@ private fun PresetCurves(
             Surface(
                 modifier = Modifier.clickable { onPresetSelected(preset) },
                 shape = RoundedCornerShape(8.dp),
-                color = Color.White.copy(alpha = 0.08f)
+                color = DesignSystem.Colors.minimalLabel.copy(alpha = 0.08f)
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -593,13 +592,13 @@ private fun PresetCurves(
                 ) {
                     Text(
                         text = preset.displayName,
-                        color = Color.White.copy(alpha = 0.9f),
+                        color = DesignSystem.Colors.minimalLabel.copy(alpha = 0.9f),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
                         text = preset.description,
-                        color = Color.White.copy(alpha = 0.4f),
+                        color = DesignSystem.Colors.minimalSecondaryLabel.copy(alpha = 0.6f),
                         fontSize = 9.sp
                     )
                 }

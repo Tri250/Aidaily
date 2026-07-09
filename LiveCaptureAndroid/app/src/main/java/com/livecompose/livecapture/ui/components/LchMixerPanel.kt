@@ -37,7 +37,7 @@ fun LchMixerPanel(
         ) {
             Text(
                 "OKLCH 混色器",
-                color = Color.White,
+                color = DesignSystem.Colors.minimalLabel,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -124,7 +124,7 @@ private fun ColorRingTabs(
                     .clip(CircleShape)
                     .background(color)
                     .then(
-                        if (isSelected) Modifier.border(2.dp, Color.White, CircleShape)
+                        if (isSelected) Modifier.border(2.dp, DesignSystem.Colors.minimalLabel, CircleShape)
                         else Modifier
                     )
                     .clickable { onChannelSelected(index) },
@@ -135,7 +135,7 @@ private fun ColorRingTabs(
                         modifier = Modifier
                             .size(8.dp)
                             .clip(CircleShape)
-                            .background(Color.White)
+                            .background(DesignSystem.Colors.minimalLabel)
                     )
                 }
             }
@@ -155,10 +155,10 @@ private fun LchSlider(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(label, color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
+            Text(label, color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 13.sp)
             Text(
                 "%.2f".format(value),
-                color = Color.White.copy(alpha = 0.6f),
+                color = DesignSystem.Colors.minimalSecondaryLabel,
                 fontSize = 12.sp
             )
         }
@@ -168,9 +168,9 @@ private fun LchSlider(
             valueRange = valueRange,
             modifier = Modifier.fillMaxWidth(),
             colors = SliderDefaults.colors(
-                thumbColor = Color.White,
+                thumbColor = DesignSystem.Colors.minimalLabel,
                 activeTrackColor = DesignSystem.Colors.primary,
-                inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                inactiveTrackColor = DesignSystem.Colors.minimalBorder
             )
         )
     }

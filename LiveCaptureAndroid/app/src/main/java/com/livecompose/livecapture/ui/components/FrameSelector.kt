@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import com.livecompose.livecapture.core.frame.FrameInfo
+import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
  * 相框选择器组件
@@ -32,7 +33,7 @@ fun FrameSelector(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        Text("相框", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Text("相框", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 14.sp, fontWeight = FontWeight.Medium)
         Spacer(Modifier.height(8.dp))
 
         Row(
@@ -65,10 +66,10 @@ private fun FrameChip(name: String, color: Color, isSelected: Boolean, onClick: 
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .clip(RoundedCornerShape(6.dp))
-            .background(if (isSelected) Color.White.copy(alpha = 0.15f) else Color.Transparent)
+            .background(if (isSelected) DesignSystem.Colors.minimalLabel.copy(alpha = 0.15f) else Color.Transparent)
             .border(
                 width = if (isSelected) 1.dp else 0.dp,
-                color = if (isSelected) Color.White.copy(alpha = 0.5f) else Color.Transparent,
+                color = if (isSelected) DesignSystem.Colors.minimalBorder else Color.Transparent,
                 shape = RoundedCornerShape(6.dp)
             )
             .clickable(onClick = onClick)
@@ -79,7 +80,7 @@ private fun FrameChip(name: String, color: Color, isSelected: Boolean, onClick: 
             modifier = Modifier
                 .size(32.dp)
                 .clip(RoundedCornerShape(4.dp))
-                .background(Color(0xFF222222))
+                .background(DesignSystem.Colors.gray2())
                 .then(
                     if (color != Color.Transparent)
                         Modifier.border(2.dp, color, RoundedCornerShape(4.dp))
@@ -87,6 +88,6 @@ private fun FrameChip(name: String, color: Color, isSelected: Boolean, onClick: 
                 )
         )
         Spacer(Modifier.height(4.dp))
-        Text(name, color = Color.White.copy(alpha = 0.8f), fontSize = 10.sp, textAlign = TextAlign.Center)
+        Text(name, color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 10.sp, textAlign = TextAlign.Center)
     }
 }
