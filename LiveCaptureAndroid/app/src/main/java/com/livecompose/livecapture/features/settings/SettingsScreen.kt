@@ -865,7 +865,7 @@ fun SettingsScreen() {
     if (showWatermarkSheet) {
         androidx.compose.material3.ModalBottomSheet(
             onDismissRequest = { showWatermarkSheet = false },
-            containerColor = Color(0xFF1A1A1A)
+            containerColor = DesignSystem.Colors.gray1()
         ) {
             WatermarkEditSheet(
                 watermark = currentWatermark,
@@ -880,7 +880,7 @@ fun SettingsScreen() {
     if (showLchMixerSheet) {
         androidx.compose.material3.ModalBottomSheet(
             onDismissRequest = { showLchMixerSheet = false },
-            containerColor = Color(0xFF1A1A1A)
+            containerColor = DesignSystem.Colors.gray1()
         ) {
             LchMixerPanel(
                 adjustment = lchAdjustment,

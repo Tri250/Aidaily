@@ -157,7 +157,7 @@ fun VignetteEditorScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.Black)
+                    .background(DesignSystem.Colors.minimalBackground)
                     .padding(horizontal = 4.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -175,7 +175,7 @@ fun VignetteEditorScreen(
                 }
             }
         },
-        containerColor = Color.Black
+        containerColor = DesignSystem.Colors.minimalBackground
     ) { padding ->
         Column(
             modifier = Modifier
@@ -273,7 +273,7 @@ fun VignetteEditorScreen(
                     modifier = Modifier.weight(1f).height(44.dp),
                     shape = DesignSystem.mediumRoundedShape,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, DesignSystem.Colors.minimalBorder)
                 ) {
                     Icon(Icons.Default.Refresh, null, Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
@@ -310,7 +310,7 @@ private fun VignettePreviewCanvas(
     roundness: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier.background(Color(0xFF1C1C1E))) {
+    Box(modifier = modifier.background(DesignSystem.Colors.gray1())) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
@@ -457,7 +457,7 @@ private fun VignetteSlider(
             colors = SliderDefaults.colors(
                 thumbColor = DesignSystem.Colors.primary,
                 activeTrackColor = DesignSystem.Colors.primary,
-                inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                inactiveTrackColor = DesignSystem.Colors.minimalOverlay
             ),
             modifier = Modifier.fillMaxWidth()
         )

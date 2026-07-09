@@ -177,7 +177,7 @@ fun HslAdjustScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.Black)
+                    .background(DesignSystem.Colors.minimalBackground)
                     .padding(horizontal = 4.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -195,7 +195,7 @@ fun HslAdjustScreen(
                 }
             }
         },
-        containerColor = Color.Black
+        containerColor = DesignSystem.Colors.minimalBackground
     ) { padding ->
         Column(
             modifier = Modifier
@@ -281,7 +281,7 @@ fun HslAdjustScreen(
                     modifier = Modifier.weight(1f).height(44.dp),
                     shape = DesignSystem.mediumRoundedShape,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, DesignSystem.Colors.minimalBorder)
                 ) {
                     Icon(Icons.Default.Refresh, null, Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
@@ -385,7 +385,7 @@ private fun HslSlider(
             colors = SliderDefaults.colors(
                 thumbColor = tintColor,
                 activeTrackColor = tintColor,
-                inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                inactiveTrackColor = DesignSystem.Colors.minimalOverlay
             ),
             modifier = Modifier.fillMaxWidth()
         )

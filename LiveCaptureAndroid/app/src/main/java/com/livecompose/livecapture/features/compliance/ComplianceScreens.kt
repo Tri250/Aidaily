@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
  * 用户服务协议页面
@@ -33,10 +34,10 @@ fun UserAgreementScreen(onBack: () -> Unit) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1C1C1E))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DesignSystem.Colors.gray1())
             )
         },
-        containerColor = Color(0xFF1C1C1E)
+        containerColor = DesignSystem.Colors.gray1()
     ) { padding ->
         Column(
             modifier = Modifier
@@ -47,7 +48,7 @@ fun UserAgreementScreen(onBack: () -> Unit) {
         ) {
             Text(
                 text = buildAgreementText(),
-                color = Color.White.copy(alpha = 0.85f),
+                color = DesignSystem.Colors.minimalLabel,
                 fontSize = 14.sp,
                 lineHeight = 22.sp
             )
@@ -70,10 +71,10 @@ fun PrivacyPolicyScreen(onBack: () -> Unit) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1C1C1E))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DesignSystem.Colors.gray1())
             )
         },
-        containerColor = Color(0xFF1C1C1E)
+        containerColor = DesignSystem.Colors.gray1()
     ) { padding ->
         Column(
             modifier = Modifier
@@ -84,7 +85,7 @@ fun PrivacyPolicyScreen(onBack: () -> Unit) {
         ) {
             Text(
                 text = buildPrivacyPolicyText(),
-                color = Color.White.copy(alpha = 0.85f),
+                color = DesignSystem.Colors.minimalLabel,
                 fontSize = 14.sp,
                 lineHeight = 22.sp
             )
@@ -107,10 +108,10 @@ fun ThirdPartySDKScreen(onBack: () -> Unit) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1C1C1E))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DesignSystem.Colors.gray1())
             )
         },
-        containerColor = Color(0xFF1C1C1E)
+        containerColor = DesignSystem.Colors.gray1()
     ) { padding ->
         Column(
             modifier = Modifier
@@ -121,7 +122,7 @@ fun ThirdPartySDKScreen(onBack: () -> Unit) {
         ) {
             Text(
                 text = buildSDKListText(),
-                color = Color.White.copy(alpha = 0.85f),
+                color = DesignSystem.Colors.minimalLabel,
                 fontSize = 14.sp,
                 lineHeight = 22.sp
             )

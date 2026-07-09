@@ -134,7 +134,7 @@ fun LiveComposeScreen(
                         .align(Alignment.TopEnd)
                         .padding(8.dp),
                     shape = RoundedCornerShape(6.dp),
-                    color = Color.Black.copy(alpha = 0.6f)
+                    color = DesignSystem.Colors.minimalDarkOverlay
                 ) {
                     Text(
                         selectedPreset!!.name,
@@ -390,7 +390,7 @@ private fun PresetCard(
  */
 private fun generatePresetTint(preset: LutPreset): androidx.compose.ui.graphics.Color {
     if (preset.id == "original") {
-        return androidx.compose.ui.graphics.Color(0xFF888888)
+        return androidx.compose.ui.graphics.Color(0xFF8C8C8C)
     }
     // 根据色温、饱和度、对比度推算代表色
     val warmthShift = preset.warmth.coerceIn(-100f, 100f) / 100f

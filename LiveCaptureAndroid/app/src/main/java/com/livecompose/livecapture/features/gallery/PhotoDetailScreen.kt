@@ -80,7 +80,7 @@ fun PhotoDetailScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.Black)
+                    .background(DesignSystem.Colors.minimalBackground)
                     .padding(horizontal = 4.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -108,11 +108,11 @@ fun PhotoDetailScreen(
                 }
                 // 删除按钮
                 IconButton(onClick = { showDeleteConfirm = true }) {
-                    Icon(Icons.Default.Delete, contentDescription = "删除", tint = Color(0xFFFF3B30))
+                    Icon(Icons.Default.Delete, contentDescription = "删除", tint = DesignSystem.Colors.error)
                 }
             }
         },
-        containerColor = Color.Black
+        containerColor = DesignSystem.Colors.minimalBackground
     ) { padding ->
         Column(
             modifier = Modifier
@@ -171,7 +171,7 @@ fun PhotoDetailScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF1C1C1E)
+                        containerColor = DesignSystem.Colors.gray1()
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -225,7 +225,7 @@ fun PhotoDetailScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFF1C1C1E)
+                            containerColor = DesignSystem.Colors.gray1()
                         ),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -249,7 +249,7 @@ fun PhotoDetailScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFF1C1C1E)
+                            containerColor = DesignSystem.Colors.gray1()
                         ),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -263,18 +263,18 @@ fun PhotoDetailScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 "纬度: ${exifData.gpsLatitude ?: "-"}",
-                                color = Color.White.copy(alpha = 0.7f),
+                                color = DesignSystem.Colors.minimalSecondaryLabel,
                                 fontSize = 13.sp
                             )
                             Text(
                                 "经度: ${exifData.gpsLongitude ?: "-"}",
-                                color = Color.White.copy(alpha = 0.7f),
+                                color = DesignSystem.Colors.minimalSecondaryLabel,
                                 fontSize = 13.sp
                             )
                             if (exifData.gpsAltitude != null) {
                                 Text(
                                     "海拔: ${exifData.gpsAltitude}",
-                                    color = Color.White.copy(alpha = 0.7f),
+                                    color = DesignSystem.Colors.minimalSecondaryLabel,
                                     fontSize = 13.sp
                                 )
                             }
@@ -288,7 +288,7 @@ fun PhotoDetailScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF1C1C1E)
+                        containerColor = DesignSystem.Colors.gray1()
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -302,32 +302,32 @@ fun PhotoDetailScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             "格式: ${photoFile.extension.uppercase()}",
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = DesignSystem.Colors.minimalSecondaryLabel,
                             fontSize = 13.sp
                         )
                         Text(
                             "大小: ${formatFileSize(photoFile.length())}",
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = DesignSystem.Colors.minimalSecondaryLabel,
                             fontSize = 13.sp
                         )
                         exifData?.cameraModel?.let {
                             Text(
                                 "相机型号: $it",
-                                color = Color.White.copy(alpha = 0.7f),
+                                color = DesignSystem.Colors.minimalSecondaryLabel,
                                 fontSize = 13.sp
                             )
                         }
                         exifData?.dateTime?.let {
                             Text(
                                 "拍摄时间: $it",
-                                color = Color.White.copy(alpha = 0.7f),
+                                color = DesignSystem.Colors.minimalSecondaryLabel,
                                 fontSize = 13.sp
                             )
                         }
                         exifData?.flash?.let {
                             Text(
                                 "闪光灯: $it",
-                                color = Color.White.copy(alpha = 0.7f),
+                                color = DesignSystem.Colors.minimalSecondaryLabel,
                                 fontSize = 13.sp
                             )
                         }
@@ -351,7 +351,7 @@ fun PhotoDetailScreen(
                     showDeleteConfirm = false
                     onBack()
                 }) {
-                    Text("删除", color = Color(0xFFFF3B30))
+                    Text("删除", color = DesignSystem.Colors.error)
                 }
             },
             dismissButton = {
@@ -376,7 +376,7 @@ private fun ParamItem(label: String, value: String) {
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = label,
-            color = Color.White.copy(alpha = 0.5f),
+            color = DesignSystem.Colors.minimalSecondaryLabel,
             fontSize = 11.sp
         )
     }

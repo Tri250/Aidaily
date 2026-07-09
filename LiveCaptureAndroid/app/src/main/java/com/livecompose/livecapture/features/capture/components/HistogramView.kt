@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.unit.dp
+import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
  * 直方图组件
@@ -53,7 +54,7 @@ fun HistogramView(
                 close()
             }
 
-            drawPath(path = path, color = Color.White.copy(alpha = 0.35f))
+            drawPath(path = path, color = DesignSystem.Colors.minimalBorder)
 
             // 绘制顶部高亮边线
             val outlinePath = Path().apply {
@@ -65,7 +66,7 @@ fun HistogramView(
             }
             drawPath(
                 path = outlinePath,
-                color = Color.White.copy(alpha = 0.8f),
+                color = DesignSystem.Colors.minimalLabel,
                 style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1f)
             )
         }

@@ -222,7 +222,7 @@ fun CurveEditorScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.Black)
+                    .background(DesignSystem.Colors.minimalBackground)
                     .padding(horizontal = 4.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -240,7 +240,7 @@ fun CurveEditorScreen(
                 }
             }
         },
-        containerColor = Color.Black
+        containerColor = DesignSystem.Colors.minimalBackground
     ) { padding ->
         Column(
             modifier = Modifier
@@ -315,7 +315,7 @@ fun CurveEditorScreen(
                     modifier = Modifier.weight(1f).height(44.dp),
                     shape = DesignSystem.mediumRoundedShape,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, DesignSystem.Colors.minimalBorder)
                 ) {
                     Icon(Icons.Default.Refresh, null, Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
@@ -360,7 +360,7 @@ private fun ChannelSelector(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(50))
-                    .background(if (isSelected) color.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.05f))
+                    .background(if (isSelected) color.copy(alpha = 0.2f) else DesignSystem.Colors.minimalOverlay)
                     .border(
                         1.dp,
                         if (isSelected) color else Color.Transparent,
@@ -409,7 +409,7 @@ private fun CurveEditorCanvas(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF1C1C1E))
+            .background(DesignSystem.Colors.gray1())
     ) {
         Canvas(
             modifier = Modifier
@@ -460,8 +460,8 @@ private fun CurveEditorCanvas(
         ) {
             val w = size.width
             val h = size.height
-            val gridColor = Color.White.copy(alpha = 0.08f)
-            val refColor = Color.White.copy(alpha = 0.12f)
+            val gridColor = DesignSystem.Colors.minimalOverlay
+            val refColor = DesignSystem.Colors.minimalOverlay
 
             // 网格
             for (i in 1 until 4) {

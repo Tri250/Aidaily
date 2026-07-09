@@ -94,7 +94,7 @@ fun BottomSection(
                         .size(52.dp)
                         .clip(CircleShape)
                         .background(
-                            if (isPipelineEnabled) DesignSystem.Colors.primary else Color.White.copy(alpha = 0.15f)
+                            if (isPipelineEnabled) DesignSystem.Colors.primary else DesignSystem.Colors.minimalOverlay
                         )
                         .clickable {
                             scale = 0.85f
@@ -114,7 +114,7 @@ fun BottomSection(
                 Text(
                     if (isPipelineEnabled) "已开启" else "智能构图",
                     fontSize = 11.sp,
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = DesignSystem.Colors.minimalSecondaryLabel,
                     textAlign = TextAlign.Center
                 )
             }
@@ -154,7 +154,7 @@ private fun ZoomControlBar(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .background(
-                            if (preset.zoomFactor == zoomState.currentFactor) Color.White.copy(alpha = 0.2f)
+                            if (preset.zoomFactor == zoomState.currentFactor) DesignSystem.Colors.minimalOverlay
                             else Color.Transparent
                         )
                         .clickable { onSelectPreset(preset) }
@@ -170,7 +170,7 @@ private fun ZoomControlBar(
                         Text(
                             preset.focalLengthLabel,
                             fontSize = 10.sp,
-                            color = Color.White.copy(alpha = 0.5f)
+                            color = DesignSystem.Colors.minimalSecondaryLabel
                         )
                     }
                 }
@@ -199,7 +199,7 @@ private fun ZoomControlBar(
                 colors = SliderDefaults.colors(
                     thumbColor = Color.White,
                     activeTrackColor = Color.White,
-                    inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                    inactiveTrackColor = DesignSystem.Colors.minimalBorder
                 )
             )
         }
@@ -215,7 +215,7 @@ private fun CaptureButton(onCapture: () -> Unit) {
         modifier = Modifier
             .size(72.dp)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.3f))
+            .background(DesignSystem.Colors.minimalBorder)
             .clickable {
                 scale = 0.9f
                 onCapture()
@@ -245,7 +245,7 @@ private fun ZoomRingView(
 
         // 背景环
         drawCircle(
-            color = Color.White.copy(alpha = 0.2f),
+            color = DesignSystem.Colors.minimalOverlay,
             radius = radius,
             center = center,
             style = Stroke(width = strokeWidth)

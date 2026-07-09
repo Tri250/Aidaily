@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.platform.LocalContext
+import com.livecompose.livecapture.ui.design.DesignSystem
 
 private const val LEVEL_THRESHOLD_DEGREES = 3.0f
 
@@ -44,8 +45,8 @@ fun LevelIndicatorOverlay(
     val lineColor by animateColorAsState(
         targetValue = when {
             !enabled -> Color.Transparent
-            isLevel -> Color(0xFF00C853)
-            else -> Color.White.copy(alpha = 0.6f)
+            isLevel -> DesignSystem.Colors.success
+            else -> DesignSystem.Colors.minimalSecondaryLabel
         },
         label = "lineColor"
     )
@@ -116,7 +117,7 @@ fun LevelIndicatorOverlay(
 
                 // 水平状态指示点
                 if (isLevel) {
-                    drawCircle(color = Color(0xFF00C853), radius = 4f, center = Offset(0f, 0f))
+                    drawCircle(color = DesignSystem.Colors.success, radius = 4f, center = Offset(0f, 0f))
                 }
             }
         )

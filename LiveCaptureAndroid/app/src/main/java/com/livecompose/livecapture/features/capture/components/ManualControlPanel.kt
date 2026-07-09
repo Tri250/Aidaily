@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
+import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
  * 手动模式控制参数
@@ -112,7 +113,7 @@ fun ManualControlPanel(
             onAutoToggle = { onParamsChanged(params.copy(isoAuto = !params.isoAuto)) }
         )
 
-        HorizontalDivider(color = Color.White.copy(alpha = 0.15f))
+        HorizontalDivider(color = DesignSystem.Colors.minimalOverlay)
 
         // 快门速度控制
         ShutterSpeedControl(
@@ -122,7 +123,7 @@ fun ManualControlPanel(
             onAutoToggle = { onParamsChanged(params.copy(shutterSpeedAuto = !params.shutterSpeedAuto)) }
         )
 
-        HorizontalDivider(color = Color.White.copy(alpha = 0.15f))
+        HorizontalDivider(color = DesignSystem.Colors.minimalOverlay)
 
         // 白平衡选择器
         WhiteBalanceControl(
@@ -132,7 +133,7 @@ fun ManualControlPanel(
             onTempChanged = { temp -> onParamsChanged(params.copy(customColorTemp = temp)) }
         )
 
-        HorizontalDivider(color = Color.White.copy(alpha = 0.15f))
+        HorizontalDivider(color = DesignSystem.Colors.minimalOverlay)
 
         // 对焦模式
         FocusModeControl(
@@ -142,7 +143,7 @@ fun ManualControlPanel(
             onDistanceChanged = { dist -> onParamsChanged(params.copy(manualFocusDistance = dist)) }
         )
 
-        HorizontalDivider(color = Color.White.copy(alpha = 0.15f))
+        HorizontalDivider(color = DesignSystem.Colors.minimalOverlay)
 
         // 曝光补偿
         ExposureCompensationControl(
@@ -214,17 +215,17 @@ private fun IsoSlider(
             steps = 0,
             modifier = Modifier.fillMaxWidth(),
             colors = SliderDefaults.colors(
-                thumbColor = Color(0xFFFF9500),
-                activeTrackColor = Color(0xFFFF9500),
-                inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                thumbColor = DesignSystem.Colors.accent,
+                activeTrackColor = DesignSystem.Colors.accent,
+                inactiveTrackColor = DesignSystem.Colors.minimalOverlay
             )
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("50", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
-            Text("3200", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
+            Text("50", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 10.sp)
+            Text("3200", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 10.sp)
         }
     }
 }
@@ -278,17 +279,17 @@ private fun ShutterSpeedSlider(
             steps = 0,
             modifier = Modifier.fillMaxWidth(),
             colors = SliderDefaults.colors(
-                thumbColor = Color(0xFFFF9500),
-                activeTrackColor = Color(0xFFFF9500),
-                inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                thumbColor = DesignSystem.Colors.accent,
+                activeTrackColor = DesignSystem.Colors.accent,
+                inactiveTrackColor = DesignSystem.Colors.minimalOverlay
             )
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("1/8000s", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
-            Text("30s", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
+            Text("1/8000s", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 10.sp)
+            Text("30s", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 10.sp)
         }
     }
 }
@@ -308,20 +309,20 @@ private fun WhiteBalanceControl(
             Icon(
                 imageVector = Icons.Default.WbSunny,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.8f),
+                tint = DesignSystem.Colors.minimalLabel,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(8.dp))
             Text(
                 text = "白平衡",
-                color = Color.White.copy(alpha = 0.8f),
+                color = DesignSystem.Colors.minimalLabel,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
             )
             Spacer(Modifier.weight(1f))
             Text(
                 text = if (currentMode == WhiteBalanceMode.CUSTOM) "${customTemp}K" else currentMode.displayName,
-                color = Color(0xFFFF9500),
+                color = DesignSystem.Colors.accent,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -362,12 +363,12 @@ private fun WbChip(
     Surface(
         modifier = Modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        color = if (isSelected) Color(0xFFFF9500).copy(alpha = 0.3f) else Color.White.copy(alpha = 0.1f),
-        border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF9500)) else null
+        color = if (isSelected) DesignSystem.Colors.accent.copy(alpha = 0.3f) else DesignSystem.Colors.minimalOverlay,
+        border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, DesignSystem.Colors.accent) else null
     ) {
         Text(
             text = label,
-            color = if (isSelected) Color(0xFFFF9500) else Color.White.copy(alpha = 0.7f),
+            color = if (isSelected) DesignSystem.Colors.accent else DesignSystem.Colors.minimalSecondaryLabel,
             fontSize = 11.sp,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -396,17 +397,17 @@ private fun ColorTempSlider(
             valueRange = 2000f..8000f,
             modifier = Modifier.fillMaxWidth(),
             colors = SliderDefaults.colors(
-                thumbColor = Color(0xFFFF9500),
-                activeTrackColor = Color(0xFFFF9500),
-                inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                thumbColor = DesignSystem.Colors.accent,
+                activeTrackColor = DesignSystem.Colors.accent,
+                inactiveTrackColor = DesignSystem.Colors.minimalOverlay
             )
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("2000K", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
-            Text("8000K", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
+            Text("2000K", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 10.sp)
+            Text("8000K", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 10.sp)
         }
     }
 }
@@ -426,20 +427,20 @@ private fun FocusModeControl(
             Icon(
                 imageVector = Icons.Default.CenterFocusStrong,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.8f),
+                tint = DesignSystem.Colors.minimalLabel,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(8.dp))
             Text(
                 text = "对焦模式",
-                color = Color.White.copy(alpha = 0.8f),
+                color = DesignSystem.Colors.minimalLabel,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
             )
             Spacer(Modifier.weight(1f))
             Text(
                 text = currentMode.displayName,
-                color = Color(0xFFFF9500),
+                color = DesignSystem.Colors.accent,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -482,12 +483,12 @@ private fun FocusChip(
     Surface(
         modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
-        color = if (isSelected) Color(0xFFFF9500) else Color.White.copy(alpha = 0.1f),
-        border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF9500)) else null
+        color = if (isSelected) DesignSystem.Colors.accent else DesignSystem.Colors.minimalOverlay,
+        border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, DesignSystem.Colors.accent) else null
     ) {
         Text(
             text = label,
-            color = if (isSelected) Color.White else Color.White.copy(alpha = 0.7f),
+            color = if (isSelected) Color.White else DesignSystem.Colors.minimalSecondaryLabel,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
@@ -524,17 +525,17 @@ private fun ManualFocusSlider(
             valueRange = 0f..1f,
             modifier = Modifier.fillMaxWidth(),
             colors = SliderDefaults.colors(
-                thumbColor = Color(0xFFFF9500),
-                activeTrackColor = Color(0xFFFF9500),
-                inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                thumbColor = DesignSystem.Colors.accent,
+                activeTrackColor = DesignSystem.Colors.accent,
+                inactiveTrackColor = DesignSystem.Colors.minimalOverlay
             )
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("近", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
-            Text("∞", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
+            Text("近", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 10.sp)
+            Text("∞", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 10.sp)
         }
     }
 }
@@ -552,20 +553,20 @@ private fun ExposureCompensationControl(
             Icon(
                 imageVector = Icons.Default.Exposure,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.8f),
+                tint = DesignSystem.Colors.minimalLabel,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(8.dp))
             Text(
                 text = "曝光补偿",
-                color = Color.White.copy(alpha = 0.8f),
+                color = DesignSystem.Colors.minimalLabel,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
             )
             Spacer(Modifier.weight(1f))
             Text(
                 text = formatEV(currentEV),
-                color = Color(0xFFFF9500),
+                color = DesignSystem.Colors.accent,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -595,9 +596,9 @@ private fun ExposureCompensationControl(
                 steps = 17, // 6 / (1/3) - 1 = 17
                 modifier = Modifier.weight(1f),
                 colors = SliderDefaults.colors(
-                    thumbColor = Color(0xFFFF9500),
-                    activeTrackColor = Color(0xFFFF9500),
-                    inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                    thumbColor = DesignSystem.Colors.accent,
+                    activeTrackColor = DesignSystem.Colors.accent,
+                    inactiveTrackColor = DesignSystem.Colors.minimalOverlay
                 )
             )
 
@@ -612,9 +613,9 @@ private fun ExposureCompensationControl(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("-3", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
-            Text("0", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
-            Text("+3", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
+            Text("-3", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 10.sp)
+            Text("0", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 10.sp)
+            Text("+3", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 10.sp)
         }
     }
 }
@@ -628,14 +629,14 @@ private fun EVStepButton(
         modifier = Modifier
             .size(28.dp)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.1f))
+            .background(DesignSystem.Colors.minimalOverlay)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.7f),
+            tint = DesignSystem.Colors.minimalSecondaryLabel,
             modifier = Modifier.size(16.dp)
         )
     }
@@ -658,20 +659,20 @@ private fun ControlRow(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.8f),
+                tint = DesignSystem.Colors.minimalLabel,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(8.dp))
             Text(
                 text = label,
-                color = Color.White.copy(alpha = 0.8f),
+                color = DesignSystem.Colors.minimalLabel,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
             )
             Spacer(Modifier.weight(1f))
             Text(
                 text = value,
-                color = Color(0xFFFF9500),
+                color = DesignSystem.Colors.accent,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -681,14 +682,14 @@ private fun ControlRow(
                 modifier = Modifier
                     .clip(RoundedCornerShape(4.dp))
                     .background(
-                        if (isAuto) Color(0xFFFF9500).copy(alpha = 0.3f) else Color.White.copy(alpha = 0.1f)
+                        if (isAuto) DesignSystem.Colors.accent.copy(alpha = 0.3f) else DesignSystem.Colors.minimalOverlay
                     )
                     .clickable(onClick = onAutoToggle)
                     .padding(horizontal = 8.dp, vertical = 2.dp)
             ) {
                 Text(
                     text = "AUTO",
-                    color = if (isAuto) Color(0xFFFF9500) else Color.White.copy(alpha = 0.5f),
+                    color = if (isAuto) DesignSystem.Colors.accent else DesignSystem.Colors.minimalSecondaryLabel,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace

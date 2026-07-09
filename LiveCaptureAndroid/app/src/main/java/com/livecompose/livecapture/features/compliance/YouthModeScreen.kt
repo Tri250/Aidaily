@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.livecompose.livecapture.core.compliance.UsageRecord
 import com.livecompose.livecapture.core.compliance.YouthModeManager
+import com.livecompose.livecapture.ui.design.DesignSystem
 import kotlinx.coroutines.launch
 
 // 青少年模式界面统一深色风格（与 ComplianceScreens 对齐）
@@ -359,7 +360,7 @@ private fun DailyLimitCard(currentMinutes: Int, onSelect: (Int) -> Unit) {
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(if (selected) YouthAccent.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.05f))
+                        .background(if (selected) YouthAccent.copy(alpha = 0.25f) else DesignSystem.Colors.minimalOverlay)
                         .border(
                             width = 1.dp,
                             color = if (selected) YouthAccent else Color.Transparent,
@@ -414,7 +415,7 @@ private fun NightBanCard(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Color.White.copy(alpha = 0.05f))
+                    .background(DesignSystem.Colors.minimalOverlay)
                     .clickable { editingStart = true }
                     .padding(vertical = 10.dp, horizontal = 12.dp)
             )
@@ -426,7 +427,7 @@ private fun NightBanCard(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Color.White.copy(alpha = 0.05f))
+                    .background(DesignSystem.Colors.minimalOverlay)
                     .clickable { editingEnd = true }
                     .padding(vertical = 10.dp, horizontal = 12.dp)
             )

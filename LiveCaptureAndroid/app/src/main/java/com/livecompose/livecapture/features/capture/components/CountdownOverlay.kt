@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.coroutines.delay
+import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
  * 倒计时覆盖层
@@ -111,7 +112,7 @@ fun CountdownOverlay(
 
                 // 背景环
                 drawCircle(
-                    color = Color.White.copy(alpha = 0.15f),
+                    color = DesignSystem.Colors.minimalOverlay,
                     radius = radius - 4.dp.toPx(),
                     center = center,
                     style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
@@ -153,7 +154,7 @@ fun CountdownOverlay(
             ) {
                 androidx.compose.material3.Text(
                     text = "取消",
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = DesignSystem.Colors.minimalSecondaryLabel,
                     fontSize = 16.sp
                 )
             }

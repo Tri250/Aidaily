@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
  * 实时取景直方图覆盖层
@@ -154,13 +155,13 @@ private fun DrawScope.drawHistogram(data: HistogramData, showRGB: Boolean) {
 
     // 绘制亮度直方图（最上层）
     drawChannelHistogram(
-        data.luminance, data.maxLuminance, Color.White.copy(alpha = 0.85f),
+        data.luminance, data.maxLuminance, DesignSystem.Colors.minimalLabel,
         width, height, barWidth
     )
 
     // 绘制底部基线
     drawLine(
-        color = Color.White.copy(alpha = 0.3f),
+        color = DesignSystem.Colors.minimalBorder,
         start = Offset(0f, height),
         end = Offset(width, height),
         strokeWidth = 1f
@@ -212,7 +213,7 @@ private fun DrawScope.drawChannelHistogram(
  * 绘制网格线
  */
 private fun DrawScope.drawGrid(width: Float, height: Float) {
-    val gridColor = Color.White.copy(alpha = 0.1f)
+    val gridColor = DesignSystem.Colors.minimalOverlay
 
     // 水平线
     for (i in 1..3) {

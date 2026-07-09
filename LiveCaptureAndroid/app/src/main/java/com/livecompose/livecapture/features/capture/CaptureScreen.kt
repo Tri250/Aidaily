@@ -110,7 +110,7 @@ fun CaptureScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         // 黑色背景
-        Box(modifier = Modifier.fillMaxSize().background(Color.Black))
+        Box(modifier = Modifier.fillMaxSize().background(DesignSystem.Colors.minimalBackground))
 
         // 相机预览
         if (cameraError == null) {
@@ -255,7 +255,7 @@ private fun CameraErrorOverlay(
                 },
                 contentDescription = null,
                 modifier = Modifier.size(64.dp),
-                tint = Color(0xFFFF3B30)
+                tint = DesignSystem.Colors.error
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -285,7 +285,7 @@ private fun CameraErrorOverlay(
                     CameraErrorType.UNKNOWN -> "相机无法正常启动，请尝试重启应用或检查设备状态"
                 },
                 fontSize = 14.sp,
-                color = Color.White.copy(alpha = 0.7f),
+                color = DesignSystem.Colors.minimalSecondaryLabel,
                 textAlign = TextAlign.Center,
                 lineHeight = 20.sp
             )
@@ -325,7 +325,7 @@ private fun CameraErrorOverlay(
                         contentColor = Color.White
                     ),
                     border = ButtonDefaults.outlinedButtonBorder.copy(
-                        brush = androidx.compose.ui.graphics.SolidColor(Color.White.copy(alpha = 0.3f))
+                        brush = androidx.compose.ui.graphics.SolidColor(DesignSystem.Colors.minimalBorder)
                     )
                 ) {
                     Icon(
@@ -360,7 +360,7 @@ private fun CompositionOverlay(
             val right = rect.right * canvasWidth
             val bottom = rect.bottom * canvasHeight
             drawRect(
-                color = if (isAligned) Color(0xFF00C853) else Color(0xFFFFAB00),
+                color = if (isAligned) DesignSystem.Colors.success else DesignSystem.Colors.warning,
                 topLeft = androidx.compose.ui.geometry.Offset(left, top),
                 size = androidx.compose.ui.geometry.Size(right - left, bottom - top),
                 style = Stroke(width = 3f)
@@ -373,12 +373,12 @@ private fun CompositionOverlay(
             val cy = center.y * canvasHeight
             val radius = 15f
             drawCircle(
-                color = if (isAligned) Color(0xFF00C853) else Color.White,
+                color = if (isAligned) DesignSystem.Colors.success else Color.White,
                 radius = radius,
                 center = androidx.compose.ui.geometry.Offset(cx, cy)
             )
             drawCircle(
-                color = Color(0xFF007AFF).copy(alpha = 0.3f),
+                color = DesignSystem.Colors.primary.copy(alpha = 0.3f),
                 radius = radius + 8f,
                 center = androidx.compose.ui.geometry.Offset(cx, cy),
                 style = Stroke(width = 2f)

@@ -27,13 +27,14 @@ import com.livecompose.livecapture.core.portrait.BeautySettings
 import com.livecompose.livecapture.core.portrait.BeautySliderDescriptor
 import com.livecompose.livecapture.core.portrait.BeautySliders
 import com.livecompose.livecapture.core.portrait.toBeautySettings
+import com.livecompose.livecapture.ui.design.DesignSystem
 
 // 美颜面板深色风格（对应 iOS BeautyPanelView 的黑色半透明背景）
 private val PanelBackground = Color.Black.copy(alpha = 0.92f)
-private val PanelLabel = Color.White.copy(alpha = 0.92f)
-private val PanelSecondaryLabel = Color.White.copy(alpha = 0.50f)
-private val PanelBorder = Color.White.copy(alpha = 0.20f)
-private val PanelAccent = Color(0xFF3B82F6)
+private val PanelLabel = DesignSystem.Colors.minimalLabel
+private val PanelSecondaryLabel = DesignSystem.Colors.minimalSecondaryLabel
+private val PanelBorder = DesignSystem.Colors.minimalBorder
+private val PanelAccent = DesignSystem.Colors.primary
 
 /**
  * 美颜调节面板
@@ -189,7 +190,7 @@ private fun PresetSelector(
                     .clip(RoundedCornerShape(20.dp))
                     .background(
                         if (selected) PanelAccent.copy(alpha = 0.3f)
-                        else Color.White.copy(alpha = 0.08f)
+                        else DesignSystem.Colors.minimalOverlay
                     )
                     .border(
                         width = 1.dp,

@@ -21,6 +21,7 @@ import android.graphics.PointF
 import android.graphics.RectF
 import kotlin.math.pow
 import kotlin.math.sqrt
+import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
  * 内容叠加层视图
@@ -70,7 +71,7 @@ fun ContentOverlayView(
 
             // 构图边框
             drawRect(
-                color = Color.White.copy(alpha = 0.5f),
+                color = DesignSystem.Colors.minimalSecondaryLabel,
                 topLeft = Offset(left, top),
                 size = Size(right - left, bottom - top),
                 style = Stroke(width = 1.5f)
@@ -79,7 +80,7 @@ fun ContentOverlayView(
             // 九宫格线
             val thirdW = (right - left) / 3
             val thirdH = (bottom - top) / 3
-            val gridColor = Color.White.copy(alpha = 0.15f)
+            val gridColor = DesignSystem.Colors.minimalOverlay
             for (i in 1..2) {
                 drawLine(gridColor, Offset(left + thirdW * i, top), Offset(left + thirdW * i, bottom), 0.5f)
                 drawLine(gridColor, Offset(left, top + thirdH * i), Offset(right, top + thirdH * i), 0.5f)
@@ -145,7 +146,7 @@ fun ContentOverlayView(
             // 对准指示环
             if (animatedIsAligned > 0.5f) {
                 drawCircle(
-                    color = Color(0xFF00C853).copy(alpha = animatedIsAligned),
+                    color = DesignSystem.Colors.success.copy(alpha = animatedIsAligned),
                     radius = 14f,
                     center = Offset(cx, cy),
                     style = Stroke(width = 2f)

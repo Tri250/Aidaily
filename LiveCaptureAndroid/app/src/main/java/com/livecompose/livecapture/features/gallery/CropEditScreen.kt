@@ -118,7 +118,7 @@ fun CropEditScreen(
         },
         bottomBar = {
             Column(
-                modifier = Modifier.fillMaxWidth().background(Color(0xFF1A1A1A)).padding(vertical = 12.dp)
+                modifier = Modifier.fillMaxWidth().background(DesignSystem.Colors.gray2()).padding(vertical = 12.dp)
             ) {
                 // 比例选择
                 Row(
@@ -153,11 +153,11 @@ fun CropEditScreen(
                         scale = 1f; offsetX = 0f; offsetY = 0f
                         cropRect = calculateInitialCropRect(selectedRatio)
                         rotation = 0
-                    }) { Text("重置", color = Color.White.copy(alpha = 0.7f)) }
+                    }) { Text("重置", color = DesignSystem.Colors.minimalSecondaryLabel) }
                 }
             }
         },
-        containerColor = Color.Black
+        containerColor = DesignSystem.Colors.minimalBackground
     ) { padding ->
         Box(
             modifier = Modifier.fillMaxSize().padding(padding),
@@ -208,9 +208,9 @@ fun CropEditScreen(
                     val thirdW = (right - left) / 3
                     val thirdH = (bottom - top) / 3
                     for (i in 1..2) {
-                        drawLine(Color.White.copy(alpha = 0.3f), androidx.compose.ui.geometry.Offset(left + thirdW * i, top),
+                        drawLine(DesignSystem.Colors.minimalBorder, androidx.compose.ui.geometry.Offset(left + thirdW * i, top),
                             androidx.compose.ui.geometry.Offset(left + thirdW * i, bottom), 0.5f)
-                        drawLine(Color.White.copy(alpha = 0.3f), androidx.compose.ui.geometry.Offset(left, top + thirdH * i),
+                        drawLine(DesignSystem.Colors.minimalBorder, androidx.compose.ui.geometry.Offset(left, top + thirdH * i),
                             androidx.compose.ui.geometry.Offset(right, top + thirdH * i), 0.5f)
                     }
                 }

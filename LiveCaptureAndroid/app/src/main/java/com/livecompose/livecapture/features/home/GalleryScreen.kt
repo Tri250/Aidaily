@@ -147,7 +147,7 @@ fun GalleryScreen(
                                             Icon(
                                                 Icons.Default.Star,
                                                 null,
-                                                tint = Color(0xFFFF9500),
+                                                tint = DesignSystem.Colors.accent,
                                                 modifier = Modifier.size(16.dp)
                                             )
                                         }
@@ -285,9 +285,9 @@ private fun PhotoCard(
             // Shimmer placeholder 效果
             val shimmerColors = remember {
                 listOf(
-                    Color(0xFF2C2C2E),
-                    Color(0xFF3A3A3C),
-                    Color(0xFF2C2C2E)
+                    Color(0xFF1F1F1F),
+                    Color(0xFF292929),
+                    Color(0xFF1F1F1F)
                 )
             }
             val transition = rememberInfiniteTransition()
@@ -320,7 +320,7 @@ private fun PhotoCard(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(4.dp)
-                    .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                    .background(DesignSystem.Colors.minimalDarkOverlay, RoundedCornerShape(4.dp))
                     .padding(horizontal = 4.dp, vertical = 1.dp),
                 horizontalArrangement = Arrangement.spacedBy(1.dp)
             ) {
@@ -328,7 +328,7 @@ private fun PhotoCard(
                     Icon(
                         Icons.Default.Star,
                         null,
-                        tint = Color(0xFFFF9500),
+                        tint = DesignSystem.Colors.accent,
                         modifier = Modifier.size(10.dp)
                     )
                 }
@@ -352,12 +352,12 @@ private fun PhotoCard(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.4f))
+                    .background(DesignSystem.Colors.minimalDarkOverlay)
             )
             Icon(
                 if (isSelected) Icons.Default.CheckCircle else Icons.Default.Circle,
                 contentDescription = null,
-                tint = if (isSelected) DesignSystem.Colors.primary else Color.White.copy(alpha = 0.7f),
+                tint = if (isSelected) DesignSystem.Colors.primary else DesignSystem.Colors.minimalSecondaryLabel,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(6.dp)
@@ -405,7 +405,7 @@ private fun PhotoDetailDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp)
-                            .background(Color(0xFF2C2C2E)),
+                            .background(DesignSystem.Colors.gray2()),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(
@@ -432,7 +432,7 @@ private fun PhotoDetailDialog(
                             Icon(
                                 if (star <= currentRating) Icons.Default.Star else Icons.Default.StarOutline,
                                 contentDescription = "$star 星",
-                                tint = if (star <= currentRating) Color(0xFFFF9500) else Color.Gray,
+                                tint = if (star <= currentRating) DesignSystem.Colors.accent else Color.Gray,
                                 modifier = Modifier.size(24.dp)
                             )
                         }

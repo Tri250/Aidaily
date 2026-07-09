@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
  * Toast 提示组件
@@ -55,7 +56,7 @@ fun ToastView(
                 Icon(
                     Icons.Default.CheckCircle,
                     contentDescription = null,
-                    tint = Color(0xFF00C853),
+                    tint = DesignSystem.Colors.success,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))

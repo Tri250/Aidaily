@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
  * 构图网格叠加层
@@ -66,7 +67,7 @@ fun GridOverlay(
         }
 
         val gridColor = Color.White.copy(alpha = 0.4f * animatedAlpha)
-        val goldenColor = Color(0xFFFFAB00).copy(alpha = 0.5f * animatedAlpha)
+        val goldenColor = DesignSystem.Colors.warning.copy(alpha = 0.5f * animatedAlpha)
         val strokeWidth = 1.2f
 
         when (gridMode) {

@@ -24,6 +24,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.livecompose.livecapture.ui.design.DesignSystem
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -79,7 +80,7 @@ fun PrivacyAgreementDialog(
     AlertDialog(
         onDismissRequest = { /* 不允许点击外部关闭 */ },
         shape = RoundedCornerShape(16.dp),
-        containerColor = Color(0xFF1C1C1E),
+        containerColor = DesignSystem.Colors.gray1(),
         title = {
             Text(
                 text = "构妙 LiveCapture 隐私保护指引",
@@ -98,21 +99,21 @@ fun PrivacyAgreementDialog(
                     text = buildAnnotatedString {
                         append("欢迎使用构妙！在您使用我们的服务之前，请您仔细阅读")
                         withStyle(SpanStyle(
-                            color = Color(0xFF007AFF),
+                            color = DesignSystem.Colors.primary,
                             textDecoration = TextDecoration.Underline
                         )) {
                             append("《构妙隐私政策》")
                         }
                         append("和")
                         withStyle(SpanStyle(
-                            color = Color(0xFF007AFF),
+                            color = DesignSystem.Colors.primary,
                             textDecoration = TextDecoration.Underline
                         )) {
                             append("《用户服务协议》")
                         }
                         append("。")
                     },
-                    color = Color.White.copy(alpha = 0.85f),
+                    color = DesignSystem.Colors.minimalLabel,
                     fontSize = 14.sp,
                     lineHeight = 22.sp
                 )
@@ -139,7 +140,7 @@ fun PrivacyAgreementDialog(
                 permissions.forEach { perm ->
                     Text(
                         text = perm,
-                        color = Color.White.copy(alpha = 0.75f),
+                        color = DesignSystem.Colors.minimalSecondaryLabel,
                         fontSize = 13.sp,
                         lineHeight = 20.sp,
                         modifier = Modifier.padding(start = 8.dp, top = 2.dp, bottom = 2.dp)
@@ -150,7 +151,7 @@ fun PrivacyAgreementDialog(
 
                 Text(
                     text = "我们承诺：仅在您授权后使用上述权限；您的照片数据仅存储在本地设备，不会上传至任何服务器；不会收集、分享或出售您的个人信息。",
-                    color = Color.White.copy(alpha = 0.65f),
+                    color = DesignSystem.Colors.minimalSecondaryLabel,
                     fontSize = 12.sp,
                     lineHeight = 18.sp
                 )
@@ -163,7 +164,7 @@ fun PrivacyAgreementDialog(
                 ) {
                     Text(
                         text = "查看完整隐私政策 >",
-                        color = Color(0xFF007AFF),
+                        color = DesignSystem.Colors.primary,
                         fontSize = 13.sp
                     )
                 }
@@ -187,7 +188,7 @@ fun PrivacyAgreementDialog(
                         .height(48.dp),
                     shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF007AFF)
+                        containerColor = DesignSystem.Colors.primary
                     )
                 ) {
                     Text(
@@ -203,7 +204,7 @@ fun PrivacyAgreementDialog(
                 ) {
                     Text(
                         text = "不同意，退出应用",
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = DesignSystem.Colors.minimalSecondaryLabel,
                         fontSize = 13.sp
                     )
                 }
@@ -220,7 +221,7 @@ private fun FullPrivacyPolicyDialog(onBack: () -> Unit) {
     AlertDialog(
         onDismissRequest = onBack,
         shape = RoundedCornerShape(16.dp),
-        containerColor = Color(0xFF1C1C1E),
+        containerColor = DesignSystem.Colors.gray1(),
         title = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -234,7 +235,7 @@ private fun FullPrivacyPolicyDialog(onBack: () -> Unit) {
                     fontSize = 18.sp
                 )
                 TextButton(onClick = onBack) {
-                    Text("关闭", color = Color(0xFF007AFF))
+                    Text("关闭", color = DesignSystem.Colors.primary)
                 }
             }
         },
@@ -314,7 +315,7 @@ private fun FullPrivacyPolicyDialog(onBack: () -> Unit) {
 
                 Text(
                     text = policyText,
-                    color = Color.White.copy(alpha = 0.85f),
+                    color = DesignSystem.Colors.minimalLabel,
                     fontSize = 13.sp,
                     lineHeight = 20.sp
                 )

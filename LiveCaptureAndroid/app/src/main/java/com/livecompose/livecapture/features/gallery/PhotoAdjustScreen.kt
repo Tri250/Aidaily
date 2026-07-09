@@ -115,7 +115,7 @@ fun PhotoAdjustScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.Black)
+                    .background(DesignSystem.Colors.minimalBackground)
                     .padding(horizontal = 4.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -146,7 +146,7 @@ fun PhotoAdjustScreen(
                 }
             }
         },
-        containerColor = Color.Black
+        containerColor = DesignSystem.Colors.minimalBackground
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -186,7 +186,7 @@ fun PhotoAdjustScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
+                colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.gray1()),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -246,7 +246,7 @@ fun PhotoAdjustScreen(
                             ),
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
-                                Color.White.copy(alpha = 0.3f)
+                                DesignSystem.Colors.minimalBorder
                             )
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -279,7 +279,7 @@ fun PhotoAdjustScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
+                colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.gray1()),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -296,14 +296,14 @@ fun PhotoAdjustScreen(
                         subtitle = "RGB/红/绿/蓝四通道曲线",
                         onClick = { onNavigateToCurve(photoId) }
                     )
-                    Divider(color = Color.White.copy(alpha = 0.1f))
+                    Divider(color = DesignSystem.Colors.minimalOverlay)
                     EditorToolItem(
                         icon = Icons.Default.Palette,
                         title = "HSL 调整",
                         subtitle = "按色相/饱和度/明度分通道调整",
                         onClick = { onNavigateToHsl(photoId) }
                     )
-                    Divider(color = Color.White.copy(alpha = 0.1f))
+                    Divider(color = DesignSystem.Colors.minimalOverlay)
                     EditorToolItem(
                         icon = Icons.Default.Vignette,
                         title = "暗角效果",
@@ -346,14 +346,14 @@ private fun EditorToolItem(
             Text(title, color = Color.White, style = DesignSystem.Typography.headline)
             Text(
                 subtitle,
-                color = Color.White.copy(alpha = 0.5f),
+                color = DesignSystem.Colors.minimalSecondaryLabel,
                 style = DesignSystem.Typography.caption1
             )
         }
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.4f)
+            tint = DesignSystem.Colors.minimalBorder
         )
     }
 }
@@ -393,7 +393,7 @@ private fun AdjustSlider(
             colors = SliderDefaults.colors(
                 thumbColor = DesignSystem.Colors.primary,
                 activeTrackColor = DesignSystem.Colors.primary,
-                inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                inactiveTrackColor = DesignSystem.Colors.minimalOverlay
             ),
             modifier = Modifier.fillMaxWidth()
         )

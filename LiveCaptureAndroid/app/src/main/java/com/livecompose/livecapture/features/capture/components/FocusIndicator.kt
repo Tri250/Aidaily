@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
  * 对焦指示器
@@ -82,7 +83,7 @@ fun FocusIndicator(
         val indicatorSize = 60f
 
         // 外圈
-        val color = if (focusState.isLocked) Color(0xFF00C853) else Color(0xFFFFAB00)
+        val color = if (focusState.isLocked) DesignSystem.Colors.success else DesignSystem.Colors.warning
         drawRoundRect(
             color = color,
             topLeft = Offset(pos.x - indicatorSize / 2, pos.y - indicatorSize / 2),
@@ -110,7 +111,7 @@ fun FocusIndicator(
         // 锁定标识（绿色小锁图标简化版）
         if (focusState.isLocked) {
             drawCircle(
-                color = Color(0xFF00C853).copy(alpha = 0.4f * animatedAlpha),
+                color = DesignSystem.Colors.success.copy(alpha = 0.4f * animatedAlpha),
                 radius = indicatorSize / 2 + 4f,
                 center = pos,
                 style = Stroke(width = 1.5f)
