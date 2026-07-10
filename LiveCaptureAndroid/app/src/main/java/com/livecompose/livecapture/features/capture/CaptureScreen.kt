@@ -84,6 +84,7 @@ import com.livecompose.livecapture.features.capture.components.*
 import com.livecompose.livecapture.features.capture.PhotoCaptureResult
 import com.livecompose.livecapture.features.home.HomeViewModel
 import com.livecompose.livecapture.core.storage.PhotoRecord
+import com.livecompose.livecapture.core.lut.MasterPreset
 import com.livecompose.livecapture.ui.design.DesignSystem
 import com.livecompose.livecapture.ui.design.liquidGlass
 import kotlinx.coroutines.delay
@@ -161,6 +162,10 @@ fun CaptureScreen(
     var showFilterRecommendationSheet by remember { mutableStateOf(false) }
     val filterRecommendations by viewModel.aiFilterRecommendations.collectAsState()
     val appContainer = remember { AppContainer.getInstance(context) }
+
+    // === 预设对比视图 ===
+    var showPresetComparison by remember { mutableStateOf(false) }
+    var comparisonOriginalBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
 
     // === 运动稳定性 ===
     val isMotionStable by appContainer.motionMonitor.isStable.collectAsState()
@@ -283,6 +288,7 @@ fun CaptureScreen(
             "3:4" -> AspectRatio.RATIO_3_4
             "9:16" -> AspectRatio.RATIO_9_16
             "1:1" -> AspectRatio.RATIO_1_1
+            "XPAN" -> AspectRatio.RATIO_XPAN
             else -> AspectRatio.RATIO_3_4
         }
         camera.setAspectRatio(ratio)
@@ -1047,8 +1053,11 @@ fun CaptureScreen(
                     currentRatio = when (currentRatio) {
                         "3:4" -> "9:16"
                         "9:16" -> "1:1"
+                        "1:1" -> "XPAN"
                         else -> "3:4"
                     }
+                    // XPAN 模式同步到 ViewModel
+                    viewModel.xpanModeEnabled.value = (currentRatio == "XPAN")
                     interactionCounter++
                 },
                 onToggleCamera = { triggerCameraFlip(); interactionCounter++ },
@@ -1095,6 +1104,31 @@ fun CaptureScreen(
                         }
                     }
                     interactionCounter++
+                }
+            )
+
+            // [v1.1.7] 大师预设快捷栏 - AI 场景智能推荐预设
+            Spacer(modifier = Modifier.height(4.dp))
+            val allPresets by viewModel.allPresets.collectAsState()
+            val recommendedPresets by viewModel.recommendedPresets.collectAsState()
+            val selectedPreset by viewModel.selectedPreset.collectAsState()
+            val presetIntensity by viewModel.presetIntensity.collectAsState()
+            PresetQuickBar(
+                presets = allPresets,
+                recommendedPresets = recommendedPresets,
+                selectedPreset = selectedPreset,
+                intensity = presetIntensity,
+                onPresetSelected = { preset ->
+                    viewModel.selectPreset(preset)
+                },
+                onClearPreset = {
+                    viewModel.clearPreset()
+                },
+                onIntensityChanged = { intensity ->
+                    viewModel.setPresetIntensity(intensity)
+                },
+                onCompareRequested = {
+                    showPresetComparison = true
                 }
             )
 
@@ -1506,7 +1540,18 @@ fun CaptureScreen(
                 timerEnabled = timerEnabled,
                 onTimerEnabledChange = { timerEnabled = it },
                 timerDuration = timerDuration,
-                onTimerDurationChange = { timerDuration = it }
+                onTimerDurationChange = { timerDuration = it },
+                // [v1.1.7] 哈苏水印与快门音
+                hasselbladWatermarkEnabled = viewModel.hasselbladWatermarkEnabled.collectAsState().value,
+                onHasselbladWatermarkChange = { viewModel.toggleHasselbladWatermark() },
+                hasselbladShutterEnabled = viewModel.hasselbladShutterEnabled.collectAsState().value,
+                onHasselbladShutterChange = { viewModel.toggleHasselbladShutter() },
+                livePhotoEnabled = livePhotoEnabled,
+                onLivePhotoChange = { viewModel.toggleLivePhoto() },
+                oneHandMode = oneHandMode,
+                onOneHandModeChange = { oneHandMode = it },
+                leftHandMode = leftHandMode,
+                onLeftHandModeChange = { leftHandMode = it }
             )
         }
 
@@ -1556,6 +1601,26 @@ fun CaptureScreen(
             FilterRecommendationSheet(
                 recommendations = filterRecommendations,
                 onDismiss = { showFilterRecommendationSheet = false }
+            )
+        }
+
+        // 预设对比视图
+        if (showPresetComparison) {
+            val presetBitmap by viewModel.presetAppliedBitmap.collectAsState()
+            PresetComparisonView(
+                originalBitmap = comparisonOriginalBitmap,
+                presetBitmap = presetBitmap,
+                presetName = selectedPreset?.name ?: "",
+                isVisible = showPresetComparison,
+                onConfirm = {
+                    showPresetComparison = false
+                    comparisonOriginalBitmap = null
+                },
+                onCancel = {
+                    showPresetComparison = false
+                    comparisonOriginalBitmap = null
+                    viewModel.clearPreset()
+                }
             )
         }
 
@@ -2680,7 +2745,19 @@ private fun SettingsBottomSheet2026(
     timerEnabled: Boolean = false,
     onTimerEnabledChange: (Boolean) -> Unit = {},
     timerDuration: Int = 3,
-    onTimerDurationChange: (Int) -> Unit = {}
+    onTimerDurationChange: (Int) -> Unit = {},
+    // [v1.1.7] 哈苏水印与快门音
+    hasselbladWatermarkEnabled: Boolean = false,
+    onHasselbladWatermarkChange: (Boolean) -> Unit = {},
+    hasselbladShutterEnabled: Boolean = true,
+    onHasselbladShutterChange: (Boolean) -> Unit = {},
+    // [v1.1.7] Live Photo / 单手模式 / 左手模式
+    livePhotoEnabled: Boolean = false,
+    onLivePhotoChange: (Boolean) -> Unit = {},
+    oneHandMode: Boolean = false,
+    onOneHandModeChange: (Boolean) -> Unit = {},
+    leftHandMode: Boolean = false,
+    onLeftHandModeChange: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -2938,6 +3015,16 @@ private fun SettingsBottomSheet2026(
                 SettingsSwitchRow("智能追焦", "AI 自动识别并追踪移动主体，保持对焦", Icons.Default.GpsFixed, smartTrackingEnabled) { smartTrackingEnabled = it }
                 SettingsDivider()
                 SettingsSwitchRow("位置标记", "在照片 EXIF 中嵌入 GPS 地理位置信息", Icons.Default.LocationOn, locationTagEnabled) { locationTagEnabled = it }
+                SettingsDivider()
+                SettingsSwitchRow("哈苏水印", "添加哈苏标志性白框水印，参数条与型号标识", Icons.Default.BrandingWatermark, hasselbladWatermarkEnabled) { onHasselbladWatermarkChange(it) }
+                SettingsDivider()
+                SettingsSwitchRow("哈苏快门音", "哈苏经典机械快门音效，低沉金属质感", Icons.Default.MusicNote, hasselbladShutterEnabled) { onHasselbladShutterChange(it) }
+                SettingsDivider()
+                SettingsSwitchRow("Live Photo", "捕捉拍照前后1.5秒的动态画面", Icons.Default.MotionPhotosOn, livePhotoEnabled) { onLivePhotoChange(it) }
+                SettingsDivider()
+                SettingsSwitchRow("单手模式", "缩小操作区域，方便单手操作", Icons.Default.PanTool, oneHandMode) { onOneHandModeChange(it) }
+                SettingsDivider()
+                SettingsSwitchRow("左手模式", "水平翻转控制区，适配左手持机", Icons.Default.SwapHoriz, leftHandMode) { onLeftHandModeChange(it) }
                 SettingsDivider()
                 SettingsRow("闪光灯", "控制拍摄时闪光灯工作模式", Icons.Default.FlashlightOn) {
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
