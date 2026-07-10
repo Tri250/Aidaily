@@ -117,6 +117,23 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
     private val _photoCaptureResult = MutableStateFlow<PhotoCaptureResult?>(null)
     val photoCaptureResult: StateFlow<PhotoCaptureResult?> = _photoCaptureResult.asStateFlow()
 
+    // [v1.1.7] 拍照后即时预览数据
+    private val _reviewPhotoData = MutableStateFlow<ByteArray?>(null)
+    val reviewPhotoData: StateFlow<ByteArray?> = _reviewPhotoData.asStateFlow()
+
+    // [v1.1.7] 最近保存的照片ID，供删除/编辑/分享使用
+    val lastSavedPhotoId: StateFlow<String?> = storage.lastSavedPhotoId
+
+    // [v1.1.7] 重置拍照结果状态，防止 Toast 重复弹出
+    fun resetPhotoCaptureResult() {
+        _photoCaptureResult.value = null
+    }
+
+    // [v1.1.7] 关闭拍照预览，清除预览数据
+    fun dismissPhotoReview() {
+        _reviewPhotoData.value = null
+    }
+
     var onCaptureTriggered: (() -> Unit)? = null
 
     // Computed
@@ -397,6 +414,7 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
         }
         camera.onPhotoDataReady = { data ->
             storage.savePhoto(data, detectionMode.displayName)
+            _reviewPhotoData.value = data // [v1.1.7] 设置预览数据，触发即时预览
             _photoCaptureResult.value = PhotoCaptureResult.Success
         }
     }

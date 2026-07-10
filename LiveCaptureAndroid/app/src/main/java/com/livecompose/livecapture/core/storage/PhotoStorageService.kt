@@ -31,6 +31,10 @@ class PhotoStorageService(context: Context) {
     private val _records = MutableStateFlow<List<PhotoRecord>>(emptyList())
     val records: StateFlow<List<PhotoRecord>> = _records.asStateFlow()
 
+    // [v1.1.7] 最近保存的照片ID，用于拍照后预览/删除/分享
+    private val _lastSavedPhotoId = MutableStateFlow<String?>(null)
+    val lastSavedPhotoId: StateFlow<String?> = _lastSavedPhotoId.asStateFlow()
+
     private var isLoaded = false
 
     init {
@@ -93,6 +97,7 @@ class PhotoStorageService(context: Context) {
                 )
                 val updated = listOf(record) + _records.value
                 _records.value = updated
+                _lastSavedPhotoId.value = id // [v1.1.7] 记录最新保存的照片ID
                 persist(updated)
             } catch (e: Exception) {
                 AppLogger.e("PhotoStorage", "保存照片失败", e)

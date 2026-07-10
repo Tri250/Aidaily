@@ -8,6 +8,7 @@ import android.net.Uri
 import android.provider.Settings
 import android.content.Intent
 import android.widget.Toast
+import androidx.core.content.FileProvider
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
@@ -120,11 +121,14 @@ fun CaptureScreen(
     var controlsVisible by remember { mutableStateOf(true) }
     var controlsAlpha by remember { mutableFloatStateOf(1f) }
     var showManualPanel by remember { mutableStateOf(false) }
-    var showPhotoReview by remember { mutableStateOf(false) }
-    var reviewData by remember { mutableStateOf<ByteArray?>(null) }
     var showGallerySheet by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showProfileSheet by remember { mutableStateOf(false) }
+
+    // [v1.1.7] 拍照后即时预览 - 由 ViewModel 驱动
+    val reviewPhotoData by viewModel.reviewPhotoData.collectAsState()
+    val lastSavedPhotoId by viewModel.lastSavedPhotoId.collectAsState()
+    val showPhotoReview = reviewPhotoData != null
 
     // === 动画状态 ===
     var captureAnimationScale by remember { mutableFloatStateOf(1f) }
@@ -226,13 +230,21 @@ fun CaptureScreen(
     var slowMotionEnabled by remember { mutableStateOf(false) }
     var showVideoEditor by remember { mutableStateOf(false) }
     var lastRecordedVideoPath by remember { mutableStateOf<String?>(null) }
+
+    // [v1.1.7] 定时拍摄状态 - 提升到主作用域以便拍照流程访问
+    var timerEnabled by remember { mutableStateOf(false) }
+    var timerDuration by remember { mutableIntStateOf(3) }
+    var timerCountdown by remember { mutableIntStateOf(0) }
     var videoEditorStartTime by remember { mutableLongStateOf(0L) }
     var videoEditorEndTime by remember { mutableLongStateOf(0L) }
 
     // 视频模式切换时同步 VideoViewModel
     LaunchedEffect(selectedMode) {
-        if (selectedMode == CaptureMode.VIDEO) {
-            if (slowMotionEnabled) {
+        // [v1.1.7] 延时模式底层使用视频模式
+        if (selectedMode == CaptureMode.VIDEO || selectedMode == CaptureMode.TIMELAPSE) {
+            if (selectedMode == CaptureMode.TIMELAPSE) {
+                videoViewModel.switchMode(VideoMode.TIMELAPSE)
+            } else if (slowMotionEnabled) {
                 videoViewModel.switchMode(VideoMode.SLOW_MOTION)
             } else {
                 videoViewModel.switchMode(VideoMode.NORMAL)
@@ -355,6 +367,10 @@ fun CaptureScreen(
                 Toast.makeText(context, "拍照失败: ${(photoCaptureResult as PhotoCaptureResult.Error).message}", Toast.LENGTH_SHORT).show()
             }
             null -> {}
+        }
+        // [v1.1.7] 重置拍照结果，防止 Toast 重复弹出
+        if (photoCaptureResult != null) {
+            viewModel.resetPhotoCaptureResult()
         }
     }
 
@@ -560,6 +576,51 @@ fun CaptureScreen(
                     )
                 }
 
+                // [v1.1.7] 直方图覆盖层 - 实时亮度分布
+                if (showHistogram && cameraError == null) {
+                    val histogramData by appContainer.proCameraManager.histogramData.collectAsState()
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(start = 16.dp, top = if (hyperfocalEnabled) 56.dp else 16.dp)
+                            .size(width = 120.dp, height = 60.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(DesignSystem.Colors.minimalDarkOverlayLight)
+                            .padding(4.dp)
+                    ) {
+                        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                            val maxVal = histogramData.maxOrNull()?.coerceAtLeast(1) ?: 1
+                            val barWidth = size.width / 256f
+                            for (i in histogramData.indices) {
+                                val barHeight = (histogramData[i].toFloat() / maxVal) * size.height
+                                drawRect(
+                                    color = DesignSystem.Colors.primary.copy(alpha = 0.6f),
+                                    topLeft = Offset(x = i * barWidth, y = size.height - barHeight),
+                                    size = androidx.compose.ui.geometry.Size(barWidth, barHeight)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // [v1.1.7] 斑马纹覆盖层 - 过曝区域高亮提示
+                if (showZebra && cameraError == null) {
+                    val zebraThreshold by appContainer.proCameraManager.zebraThreshold.collectAsState()
+                    androidx.compose.foundation.Canvas(modifier = Modifier.matchParentSize()) {
+                        val stripeWidth = 8f
+                        val gap = 12f
+                        val totalPeriod = stripeWidth + gap
+                        for (offset in -size.height.toInt()..(size.width.toInt() + size.height.toInt()) step totalPeriod.toInt()) {
+                            drawLine(
+                                color = DesignSystem.Colors.warning.copy(alpha = 0.25f),
+                                start = Offset(offset.toFloat(), 0f),
+                                end = Offset(offset.toFloat() + size.height, size.height),
+                                strokeWidth = stripeWidth
+                            )
+                        }
+                    }
+                }
+
                 // 内存监控视图
                 AnimatedVisibility(
                     visible = showMemoryMonitor,
@@ -575,16 +636,35 @@ fun CaptureScreen(
                     )
                 }
 
-                // 右上角设置按钮
-                Box(
+                // 右上角设置按钮和闪光灯指示器
+                Column(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(16.dp)
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.End
                 ) {
                     SettingsButton(onClick = {
                         showSettingsSheet = true
                         controlsVisible = false
                     })
+                    Spacer(Modifier.height(8.dp))
+                    // [v1.1.7] 闪光灯模式指示器
+                    Icon(
+                        imageVector = when (flashMode) {
+                            FlashMode.OFF -> Icons.Default.FlashOff
+                            FlashMode.AUTO -> Icons.Default.FlashAuto
+                            FlashMode.ON -> Icons.Default.FlashOn
+                            FlashMode.TORCH -> Icons.Default.FlashOn
+                        },
+                        contentDescription = "闪光灯: ${flashMode.name}",
+                        tint = when (flashMode) {
+                            FlashMode.OFF -> DesignSystem.Colors.minimalLabelQuaternary
+                            FlashMode.AUTO -> DesignSystem.Colors.primary
+                            FlashMode.ON -> DesignSystem.Colors.primary
+                            FlashMode.TORCH -> DesignSystem.Colors.recordingRed
+                        },
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
 
                 // 右下角魔法棒
@@ -620,6 +700,32 @@ fun CaptureScreen(
                         isFocused = focusState == FocusState.FOCUSED,
                         isLocked = aeLocked || afLocked
                     )
+                }
+
+                // [v1.1.7] 定时拍摄倒计时覆盖层
+                if (timerCountdown > 0 && cameraError == null) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(120.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // 半透明圆形背景
+                        Box(
+                            modifier = Modifier
+                                .size(120.dp)
+                                .clip(CircleShape)
+                                .background(DesignSystem.Colors.minimalDarkOverlay.copy(alpha = 0.7f))
+                        )
+                        // 倒计时数字
+                        Text(
+                            text = "$timerCountdown",
+                            style = DesignSystem.Typography.largeTitle.copy(fontSize = 56.sp),
+                            color = DesignSystem.Colors.primary,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
                 }
 
                 // 超焦距距离指示器
@@ -901,6 +1007,20 @@ fun CaptureScreen(
             // === 底部控制区 ===
             Spacer(modifier = Modifier.height(8.dp))
 
+            // [v1.1.7] 拍摄模式切换药丸栏 - 拍照/视频/延时
+            CaptureModeSelector(
+                selectedMode = selectedMode,
+                onModeSelected = { mode ->
+                    selectedMode = mode
+                    // [v1.1.7] 延时模式底层使用视频模式
+                    if (mode == CaptureMode.TIMELAPSE) {
+                        selectedMode = CaptureMode.TIMELAPSE
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
             // 功能图标行（Beta / 构图框 / 魔法棒 / 比例 / 翻转）
             ToolIconRow(
                 isGridEnabled = isGridEnabled,
@@ -1003,7 +1123,7 @@ fun CaptureScreen(
                 onCapture = {
                     scope.launch {
                         try {
-                            if (selectedMode == CaptureMode.VIDEO) {
+                            if (selectedMode == CaptureMode.VIDEO || selectedMode == CaptureMode.TIMELAPSE) { // [v1.1.7] 延时模式使用视频录制
                                 // 视频模式：切换录制状态
                                 if (videoRecordingState.isRecording) {
                                     videoViewModel.stopRecording()
@@ -1039,6 +1159,16 @@ fun CaptureScreen(
                                 }
                             } else {
                                 // 拍照模式
+                                // [v1.1.7] 定时拍摄：倒计时后再拍照
+                                if (timerEnabled && timerCountdown == 0) {
+                                    timerCountdown = timerDuration
+                                    for (i in timerDuration downTo 1) {
+                                        timerCountdown = i
+                                        HapticManager.light()
+                                        delay(1000)
+                                    }
+                                    timerCountdown = 0
+                                }
                                 // RAW 格式处理
                                 if (rawCaptureEnabled) {
                                     val rawSupported = RawCaptureManager.isRawSupported(context)
@@ -1164,7 +1294,7 @@ fun CaptureScreen(
                     }
                 },
                 isRecording = videoRecordingState.isRecording,
-                isVideoMode = selectedMode == CaptureMode.VIDEO
+                isVideoMode = selectedMode == CaptureMode.VIDEO || selectedMode == CaptureMode.TIMELAPSE // [v1.1.7] 延时模式也使用视频快门
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -1213,14 +1343,55 @@ fun CaptureScreen(
             )
         }
 
-        // 拍照后即时预览
+        // [v1.1.7] 拍照后即时预览 - 四个按钮均执行实际操作
         if (showPhotoReview) {
             PhotoReviewOverlay2026(
-                data = reviewData,
-                onAccept = { showPhotoReview = false },
-                onDelete = { showPhotoReview = false },
-                onEdit = { showPhotoReview = false },
-                onShare = { showPhotoReview = false }
+                data = reviewPhotoData,
+                onAccept = {
+                    // [v1.1.7] 保存照片 - 关闭预览，提示已保存
+                    viewModel.dismissPhotoReview()
+                    Toast.makeText(context, "照片已保存", Toast.LENGTH_SHORT).show()
+                },
+                onDelete = {
+                    // [v1.1.7] 删除照片 - 从存储删除，关闭预览
+                    val photoId = lastSavedPhotoId
+                    viewModel.dismissPhotoReview()
+                    if (photoId != null) {
+                        homeViewModel.deleteRecord(photoId)
+                    }
+                    Toast.makeText(context, "照片已删除", Toast.LENGTH_SHORT).show()
+                },
+                onEdit = {
+                    // [v1.1.7] 编辑照片 - 关闭预览，导航到编辑页
+                    val photoId = lastSavedPhotoId
+                    viewModel.dismissPhotoReview()
+                    if (photoId != null) {
+                        onNavigateToPhotoDetail?.invoke(photoId)
+                    }
+                },
+                onShare = {
+                    // [v1.1.7] 分享照片 - 关闭预览，启动系统分享
+                    val photoId = lastSavedPhotoId
+                    viewModel.dismissPhotoReview()
+                    if (photoId != null) {
+                        try {
+                            val file = appContainer.photoStorageService.getPhotoFile(photoId)
+                            val uri = FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.fileprovider",
+                                file
+                            )
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "image/jpeg"
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(Intent.createChooser(shareIntent, "分享照片"))
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "分享失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
             )
         }
 
@@ -1293,7 +1464,12 @@ fun CaptureScreen(
                 captureDelay = captureDelay,
                 onCaptureDelayChange = { viewModel.setCaptureDelay(it) },
                 flashMode = flashMode,
-                onFlashModeChange = { camera.setFlashMode(it) }
+                onFlashModeChange = { camera.setFlashMode(it) },
+                // [v1.1.7] 定时拍摄状态
+                timerEnabled = timerEnabled,
+                onTimerEnabledChange = { timerEnabled = it },
+                timerDuration = timerDuration,
+                onTimerDurationChange = { timerDuration = it }
             )
         }
 
@@ -2462,7 +2638,12 @@ private fun SettingsBottomSheet2026(
     captureDelay: Double = 1.0,
     onCaptureDelayChange: (Double) -> Unit = {},
     flashMode: FlashMode = FlashMode.OFF,
-    onFlashModeChange: (FlashMode) -> Unit = {}
+    onFlashModeChange: (FlashMode) -> Unit = {},
+    // [v1.1.7] 定时拍摄 - 从主作用域提升
+    timerEnabled: Boolean = false,
+    onTimerEnabledChange: (Boolean) -> Unit = {},
+    timerDuration: Int = 3,
+    onTimerDurationChange: (Int) -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -2478,8 +2659,7 @@ private fun SettingsBottomSheet2026(
     var voiceCaptureEnabled by remember { mutableStateOf(false) }
 
     // 通用（本地状态）
-    var timerEnabled by remember { mutableStateOf(false) }
-    var timerDuration by remember { mutableIntStateOf(3) }
+    // [v1.1.7] timerEnabled/timerDuration 已提升到主作用域
     var hapticFeedbackEnabled by remember { mutableStateOf(true) }
     var smartTrackingEnabled by remember { mutableStateOf(false) }
     var locationTagEnabled by remember { mutableStateOf(false) }
@@ -2690,7 +2870,7 @@ private fun SettingsBottomSheet2026(
 
             SettingsSectionHeader("通用设置", Icons.Default.Settings)
             SettingsCard {
-                SettingsSwitchRow("定时拍摄", "延迟触发快门，方便自拍与合影", Icons.Default.Timer, timerEnabled) { timerEnabled = it }
+                SettingsSwitchRow("定时拍摄", "延迟触发快门，方便自拍与合影", Icons.Default.Timer, timerEnabled) { onTimerEnabledChange(it) }
                 if (timerEnabled) {
                     SettingsDivider()
                     SettingsRow("定时时长", "${timerDuration}秒后自动拍摄", Icons.Default.Timer) {
@@ -2698,7 +2878,7 @@ private fun SettingsBottomSheet2026(
                             listOf(3, 5, 10).forEach { sec ->
                                 FilterChip(
                                     selected = timerDuration == sec,
-                                    onClick = { timerDuration = sec },
+                                    onClick = { onTimerDurationChange(sec) },
                                     label = { Text("${sec}秒", style = DesignSystem.Typography.caption1) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = DesignSystem.Colors.primary.copy(alpha = 0.15f),
@@ -3821,5 +4001,55 @@ private fun ProfileSheet(
             onNavigateToIcp = onNavigateToIcp,
             modifier = Modifier.fillMaxSize()
         )
+    }
+}
+
+/**
+ * [v1.1.7] 拍摄模式切换药丸栏 - 拍照/视频/延时
+ * 紧凑三段式药丸设计，适配极简相机界面
+ */
+@Composable
+private fun CaptureModeSelector(
+    selectedMode: CaptureMode,
+    onModeSelected: (CaptureMode) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // [v1.1.7] 三种核心拍摄模式
+    val modes = listOf(CaptureMode.PHOTO, CaptureMode.VIDEO, CaptureMode.TIMELAPSE)
+
+    Row(
+        modifier = modifier
+            .wrapContentWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(DesignSystem.Colors.minimalOverlay)
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        modes.forEach { mode ->
+            val isSelected = mode == selectedMode
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(17.dp))
+                    .background(
+                        if (isSelected) DesignSystem.Colors.primary
+                        else Color.Transparent
+                    )
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onModeSelected(mode) }
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = mode.label,
+                    style = DesignSystem.Typography.caption2,
+                    color = if (isSelected) Color.White
+                            else DesignSystem.Colors.minimalLabelSecondary,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                )
+            }
+        }
     }
 }

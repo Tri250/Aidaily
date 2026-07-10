@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Icon
@@ -52,6 +53,7 @@ enum class CaptureMode(
 ) {
     PHOTO("拍照", "单张", Icons.Default.CameraAlt),
     VIDEO("视频", "15s", Icons.Default.Videocam),
+    TIMELAPSE("延时", "变速", Icons.Default.Timer),
     PORTRAIT("人像", "美颜", Icons.Default.Person),
     PRO("专业", "手动", Icons.Default.Tune),
     NIGHT("夜景", "暗光", Icons.Default.Nightlight),
@@ -65,6 +67,7 @@ private val CaptureMode.accentColor: Color
     get() = when (this) {
         CaptureMode.PHOTO -> DesignSystem.Colors.primary
         CaptureMode.VIDEO -> DesignSystem.Colors.error
+        CaptureMode.TIMELAPSE -> DesignSystem.Colors.warning
         CaptureMode.PORTRAIT -> DesignSystem.Colors.accent
         CaptureMode.PRO -> DesignSystem.Colors.info
         CaptureMode.NIGHT -> DesignSystem.Colors.secondary

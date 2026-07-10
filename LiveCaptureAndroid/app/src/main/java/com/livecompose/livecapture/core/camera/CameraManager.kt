@@ -98,6 +98,9 @@ class CameraManager(private val context: Context) {
 
     private var captureRequestBuilder: CaptureRequest.Builder? = null
 
+    // [v1.1.7] 专业相机管理器 - 手动控制参数应用到 CaptureRequest
+    var proCameraManager: ProCameraManager? = null
+
     // 闪光灯模式
     private val _flashMode = MutableStateFlow(FlashMode.OFF)
     val flashMode: StateFlow<FlashMode> = _flashMode.asStateFlow()
@@ -272,6 +275,8 @@ class CameraManager(private val context: Context) {
                         imageReader?.surface?.let { requestBuilder.addTarget(it) }
                         requestBuilder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
                         captureRequestBuilder = requestBuilder
+                        // [v1.1.7] 应用专业模式手动控制参数（ISO、快门、白平衡、对焦等）
+                        proCameraManager?.applyToCaptureRequest(requestBuilder, characteristics)
                         session.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
                         _isSessionRunning.value = true
                     } catch (e: Exception) {
@@ -419,6 +424,8 @@ class CameraManager(private val context: Context) {
             requestBuilder.addTarget(photoReader.surface)
             requestBuilder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
             requestBuilder.set(CaptureRequest.JPEG_ORIENTATION, 90)
+            // [v1.1.7] 应用专业模式手动控制参数到拍照请求
+            proCameraManager?.applyToCaptureRequest(requestBuilder, cameraCharacteristics!!)
             session.capture(requestBuilder.build(), null, backgroundHandler)
         } catch (e: Exception) {
             AppLogger.e(TAG, "拍照请求失败", e)
@@ -534,6 +541,8 @@ class CameraManager(private val context: Context) {
         val clamped = factor.coerceIn(_zoomRange.value.start, _zoomRange.value.endInclusive)
         val requestBuilder = captureRequestBuilder ?: return
         requestBuilder.set(CaptureRequest.SCALER_CROP_REGION, computeZoomRect(clamped))
+        // [v1.1.7] 变焦时同步应用专业模式参数
+        proCameraManager?.applyToCaptureRequest(requestBuilder, cameraCharacteristics!!)
         try {
             captureSession?.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
         } catch (e: Exception) {
