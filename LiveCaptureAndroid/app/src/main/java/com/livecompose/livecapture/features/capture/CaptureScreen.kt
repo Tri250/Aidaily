@@ -452,6 +452,7 @@ fun CaptureScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .navigationBarsPadding()
                 .padding(
                     horizontal = if (isExpandedScreen) 12.dp else 12.dp,
                     vertical = DesignSystem.Dimensions.previewMarginTop
@@ -1392,9 +1393,7 @@ fun CaptureScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.navigationBarsPadding().then(
-                if (oneHandMode) Modifier.padding(bottom = 24.dp) else Modifier
-            ))
+            Spacer(modifier = Modifier.height(if (oneHandMode) 16.dp else 4.dp))
         }
 
         // === 全屏覆盖层 ===
