@@ -67,13 +67,21 @@ class CaptureViewModel @Inject constructor(
     private val _lastSavedPhotoPath = MutableStateFlow<String?>(null)
     val lastSavedPhotoPath: StateFlow<String?> = _lastSavedPhotoPath
 
+    // 激活: 暴露模型就绪状态给 UI
+    val isModelReady: StateFlow<Boolean> = detectionEngine.isReady
+
+    // 激活: 暴露美学评分给 UI
+    private val _currentScore = MutableStateFlow(0f)
+    val currentScore: StateFlow<Float> = _currentScore
+
     val trackPoint: StateFlow<PointF?> = boxCenterManager.trackPoint
     val isAligned: StateFlow<Boolean> = boxCenterManager.isAligned
     val alignmentProgress: StateFlow<Float> = boxCenterManager.alignmentProgress
     val zoomRatio: StateFlow<Float> = cameraManager.zoomRatio
     val isBackCamera: StateFlow<Boolean> = cameraManager.isBackCamera
-    val motionStable: StateFlow<Boolean> = motionMonitor.isStable
     val isTorchEnabled: StateFlow<Boolean> = cameraManager.isTorchEnabled
+    // 激活: 暴露曝光补偿状态给 UI
+    val exposureCompensation: StateFlow<Int> = cameraManager.exposureCompensation
 
     private var lastDetectionResult: CompositionResult? = null
     private var isPipelineActive = false
@@ -92,7 +100,20 @@ class CaptureViewModel @Inject constructor(
         cameraManager.startCamera(lifecycleOwner, previewView)
         motionMonitor.startMonitoring()
 
-        // 启动状态流转监听
+        // 激活: 读取闪光灯设置并应用默认值
+        viewModelScope.launch {
+            val defaultTorch = settingsRepository.torchEnabled.first()
+            if (defaultTorch) {
+                cameraManager.setTorchEnabled(true)
+            }
+        }
+
+        // 激活: 读取检测模式设置并记录
+        viewModelScope.launch {
+            val mode = settingsRepository.detectionMode.first()
+            Log.d(TAG, "Detection mode: $mode")
+        }
+
         observeStateTransitions()
     }
 
@@ -113,7 +134,8 @@ class CaptureViewModel @Inject constructor(
                         else PipelineStage.WAITING_FOR_STABILITY
                     }
                     PipelineStage.DETECTING_REGION -> {
-                        if (detectionReady) PipelineStage.TEMPLATE_READY
+                        // 激活: 仅当模型就绪且检测就绪时才推进
+                        if (detectionReady && detectionEngine.isReady.value) PipelineStage.TEMPLATE_READY
                         else PipelineStage.DETECTING_REGION
                     }
                     PipelineStage.TEMPLATE_READY -> {
@@ -121,7 +143,6 @@ class CaptureViewModel @Inject constructor(
                         else PipelineStage.TEMPLATE_READY
                     }
                     PipelineStage.READY_TO_CAPTURE -> {
-                        // 不在这里自动跳转，由 autoCapture 方法处理
                         PipelineStage.READY_TO_CAPTURE
                     }
                     else -> current
@@ -132,7 +153,6 @@ class CaptureViewModel @Inject constructor(
                     updateGuidanceText(newStage)
                 }
 
-                // 当进入 READY_TO_CAPTURE 时自动触发拍摄
                 if (newStage == PipelineStage.READY_TO_CAPTURE && !isCapturing) {
                     val autoCaptureEnabled = settingsRepository.autoCapture.first()
                     if (autoCaptureEnabled) {
@@ -145,7 +165,12 @@ class CaptureViewModel @Inject constructor(
     }
 
     private fun processFrame(imageProxy: ImageProxy) {
-        // 同步拷贝帧数据到 Bitmap，避免 imageProxy.close() 后 buffer 不可访问
+        // 激活: 模型未就绪时不处理帧，避免 fallback 结果错误推进状态机
+        if (!detectionEngine.isReady.value) {
+            cameraManager.onFrameProcessingComplete()
+            return
+        }
+
         val bitmap = try {
             imageProxyToBitmap(imageProxy)
         } catch (e: Exception) {
@@ -159,11 +184,12 @@ class CaptureViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                // 传入已拷贝的 bitmap，imageProxy 已被 close 不影响
                 val result = detectionEngine.analyze(bitmap)
                 lastDetectionResult = result
                 _isDetectionReady.value = true
                 _inferenceTime.value = detectionEngine.inferenceTime.value
+                // 激活: 更新美学评分
+                _currentScore.value = result.overallScore
 
                 val motionData = motionMonitor.motionData.value
                 boxCenterManager.updateFromDetection(
@@ -178,16 +204,12 @@ class CaptureViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "Frame processing error", e)
             } finally {
-                // 标记帧处理完成，允许下一帧进入
                 cameraManager.onFrameProcessingComplete()
                 bitmap.recycle()
             }
         }
     }
 
-    /**
-     * 将 ImageProxy 转换为 Bitmap，在 close 之前拷贝数据
-     */
     private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap {
         val plane = imageProxy.planes[0]
         val buffer = plane.buffer
@@ -242,7 +264,6 @@ class CaptureViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                // 延迟拍摄
                 if (delaySeconds > 0) {
                     _guidanceText.value = "${delaySeconds} 秒后拍摄..."
                     delay(delaySeconds * 1000L)
@@ -319,6 +340,20 @@ class CaptureViewModel @Inject constructor(
 
     fun toggleTorch() {
         cameraManager.toggleTorch()
+    }
+
+    // 激活: 曝光补偿
+    fun setExposureCompensation(value: Int) {
+        cameraManager.setExposureCompensation(value)
+    }
+
+    // 激活: 点击对焦/测光
+    fun focusAndMeter(x: Float, y: Float, previewWidth: Float, previewHeight: Float) {
+        cameraManager.focusAndMeter(
+            androidx.compose.ui.geometry.Offset(x, y),
+            previewWidth,
+            previewHeight
+        )
     }
 
     fun resetPipeline() {

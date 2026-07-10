@@ -3,6 +3,7 @@ package com.livecompose.livecapture.presentation.capture
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.PointF
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.view.PreviewView
@@ -15,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.Exposure
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.PhotoLibrary
@@ -22,8 +24,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -33,8 +38,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.livecompose.livecapture.core.design.*
 import com.livecompose.livecapture.presentation.Screen
+import java.io.File
 import kotlin.math.abs
 
 @Composable
@@ -50,11 +57,13 @@ fun CaptureView(
     val guidanceText by viewModel.guidanceText.collectAsState()
     val trackPoint by viewModel.trackPoint.collectAsState()
     val isAligned by viewModel.isAligned.collectAsState()
-    val alignmentProgress by viewModel.alignmentProgress.collectAsState()
     val zoomRatio by viewModel.zoomRatio.collectAsState()
-    val isBackCamera by viewModel.isBackCamera.collectAsState()
     val isTorchEnabled by viewModel.isTorchEnabled.collectAsState()
     val inferenceTime by viewModel.inferenceTime.collectAsState()
+    val isModelReady by viewModel.isModelReady.collectAsState()
+    val currentScore by viewModel.currentScore.collectAsState()
+    val lastSavedPhotoPath by viewModel.lastSavedPhotoPath.collectAsState()
+    val exposureCompensation by viewModel.exposureCompensation.collectAsState()
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -62,6 +71,8 @@ fun CaptureView(
                     PackageManager.PERMISSION_GRANTED
         )
     }
+
+    var showExposureSlider by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -77,7 +88,6 @@ fun CaptureView(
         }
     }
 
-    // 设置屏幕尺寸
     val displayMetrics = context.resources.displayMetrics
     LaunchedEffect(Unit) {
         viewModel.setScreenSize(
@@ -93,10 +103,23 @@ fun CaptureView(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Camera Preview
+        // Camera Preview — 激活: 点击对焦
         AndroidView(
             factory = { previewView },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    androidx.compose.foundation.gestures.detectTapGestures(
+                        onTap = { offset ->
+                            viewModel.focusAndMeter(
+                                x = offset.x,
+                                y = offset.y,
+                                previewWidth = size.width.toFloat(),
+                                previewHeight = size.height.toFloat()
+                            )
+                        }
+                    )
+                }
         )
 
         // Composition Grid Overlay
@@ -107,7 +130,6 @@ fun CaptureView(
             TrackingDot(
                 position = point,
                 isAligned = isAligned,
-                progress = alignmentProgress,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -116,22 +138,34 @@ fun CaptureView(
         TopControlBar(
             guidanceText = guidanceText,
             isAligned = isAligned,
-            stage = stage,
+            isModelReady = isModelReady,
             inferenceTime = inferenceTime,
+            currentScore = currentScore,
             modifier = Modifier.align(Alignment.TopCenter)
         )
+
+        // Exposure Slider Panel
+        if (showExposureSlider) {
+            ExposureSliderPanel(
+                value = exposureCompensation,
+                onValueChange = { viewModel.setExposureCompensation(it) },
+                onDismiss = { showExposureSlider = false },
+                modifier = Modifier.align(Alignment.CenterEnd)
+            )
+        }
 
         // Bottom Controls
         BottomControls(
             zoomRatio = zoomRatio,
-            isBackCamera = isBackCamera,
             isTorchEnabled = isTorchEnabled,
             stage = stage,
+            lastSavedPhotoPath = lastSavedPhotoPath,
             onZoomChange = { viewModel.setZoom(it) },
             onSwitchCamera = { viewModel.switchCamera(lifecycleOwner, previewView) },
             onCapture = { viewModel.manualCapture() },
             onTorchToggle = { viewModel.toggleTorch() },
             onGalleryClick = { navController?.navigate(Screen.Home.route) },
+            onExposureClick = { showExposureSlider = !showExposureSlider },
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
@@ -175,7 +209,6 @@ private fun CompositionGridOverlay() {
 private fun TrackingDot(
     position: PointF,
     isAligned: Boolean,
-    progress: Float,
     modifier: Modifier = Modifier
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -233,8 +266,9 @@ private fun TrackingDot(
 private fun TopControlBar(
     guidanceText: String,
     isAligned: Boolean,
-    stage: CaptureViewModel.PipelineStage,
+    isModelReady: Boolean,
     inferenceTime: Long,
+    currentScore: Float,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -243,6 +277,21 @@ private fun TopControlBar(
             .padding(top = 48.dp, start = 16.dp, end = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // 激活: 模型未就绪时显示警告
+        if (!isModelReady) {
+            Surface(
+                color = ErrorColor.copy(alpha = 0.8f),
+                shape = RoundedCornerShape(CornerMedium)
+            ) {
+                Text(
+                    text = "AI 模型未加载，使用默认构图",
+                    style = GuidanceTextStyle.copy(fontSize = 12.sp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+        }
+
         if (guidanceText.isNotEmpty()) {
             Surface(
                 color = GuidanceBg,
@@ -265,6 +314,15 @@ private fun TopControlBar(
                             style = GuidanceTextStyle.copy(fontSize = 12.sp)
                         )
                     }
+                    // 激活: 显示美学评分
+                    if (currentScore > 0f) {
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "评分 ${String.format("%.2f", currentScore)}",
+                            color = if (currentScore > 0.6f) TrackingDotAligned else Color.White.copy(alpha = 0.6f),
+                            style = GuidanceTextStyle.copy(fontSize = 12.sp)
+                        )
+                    }
                 }
             }
         }
@@ -281,16 +339,54 @@ private fun TopControlBar(
 }
 
 @Composable
+private fun ExposureSliderPanel(
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = GuidanceBg,
+        shape = RoundedCornerShape(CornerMedium),
+        modifier = modifier.padding(end = 16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "EV $value",
+                color = Color.White,
+                style = GuidanceTextStyle.copy(fontSize = 12.sp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Slider(
+                value = value.toFloat(),
+                onValueChange = { onValueChange(it.toInt()) },
+                valueRange = -4f..4f,
+                steps = 7,
+                modifier = Modifier.height(120.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            TextButton(onClick = onDismiss) {
+                Text("关闭", color = Color.White, fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+@Composable
 private fun BottomControls(
     zoomRatio: Float,
-    isBackCamera: Boolean,
     isTorchEnabled: Boolean,
     stage: CaptureViewModel.PipelineStage,
+    lastSavedPhotoPath: String?,
     onZoomChange: (Float) -> Unit,
     onSwitchCamera: () -> Unit,
     onCapture: () -> Unit,
     onTorchToggle: () -> Unit,
     onGalleryClick: () -> Unit,
+    onExposureClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isCaptureEnabled = stage == CaptureViewModel.PipelineStage.TEMPLATE_READY ||
@@ -321,14 +417,21 @@ private fun BottomControls(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Gallery button
-            IconButton(onClick = onGalleryClick) {
-                Icon(
-                    imageVector = Icons.Default.PhotoLibrary,
-                    contentDescription = "Gallery",
-                    tint = Color.White,
-                    modifier = Modifier.size(32.dp)
+            // 激活: 上一张照片缩略图 / 图库入口
+            if (lastSavedPhotoPath != null) {
+                LastPhotoThumbnail(
+                    photoPath = lastSavedPhotoPath,
+                    onClick = onGalleryClick
                 )
+            } else {
+                IconButton(onClick = onGalleryClick) {
+                    Icon(
+                        imageVector = Icons.Default.PhotoLibrary,
+                        contentDescription = "Gallery",
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
             }
 
             // Capture button
@@ -338,26 +441,62 @@ private fun BottomControls(
                 onClick = onCapture
             )
 
-            // Switch camera / torch toggle row
+            // Switch camera / torch / exposure controls
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 IconButton(onClick = onSwitchCamera) {
                     Icon(
                         imageVector = Icons.Default.Cameraswitch,
                         contentDescription = "Switch Camera",
                         tint = Color.White,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(28.dp)
                     )
                 }
-                IconButton(onClick = onTorchToggle, modifier = Modifier.size(32.dp)) {
-                    Icon(
-                        imageVector = if (isTorchEnabled) Icons.Default.FlashOn else Icons.Default.FlashOff,
-                        contentDescription = "Torch",
-                        tint = if (isTorchEnabled) Color.Yellow else Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
+                Row {
+                    IconButton(onClick = onTorchToggle, modifier = Modifier.size(28.dp)) {
+                        Icon(
+                            imageVector = if (isTorchEnabled) Icons.Default.FlashOn else Icons.Default.FlashOff,
+                            contentDescription = "Torch",
+                            tint = if (isTorchEnabled) Color.Yellow else Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    // 激活: 曝光补偿按钮
+                    IconButton(onClick = onExposureClick, modifier = Modifier.size(28.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Exposure,
+                            contentDescription = "Exposure",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LastPhotoThumbnail(
+    photoPath: String,
+    onClick: () -> Unit
+) {
+    val imageModel = if (photoPath.startsWith("content://")) {
+        Uri.parse(photoPath)
+    } else {
+        File(photoPath)
+    }
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+    ) {
+        AsyncImage(
+            model = imageModel,
+            contentDescription = "Last photo",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 

@@ -1,8 +1,6 @@
 package com.livecompose.livecapture.core.motion
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Test
 
 class MotionStabilityMonitorTest {

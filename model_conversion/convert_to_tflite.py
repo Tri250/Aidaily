@@ -67,7 +67,7 @@ def export_to_onnx(model_state_dict, output_path: str, input_size: int = 224):
             self.backbone = backbone.features
             self.avgpool = nn.AdaptiveAvgPool2d(1)
 
-            # BBox Head: 2048 -> 512 -> 4
+            # BBox Head: 576 -> 512 -> 4
             self.bbox_head = nn.Sequential(
                 nn.Linear(576, 512),
                 nn.ReLU(),
@@ -75,7 +75,7 @@ def export_to_onnx(model_state_dict, output_path: str, input_size: int = 224):
                 nn.Sigmoid()  # Output [cx, cy, w, h] in [0, 1]
             )
 
-            # Actor Policy: 2048+4 -> 1024 -> 512 -> 7
+            # Actor Policy: 576+4 -> 512 -> 256 -> 7
             self.actor = nn.Sequential(
                 nn.Linear(576 + 4, 512),
                 nn.ReLU(),

@@ -33,9 +33,6 @@ class BoxCenterManager @Inject constructor(
     private var isLocked = false
     private var lockTimestamp = 0L
 
-    // 磁性吸附后的显示点（实际用于渲染）
-    private var displayPoint: PointF? = null
-
     private val _trackPoint = MutableStateFlow<PointF?>(null)
     val trackPoint: StateFlow<PointF?> = _trackPoint
 
@@ -58,10 +55,6 @@ class BoxCenterManager @Inject constructor(
         screenWidth = width
         screenHeight = height
         screenCenter = PointF(width / 2f, height / 2f)
-    }
-
-    fun updateScreenCenter(width: Float, height: Float) {
-        setScreenSize(width, height)
     }
 
     fun updateFromDetection(
@@ -102,7 +95,6 @@ class BoxCenterManager @Inject constructor(
             rawPoint
         }
 
-        displayPoint = finalPoint
         _trackPoint.value = finalPoint
 
         evaluateAlignment(finalPoint)
@@ -137,7 +129,6 @@ class BoxCenterManager @Inject constructor(
 
     fun reset() {
         referenceCenter = null
-        displayPoint = null
         _trackPoint.value = null
         _isAligned.value = false
         _alignmentProgress.value = 0f

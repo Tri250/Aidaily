@@ -13,9 +13,7 @@ import androidx.compose.ui.unit.sp
 
 // Colors
 val Primary = Color(0xFF2196F3)
-val PrimaryDark = Color(0xFF1976D2)
 val Accent = Color(0xFF4CAF50)
-val AccentLight = Color(0xFF81C784)
 val BackgroundDark = Color(0xFF121212)
 val SurfaceDark = Color(0xFF1E1E1E)
 val GridLine = Color(0x4DFFFFFF)
@@ -60,16 +58,8 @@ val TitleTextStyle = TextStyle(
     fontWeight = FontWeight.Bold
 )
 
-// Spacing
-val SpacingSmall = 8.dp
-val SpacingMedium = 16.dp
-val SpacingLarge = 24.dp
-
 // Corner Radius
-val CornerSmall = 8.dp
 val CornerMedium = 12.dp
-val CornerLarge = 16.dp
-val CornerFull = 50.dp
 
 @Composable
 fun LiveCaptureTheme(
