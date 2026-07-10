@@ -50,7 +50,7 @@
     <color name="camera_overlay">#0DFFFFFF</color>
     <color name="focus_ring">#FF5B7FA5</color>
     <color name="grid_line">#1FFFFFFF</color>
-    <color name="minimal_background">#FF000000</color>
+    <color name="minimal_background">#FF1A1A1A</color>
     <color name="minimal_overlay">#0DFFFFFF</color>
     <color name="minimal_border">#2DFFFFFF</color>
     <color name="minimal_label">#EBFFFFFF</color>

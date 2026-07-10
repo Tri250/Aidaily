@@ -227,7 +227,7 @@ fun GalleryScreen(
                         Text(
                             "按评分筛选",
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                            fontSize = 12.sp,
+                            style = DesignSystem.Typography.caption2,
                             color = DesignSystem.Colors.textTertiary()
                         )
                         (1..5).forEach { stars ->
@@ -319,7 +319,7 @@ fun GalleryScreen(
                         label = {
                             Text(
                                 tab.label,
-                                fontSize = 13.sp,
+                                style = DesignSystem.Typography.footnote,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                             )
                         },

@@ -324,7 +324,20 @@ fun CaptureScreen(
         }
     }
 
-    LaunchedEffect(cameraErrorState) { cameraError = cameraErrorState }
+    LaunchedEffect(cameraErrorState) {
+        cameraError = cameraErrorState
+        if (cameraErrorState == null) {
+            // 相机正常，无需操作
+        } else {
+            // 相机出错，尝试恢复
+            if (cameraErrorState != CameraErrorType.PERMISSION_DENIED) {
+                delay(1000) // 等待1秒后重试
+                if (camera.hasCameraPermission()) {
+                    camera.openCamera()
+                }
+            }
+        }
+    }
 
     // 超焦距计算
     LaunchedEffect(hyperfocalEnabled, zoomState.currentFactor) {
@@ -1039,7 +1052,7 @@ fun CaptureScreen(
                 errorType = error,
                 onRetry = {
                     cameraError = null
-                    if (camera.hasCameraPermission()) camera.openCamera()
+                    if (camera.hasCameraPermission()) camera.reopenCamera()
                     else permissionLauncher.launch(android.Manifest.permission.CAMERA)
                 },
                 onGoToSettings = {

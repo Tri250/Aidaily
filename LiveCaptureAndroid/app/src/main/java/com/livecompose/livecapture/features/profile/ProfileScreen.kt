@@ -131,7 +131,7 @@ fun ProfileScreen(
                     color = DesignSystem.Colors.textPrimary()
                 )
                 Text(
-                    "v1.1.6",
+                    "v1.1.7",
                     style = DesignSystem.Typography.callout,
                     color = DesignSystem.Colors.textTertiary()
                 )
@@ -208,7 +208,7 @@ private fun ProfileHeaderSection() {
                     Icon(
                         Icons.Filled.PhotoCamera,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = DesignSystem.Colors.minimalLabel,
                         modifier = Modifier.size(32.dp)
                     )
                 }

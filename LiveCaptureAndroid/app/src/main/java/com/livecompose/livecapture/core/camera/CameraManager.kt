@@ -141,6 +141,7 @@ class CameraManager(private val context: Context) {
                     cameraDevice = device
                     _isCameraOpened.value = true
                     _cameraError.value = null
+                    shouldBeRunning = true
                     cameraCharacteristics = try {
                         systemCameraManager.getCameraCharacteristics(cameraId)
                     } catch (e: Exception) {
@@ -168,6 +169,7 @@ class CameraManager(private val context: Context) {
                         else -> CameraErrorType.UNKNOWN
                     }
                     _isCameraOpened.value = false
+                    shouldBeRunning = false
                     device.close()
                     cameraDevice = null
                 }
@@ -192,6 +194,17 @@ class CameraManager(private val context: Context) {
         _isSessionRunning.value = false
         _isCameraOpened.value = false
         _cameraError.value = null
+    }
+
+    /**
+     * 重新打开相机（拍照后恢复使用）
+     */
+    fun reopenCamera() {
+        if (isDestroyed) return
+        shouldBeRunning = true
+        if (cameraId.isNotEmpty()) {
+            openCamera(cameraId)
+        }
     }
 
     /**
@@ -348,6 +361,7 @@ class CameraManager(private val context: Context) {
         if (session == null) {
             AppLogger.w(TAG, "拍照失败: captureSession 为 null，尝试重建预览会话")
             _lastPhotoSaved.value = false
+            shouldBeRunning = true
             // 尝试重建会话后重试
             createCameraPreviewSession()
             // 延迟后重试
