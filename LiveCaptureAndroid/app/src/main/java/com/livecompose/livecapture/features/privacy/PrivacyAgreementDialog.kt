@@ -82,7 +82,7 @@ fun PrivacyAgreementDialog(
         containerColor = DesignSystem.Colors.gray1(),
         title = {
             Text(
-                text = "构妙 LiveCapture 隐私保护指引",
+                text = "秒简相机 隐私保护指引",
                 color = DesignSystem.Colors.minimalLabel,
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
@@ -96,12 +96,12 @@ fun PrivacyAgreementDialog(
             ) {
                 Text(
                     text = buildAnnotatedString {
-                        append("欢迎使用构妙！在您使用我们的服务之前，请您仔细阅读")
+                        append("欢迎使用秒简相机！在您使用我们的服务之前，请您仔细阅读")
                         withStyle(SpanStyle(
                             color = DesignSystem.Colors.primary,
                             textDecoration = TextDecoration.Underline
                         )) {
-                            append("《构妙隐私政策》")
+                            append("《秒简相机隐私政策》")
                         }
                         append("和")
                         withStyle(SpanStyle(
@@ -228,7 +228,7 @@ private fun FullPrivacyPolicyDialog(onBack: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "构妙隐私政策",
+                    text = "秒简相机隐私政策",
                     color = DesignSystem.Colors.minimalLabel,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
@@ -248,7 +248,7 @@ private fun FullPrivacyPolicyDialog(onBack: () -> Unit) {
 
 一、我们如何收集和使用您的个人信息
 
-构妙（以下简称"我们"）深知个人信息对您的重要性，我们将按照法律法规的规定，保护您的个人信息及隐私安全。
+秒简相机（以下简称"我们"）深知个人信息对您的重要性，我们将按照法律法规的规定，保护您的个人信息及隐私安全。
 
 1.1 我们收集的信息
 

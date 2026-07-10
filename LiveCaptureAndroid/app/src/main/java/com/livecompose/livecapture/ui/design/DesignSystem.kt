@@ -70,25 +70,25 @@ object DesignSystem {
     // 参考：高端原生相机应用，无品牌色侵入拍摄界面
 
     object Colors {
-        // 品牌色 - 与 iOS LiveCapture DesignSystem 对齐
-        val primary = Color(0xFF007AFF)         // iOS: 清新蓝 (0.0, 0.48, 1.0)
-        val primaryLight = Color(0xFF4DA3FF)    // 浅蓝
-        val primaryDark = Color(0xFF0062CC)     // 深蓝
-        val secondary = Color(0xFF5956A6)       // iOS: 紫罗兰 (0.35, 0.34, 0.84)
-        val accent = Color(0xFFFF9400)          // iOS: 活力橙 (1.0, 0.58, 0.0)
-        val accentWarm = Color(0xFFFF9400)      // 同上
+        // 品牌色 - 秒简青绿：参考秒简相机沉浸黑底与鲜活强调色
+        val primary = Color(0xFF00E676)         // 秒简青绿：快门高亮 / 开关激活 / 强调文字
+        val primaryLight = Color(0xFF69F0AE)    // 浅绿：悬浮态 / 渐变末端
+        val primaryDark = Color(0xFF00C853)     // 深绿：按压态 / 进度填充
+        val secondary = Color(0xFF00BFA5)       //  teal：辅助强调 / 次要按钮
+        val accent = Color(0xFF00E5FF)          //  cyan：高亮点缀 / 选中指示
+        val accentWarm = Color(0xFF00E5FF)      //  cyan（与 accent 统一）
 
-        // 渐变色 - 与 iOS 完整5组渐变对齐
-        val gradientStart = Color(0xFF007AFF)
-        val gradientEnd = Color(0xFF5956A6)
-        val accentGradientStart = Color(0xFFFF9400)
-        val accentGradientEnd = Color(0xFFFF6B00)
-        val successGradientStart = Color(0xFF34C759)
-        val successGradientEnd = Color(0xFF248A3D)
-        val warningGradientStart = Color(0xFFFFCC00)
-        val warningGradientEnd = Color(0xFFFF9500)
-        val errorGradientStart = Color(0xFFFF3B30)
-        val errorGradientEnd = Color(0xFFD70015)
+        // 渐变色 - 青绿生态渐变，贴合秒简相机品牌
+        val gradientStart = Color(0xFF00E676)
+        val gradientEnd = Color(0xFF00BFA5)
+        val accentGradientStart = Color(0xFF00E5FF)
+        val accentGradientEnd = Color(0xFF00BFA5)
+        val successGradientStart = Color(0xFF00E676)
+        val successGradientEnd = Color(0xFF00C853)
+        val warningGradientStart = Color(0xFFFFB300)
+        val warningGradientEnd = Color(0xFFFF9100)
+        val errorGradientStart = Color(0xFFFF5252)
+        val errorGradientEnd = Color(0xFFD50000)
 
         // 相机专属色 - 极度克制
         val goldenGlow = Color(0xFFD4A84B)

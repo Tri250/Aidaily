@@ -187,7 +187,7 @@ class PhantomService : Service() {
                 if (size <= MIN_IMPORT_SIZE) return // 太小
                 if (System.currentTimeMillis() - dateTaken > PHOTO_FRESHNESS_MS) return // 不是刚拍的
                 if (!relativePath.contains("DCIM/Camera") && !relativePath.contains("DCIM/100IMAGE")) return // 不是系统相机目录
-                if (name.startsWith("PhotonCamera") || name.startsWith("LiveCapture")) return // 避免处理自己导出的
+                if (name.startsWith("PhotonCamera") || name.startsWith("LiveCapture") || name.startsWith("MiaoJian")) return // 避免处理自己导出的
 
                 val shortSide = minOf(width, height)
                 if (shortSide <= MIN_PHANTOM_SHORT_SIDE) return // 分辨率太低
@@ -269,7 +269,7 @@ class PhantomService : Service() {
      * 另存为新照片
      */
     private fun saveAsNewPhoto(bitmap: Bitmap, originalName: String, lutId: String) {
-        val displayName = "LiveCapture_${originalName.removeSuffix(".jpg")}_${lutId}.jpg"
+        val displayName = "MiaoJian_${originalName.removeSuffix(".jpg")}_${lutId}.jpg"
         val contentValues = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, displayName)
             put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")

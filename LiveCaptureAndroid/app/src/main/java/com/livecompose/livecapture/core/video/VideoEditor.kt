@@ -395,7 +395,7 @@ class VideoEditor(private val context: Context) {
                 put(MediaStore.Video.Media.DISPLAY_NAME, file.name)
                 put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/LiveCapture")
+                    put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/MiaoJian")
                     put(MediaStore.Video.Media.IS_PENDING, 1)
                 }
             }
@@ -430,7 +430,7 @@ class VideoEditor(private val context: Context) {
      */
     private fun generateOutputPath(suffix: String): String {
         val outputDir = File(context.cacheDir, "videos").apply { mkdirs() }
-        val fileName = "LiveCapture${suffix}_${System.currentTimeMillis()}.mp4"
+        val fileName = "MiaoJian${suffix}_${System.currentTimeMillis()}.mp4"
         val file = File(outputDir, fileName)
         if (file.exists()) file.delete()
         return file.absolutePath

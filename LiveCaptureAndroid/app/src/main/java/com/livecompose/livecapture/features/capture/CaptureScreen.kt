@@ -89,6 +89,7 @@ import com.livecompose.livecapture.core.storage.PhotoRecord
 import com.livecompose.livecapture.core.lut.MasterPreset
 import com.livecompose.livecapture.ui.design.DesignSystem
 import com.livecompose.livecapture.ui.design.liquidGlass
+import com.livecompose.livecapture.ui.design.rippleEffect
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -714,48 +715,57 @@ fun CaptureScreen(
                     }
                 }
 
-                // 右上角设置按钮和闪光灯指示器
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.End
-                ) {
-                    SettingsButton(onClick = {
+                // 顶部控制栏 - 秒简相机 2026 风格
+                TopControlBar2026(
+                    flashMode = flashMode,
+                    onFlashClick = {
+                        val next = when (flashMode) {
+                            FlashMode.OFF -> FlashMode.AUTO
+                            FlashMode.AUTO -> FlashMode.ON
+                            FlashMode.ON -> FlashMode.OFF
+                            FlashMode.TORCH -> FlashMode.OFF
+                        }
+                        camera.setFlashMode(next)
+                        interactionCounter++
+                    },
+                    isBeautyEnabled = isBeautyEnabled,
+                    onBeautyClick = {
+                        isBeautyEnabled = !isBeautyEnabled
+                        interactionCounter++
+                    },
+                    isGridEnabled = isGridEnabled,
+                    onGridClick = {
+                        isGridEnabled = !isGridEnabled
+                        gridMode = if (isGridEnabled) 1 else 0
+                        interactionCounter++
+                    },
+                    timerEnabled = timerEnabled,
+                    onTimerClick = {
+                        timerEnabled = !timerEnabled
+                        if (timerEnabled) {
+                            Toast.makeText(context, "定时拍摄: ${timerDuration}秒", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "定时拍摄已关闭", Toast.LENGTH_SHORT).show()
+                        }
+                        interactionCounter++
+                    },
+                    currentRatio = currentRatio,
+                    onRatioClick = {
+                        currentRatio = when (currentRatio) {
+                            "3:4" -> "9:16"
+                            "9:16" -> "1:1"
+                            "1:1" -> "XPAN"
+                            else -> "3:4"
+                        }
+                        viewModel.setXpanModeEnabled(currentRatio == "XPAN")
+                        interactionCounter++
+                    },
+                    onSettingsClick = {
                         showSettingsSheet = true
                         controlsVisible = false
-                    })
-                    Spacer(Modifier.height(8.dp))
-                    // [v1.1.7] 闪光灯模式指示器
-                    Icon(
-                        imageVector = when (flashMode) {
-                            FlashMode.OFF -> Icons.Default.FlashOff
-                            FlashMode.AUTO -> Icons.Default.FlashAuto
-                            FlashMode.ON -> Icons.Default.FlashOn
-                            FlashMode.TORCH -> Icons.Default.FlashOn
-                        },
-                        contentDescription = "闪光灯: ${flashMode.name}",
-                        tint = when (flashMode) {
-                            FlashMode.OFF -> DesignSystem.Colors.minimalLabelQuaternary
-                            FlashMode.AUTO -> DesignSystem.Colors.primary
-                            FlashMode.ON -> DesignSystem.Colors.primary
-                            FlashMode.TORCH -> DesignSystem.Colors.recordingRed
-                        },
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                // 右下角魔法棒
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 12.dp, bottom = 64.dp)
-                ) {
-                    MagicWandButton(onClick = {
-                        showFilterRecommendationSheet = true
-                        controlsVisible = false
-                    })
-                }
+                        interactionCounter++
+                    }
+                )
 
                 // 预览区底部变焦条 - 增加底部padding避免手指遮挡
                 Box(
@@ -1124,7 +1134,7 @@ fun CaptureScreen(
                     showFilterRecommendationSheet = true
                     controlsVisible = false
                 },
-                onBetaClick = {
+                onAIClick = {
                     scope.launch {
                         try {
                             // 捕获当前帧并应用自动增强
@@ -1162,10 +1172,6 @@ fun CaptureScreen(
                             }
                         }
                     }
-                    interactionCounter++
-                },
-                onToggleDebug = {
-                    showDebugPanel = !showDebugPanel
                     interactionCounter++
                 }
             )
@@ -1804,6 +1810,135 @@ private fun MagicWandButton(onClick: () -> Unit) {
 }
 
 /**
+ * 顶部控制栏 2026 - 秒简相机风格
+ *
+ * 左右分布的圆形icon组，悬浮于取景框顶部：
+ * - 左侧：闪光灯 / 美颜 / 构图网格
+ * - 右侧：定时 / 画幅比例 / 设置
+ *
+ * 设计要点：
+ * - 38dp 圆形深色半透明背景，不遮挡取景
+ * - 激活态使用秒简青绿描边 + 填充，视觉克制
+ * - 按压缩放反馈
+ */
+@Composable
+private fun TopControlBar2026(
+    flashMode: FlashMode,
+    onFlashClick: () -> Unit,
+    isBeautyEnabled: Boolean,
+    onBeautyClick: () -> Unit,
+    isGridEnabled: Boolean,
+    onGridClick: () -> Unit,
+    timerEnabled: Boolean,
+    onTimerClick: () -> Unit,
+    currentRatio: String,
+    onRatioClick: () -> Unit,
+    onSettingsClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .padding(top = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            TopBarIcon(
+                icon = when (flashMode) {
+                    FlashMode.OFF -> Icons.Default.FlashOff
+                    FlashMode.AUTO -> Icons.Default.FlashAuto
+                    FlashMode.ON -> Icons.Default.FlashOn
+                    FlashMode.TORCH -> Icons.Default.FlashlightOn
+                },
+                contentDescription = "闪光灯",
+                isActive = flashMode != FlashMode.OFF,
+                onClick = onFlashClick
+            )
+            TopBarIcon(
+                icon = Icons.Default.FaceRetouchingNatural,
+                contentDescription = "美颜",
+                isActive = isBeautyEnabled,
+                onClick = onBeautyClick
+            )
+            TopBarIcon(
+                icon = Icons.Default.CropFree,
+                contentDescription = "构图网格",
+                isActive = isGridEnabled,
+                onClick = onGridClick
+            )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            TopBarIcon(
+                icon = if (timerEnabled) Icons.Default.Timer else Icons.Default.TimerOff,
+                contentDescription = "定时拍摄",
+                isActive = timerEnabled,
+                onClick = onTimerClick
+            )
+            TopBarIcon(
+                icon = Icons.Default.AspectRatio,
+                contentDescription = "画幅比例",
+                isActive = false,
+                onClick = onRatioClick
+            )
+            TopBarIcon(
+                icon = Icons.Default.Settings,
+                contentDescription = "设置",
+                isActive = false,
+                onClick = onSettingsClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun TopBarIcon(
+    icon: ImageVector,
+    contentDescription: String,
+    isActive: Boolean,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.9f else 1f,
+        animationSpec = DesignSystem.Animation.quick
+    )
+
+    Box(
+        modifier = Modifier
+            .size(38.dp)
+            .scale(scale)
+            .clip(CircleShape)
+            .background(
+                if (isActive) DesignSystem.Colors.primary.copy(alpha = 0.18f)
+                else DesignSystem.Colors.minimalDarkOverlayLight
+            )
+            .border(
+                width = if (isActive) 1.5.dp else 0.5.dp,
+                color = if (isActive) DesignSystem.Colors.primary.copy(alpha = 0.7f)
+                else DesignSystem.Colors.minimalBorder,
+                shape = CircleShape
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = if (isActive) DesignSystem.Colors.primary
+            else DesignSystem.Colors.minimalLabel,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+/**
  * 2026变焦条 - 胶囊半透明背景
  */
 @Composable
@@ -1854,8 +1989,11 @@ private fun ZoomPresetBar2026(
 }
 
 /**
- * 底部功能图标行
- * Beta | 构图框 | 魔法棒 | 3:4 | 翻转
+ * 底部功能图标行 - 秒简相机精简版
+ * AI增强 | 构图框 | 魔法棒 | 3:4 | 翻转
+ *
+ * 去掉调试入口（已移至设置），保留最常用的 5 个快捷操作，
+ * 间距更宽松，避免误触。
  */
 @Composable
 private fun ToolIconRow(
@@ -1865,23 +2003,22 @@ private fun ToolIconRow(
     onToggleRatio: () -> Unit,
     onToggleCamera: () -> Unit,
     onMagicWandClick: () -> Unit = {},
-    onBetaClick: () -> Unit = {},
-    onToggleDebug: () -> Unit = {}
+    onAIClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 28.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Beta 靶心图标
+        // AI 一键增强
         ToolIconItem(
-            icon = Icons.Default.Adjust,
+            icon = Icons.Default.AutoAwesome,
             contentDescription = "AI一键增强",
-            label = "Beta",
+            label = "AI",
             isBeta = true,
-            onClick = onBetaClick
+            onClick = onAIClick
         )
 
         // 构图框
@@ -1911,13 +2048,6 @@ private fun ToolIconRow(
             icon = Icons.Default.FlipCameraAndroid,
             contentDescription = "切换前后摄像头",
             onClick = onToggleCamera
-        )
-
-        // 调试面板 - 对标 iOS TopControlBar 调试开关
-        ToolIconItem(
-            icon = Icons.Default.BugReport,
-            contentDescription = "调试面板",
-            onClick = onToggleDebug
         )
     }
 }
@@ -1965,7 +2095,7 @@ private fun ToolIconItem(
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                tint = if (isActive) DesignSystem.Colors.minimalLabel
+                tint = if (isActive) DesignSystem.Colors.primary
                 else DesignSystem.Colors.minimalLabelSecondary,
                 modifier = Modifier.size(DesignSystem.Dimensions.toolIconSize)
             )
@@ -1976,13 +2106,13 @@ private fun ToolIconItem(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(4.dp))
-                    .background(DesignSystem.Colors.betaBadgeBg)
+                    .background(DesignSystem.Colors.primary.copy(alpha = 0.18f))
                     .padding(horizontal = 4.dp, vertical = 1.dp)
             ) {
                 Text(
                     text = label,
                     style = DesignSystem.Typography.betaBadge,
-                    color = DesignSystem.Colors.betaBadgeText
+                    color = DesignSystem.Colors.primary
                 )
             }
         }
@@ -2267,7 +2397,7 @@ private fun MainShutterButton2026(
             val glowAlpha = glowAlphaAnimatable.value
             androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
                 drawCircle(
-                    color = DesignSystem.Colors.goldenGlow.copy(alpha = glowAlpha),
+                    color = DesignSystem.Colors.primary.copy(alpha = glowAlpha),
                     radius = (size.minDimension / 2f) * glowScale,
                     style = Stroke(width = 2.5.dp.toPx())
                 )
@@ -2341,7 +2471,7 @@ private fun AIComposeButton(isEnabled: Boolean, onClick: () -> Unit) {
             Icon(
                 imageVector = Icons.Default.AutoAwesome,
                 contentDescription = "AI构图",
-                tint = if (isEnabled) DesignSystem.Colors.minimalLabel
+                tint = if (isEnabled) DesignSystem.Colors.primary
                 else DesignSystem.Colors.minimalLabelTertiary,
                 modifier = Modifier.size(DesignSystem.Dimensions.toolIconSize)
             )
@@ -2350,7 +2480,7 @@ private fun AIComposeButton(isEnabled: Boolean, onClick: () -> Unit) {
         Text(
             text = "AI构图",
             style = DesignSystem.Typography.modeLabel,
-            color = if (isEnabled) DesignSystem.Colors.minimalLabelSecondary
+            color = if (isEnabled) DesignSystem.Colors.primary
             else DesignSystem.Colors.minimalLabelQuaternary
         )
     }
@@ -3171,7 +3301,7 @@ private fun SettingsBottomSheet2026(
 
             SettingsSectionHeader("关于", Icons.Default.Info)
             SettingsCard {
-                SettingsRow("版本信息", "构妙 LiveCapture v1.1.7", Icons.Default.Info)
+                SettingsRow("版本信息", "秒简相机 v1.2.1", Icons.Default.Info)
                 SettingsDivider()
                 SettingsClickRow("ICP备案号", "待备案", Icons.Default.VerifiedUser) {
                     val intent = android.content.Intent(context, com.livecompose.livecapture.features.compliance.ComplianceHostActivity::class.java).apply {
@@ -4289,16 +4419,27 @@ private fun CaptureModeSelector(
                         interactionSource = interactionSource,
                         indication = null
                     ) { onModeSelected(mode) }
-                    .padding(horizontal = 22.dp, vertical = 9.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = mode.label,
-                    style = DesignSystem.Typography.footnote,
-                    color = if (isSelected) Color.White
-                    else DesignSystem.Colors.minimalLabelSecondary,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Icon(
+                        imageVector = mode.icon,
+                        contentDescription = mode.label,
+                        modifier = Modifier.size(18.dp),
+                        tint = if (isSelected) Color.White else DesignSystem.Colors.minimalLabelSecondary
+                    )
+                    Text(
+                        text = mode.label,
+                        style = DesignSystem.Typography.footnote,
+                        color = if (isSelected) Color.White
+                        else DesignSystem.Colors.minimalLabelSecondary,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                    )
+                }
             }
         }
     }

@@ -22,7 +22,7 @@ import java.util.Locale
  * 内容布局：
  * 1. 照片区域（居中留白）
  * 2. App Logo（透明玻璃质感）
- * 3. 标题：构妙 · LiveCompose
+ * 3. 标题：秒简相机
  * 4. 拍摄日期
  * 5. 参数行：检测引擎 · ISO · 快门 · 光圈 · 分辨率
  * 6. 底部分隔线
@@ -138,7 +138,7 @@ object ShareCardGenerator {
             textSize = 34f
             typeface = Typeface.DEFAULT_BOLD
         }
-        val titleText = "构妙 · LiveCompose"
+        val titleText = "秒简相机"
         val titleWidth = titlePaint.measureText(titleText)
         val titleY = bottomY + 64f
         canvas.drawText(titleText, (cardWidthF - titleWidth) / 2, titleY + titlePaint.textSize, titlePaint)

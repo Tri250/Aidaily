@@ -178,7 +178,7 @@ fun GalleryScreen(
                     Icon(
                         Icons.Default.Search,
                         contentDescription = "搜索",
-                        tint = if (showSearchBar) DesignSystem.Colors.accentWarm
+                        tint = if (showSearchBar) DesignSystem.Colors.primary
                         else DesignSystem.Colors.textSecondary()
                     )
                 }
@@ -194,7 +194,7 @@ fun GalleryScreen(
                         Icon(
                             Icons.Default.FilterList,
                             contentDescription = "筛选",
-                            tint = if (filterRating > 0 || filterFlaggedOnly) DesignSystem.Colors.accentWarm
+                            tint = if (filterRating > 0 || filterFlaggedOnly) DesignSystem.Colors.primary
                             else DesignSystem.Colors.textSecondary()
                         )
                     }
@@ -250,7 +250,7 @@ fun GalleryScreen(
                                 },
                                 leadingIcon = {
                                     if (filterRating == stars) {
-                                        Icon(Icons.Default.Check, null, tint = DesignSystem.Colors.accentWarm)
+                                        Icon(Icons.Default.Check, null, tint = DesignSystem.Colors.primary)
                                     }
                                 }
                             )
@@ -659,7 +659,7 @@ private fun PhotoCard(
             Icon(
                 if (isSelected) Icons.Default.CheckCircle else Icons.Default.Circle,
                 contentDescription = null,
-                tint = if (isSelected) DesignSystem.Colors.accentWarm
+                tint = if (isSelected) DesignSystem.Colors.primary
                 else DesignSystem.Colors.minimalSecondaryLabel,
                 modifier = Modifier
                     .align(Alignment.TopEnd)

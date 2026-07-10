@@ -43,7 +43,7 @@ import com.livecompose.livecapture.ui.design.DesignSystem
 import java.io.File
 
 /**
- * 构妙品牌页 + 实时滤镜预览
+ * 秒简相机品牌页 + 实时滤镜预览
  */
 @Composable
 fun LiveComposeScreen(
@@ -330,7 +330,7 @@ fun LiveComposeScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            "构妙 LiveCompose",
+            "秒简相机",
             style = DesignSystem.Typography.largeTitle,
             color = DesignSystem.Colors.textPrimary(),
             modifier = Modifier.fillMaxWidth(),
@@ -349,7 +349,7 @@ fun LiveComposeScreen(
         // 关于我们
         SectionCard(title = "关于我们", icon = Icons.Default.Star) {
             Text(
-                "构妙 LiveCompose 致力于让每一位普通用户都能轻松拍出专业级构图照片。不同于传统相机的静态九宫格辅助线，我们通过 AI 实时分析取景画面，结合设备陀螺仪实现物理级追踪引导，主动「告诉」用户如何移动手机以获得最佳构图，并在对齐完美构图时自动拍摄。",
+                "秒简相机 致力于让每一位普通用户都能轻松拍出专业级构图照片。不同于传统相机的静态九宫格辅助线，我们通过 AI 实时分析取景画面，结合设备陀螺仪实现物理级追踪引导，主动「告诉」用户如何移动手机以获得最佳构图，并在对齐完美构图时自动拍摄。",
                 style = DesignSystem.Typography.body,
                 color = DesignSystem.Colors.textTertiary()
             )
@@ -361,7 +361,7 @@ fun LiveComposeScreen(
         SectionCard(title = "项目仓库", icon = Icons.Default.Folder) {
             ProjectRow(
                 icon = Icons.Default.Apps,
-                name = "LiveCapture",
+                name = "秒简相机",
                 desc = "Android 客户端 App — 基于 Jetpack Compose 构建，集成 Adacrop 美学裁切模型、陀螺仪运动追踪与实时构图引导。",
                 url = "https://github.com/LiveCompose/LiveCapture"
             )

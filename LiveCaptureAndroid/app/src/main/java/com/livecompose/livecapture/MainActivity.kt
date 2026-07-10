@@ -18,6 +18,8 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import com.livecompose.livecapture.core.logger.AppLogger
 import com.livecompose.livecapture.core.phantom.PhantomController
+import com.livecompose.livecapture.features.onboarding.OnboardingScreen
+import com.livecompose.livecapture.features.onboarding.isOnboardingCompleted
 import com.livecompose.livecapture.features.privacy.PrivacyAgreementDialog
 import com.livecompose.livecapture.features.privacy.isPrivacyAgreed
 import com.livecompose.livecapture.navigation.AppNavigation
@@ -189,7 +191,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MainScreen(showGhostPermissions: Boolean = false) {
     var privacyAgreed by remember { mutableStateOf(false) }
-    var checkingPrivacy by remember { mutableStateOf(true) }
+    var onboardingCompleted by remember { mutableStateOf(false) }
+    var checkingLaunchState by remember { mutableStateOf(true) }
     var pendingGhostPermissions by remember { mutableStateOf(showGhostPermissions) }
 
     val context = LocalContext.current
@@ -207,14 +210,17 @@ private fun MainScreen(showGhostPermissions: Boolean = false) {
 
     LaunchedEffect(Unit) {
         try {
+            val onboarded = isOnboardingCompleted(context)
             val agreed = isPrivacyAgreed(context)
+            onboardingCompleted = onboarded
             privacyAgreed = agreed
-            AppLogger.i("MainScreen", "[启动链路] 隐私协议状态: agreed=$agreed")
+            AppLogger.i("MainScreen", "[启动链路] 引导完成=$onboarded, 隐私协议同意=$agreed")
         } catch (e: Exception) {
-            AppLogger.e("MainScreen", "读取隐私协议状态失败", e)
+            AppLogger.e("MainScreen", "读取启动状态失败", e)
+            onboardingCompleted = false
             privacyAgreed = false
         }
-        checkingPrivacy = false
+        checkingLaunchState = false
     }
 
     // 隐私协议同意后，如有待处理的权限请求则触发
@@ -225,8 +231,16 @@ private fun MainScreen(showGhostPermissions: Boolean = false) {
     }
 
     when {
-        checkingPrivacy -> {
+        checkingLaunchState -> {
             // 加载中（短暂）
+        }
+        !onboardingCompleted -> {
+            OnboardingScreen(
+                onComplete = {
+                    AppLogger.i("MainScreen", "[启动链路] 用户完成引导页")
+                    onboardingCompleted = true
+                }
+            )
         }
         !privacyAgreed -> {
             LiveCaptureTheme {

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- 应用名称 -->
-    <string name="app_name">构妙 LiveCapture</string>
+    <string name="app_name">秒简相机</string>
 
     <!-- 底部导航 -->
-    <string name="tab_livecompose">构妙</string>
+    <string name="tab_livecompose">秒简</string>
     <string name="tab_gallery">图库</string>
     <string name="tab_capture">拍摄</string>
     <string name="tab_settings">设置</string>
@@ -152,11 +152,11 @@
     <string name="error_permission">权限不足</string>
 
     <!-- 隐私协议 -->
-    <string name="privacy_title">构妙 LiveCapture 隐私保护指引</string>
+    <string name="privacy_title">秒简相机 隐私保护指引</string>
     <string name="privacy_agree">同意并继续</string>
     <string name="privacy_disagree">不同意，退出应用</string>
     <string name="privacy_view_full">查看完整隐私政策</string>
-    <string name="privacy_full_title">构妙隐私政策</string>
+    <string name="privacy_full_title">秒简相机隐私政策</string>
 
     <!-- 分享渠道 -->
     <string name="share_wechat_friend">微信好友</string>
