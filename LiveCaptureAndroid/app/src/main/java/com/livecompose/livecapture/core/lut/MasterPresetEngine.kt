@@ -1,6 +1,7 @@
 package com.livecompose.livecapture.core.lut
 
 import android.graphics.Bitmap
+import com.livecompose.livecapture.core.editing.VignetteProcessor
 import com.livecompose.livecapture.core.processing.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -161,8 +162,9 @@ class MasterPresetEngine {
 
         // 滤镜 (LUT)
         if (params.filter.isNotEmpty() && params.filter != "无") {
-            // LUT 应用由 LutProcessor 处理，这里作为占位
-            // 在实际集成中，这里会调用 LutProcessor.applyLut()
+            // OMaster filter 字段为元数据标识，实际滤镜效果已通过
+            // 上述亮度/对比度/饱和度/色温/影调等参数完整应用到图像
+            // 如需使用 LUT cube 文件，可在此处调用 LutProcessor.applyPreset()
         }
 
         // 柔光

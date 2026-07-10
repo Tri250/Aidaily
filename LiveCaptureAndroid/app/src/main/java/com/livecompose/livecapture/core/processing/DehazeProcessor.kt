@@ -11,6 +11,18 @@ import kotlinx.coroutines.withContext
 class DehazeProcessor {
 
     /**
+     * 去雾处理（兼容 MasterPresetEngine 接口）
+     *
+     * @param bitmap 原始图像
+     * @param strength 去雾强度，归一化到 0~100
+     * @return 去雾后的 Bitmap
+     */
+    suspend fun apply(
+        bitmap: Bitmap,
+        strength: Float = 0f
+    ): Bitmap = dehaze(bitmap, strength.coerceIn(0f, 100f))
+
+    /**
      * 去雾处理
      *
      * @param bitmap 原始有雾图像

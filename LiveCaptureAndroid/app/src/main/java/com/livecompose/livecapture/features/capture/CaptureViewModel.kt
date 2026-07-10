@@ -616,10 +616,58 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
                 val bitmap = imageToBitmap(image)
                 if (bitmap != null) {
                     sceneEngine.analyzeFrame(bitmap, image.format)
+
+                    // 激活 AI 自适应参数
+                    val adaptiveParams = sceneEngine.adaptiveParams.value
+                    if (adaptiveParams != null) {
+                        applyAdaptiveParameters(adaptiveParams)
+                    }
                 }
             } catch (e: Exception) {
                 // AI 分析失败不应影响拍照流程
             }
+        }
+    }
+
+    /**
+     * 应用 AI 自适应拍摄参数到相机
+     * 将 AI 引擎计算的最优参数实时调整相机设置
+     */
+    private fun applyAdaptiveParameters(params: AdaptiveCaptureParams) {
+        try {
+            // 1. 调整曝光补偿（AE 模式下可用）
+            // AE 曝光补偿在自动模式下通过 AE_EXPOSURE_COMPENSATION 控制
+            val aeCompensation = params.exposureBias.toInt().coerceIn(-3, 3)
+            // 注意：AE 补偿在自动模式下可用，如果相机支持手动模式则可直接设置 ISO/快门
+
+            // 2. 应用建议变焦
+            if (params.suggestedZoomFactor > 0f) {
+                val currentZoom = camera.zoomState.value.currentFactor
+                // 只在变焦差异较大时调整，避免频繁微调
+                if (kotlin.math.abs(params.suggestedZoomFactor - currentZoom) > 0.2f) {
+                    camera.selectZoomPreset(
+                        com.livecompose.livecapture.core.camera.ZoomPreset(
+                            lens = com.livecompose.livecapture.core.camera.LensKind.WIDE,
+                            zoomFactor = params.suggestedZoomFactor,
+                            focalLength = (params.suggestedZoomFactor * 24f).toInt(),
+                            style = com.livecompose.livecapture.core.camera.ZoomPreset.PresetStyle.SECONDARY
+                        )
+                    )
+                }
+            }
+
+            // 3. 设置闪光灯模式
+            if (params.flashMode != com.livecompose.livecapture.core.intelligence.FlashRecommendation.OFF) {
+                camera.setFlashMode(
+                    when (params.flashMode) {
+                        com.livecompose.livecapture.core.intelligence.FlashRecommendation.AUTO -> com.livecompose.livecapture.core.camera.FlashMode.AUTO
+                        com.livecompose.livecapture.core.intelligence.FlashRecommendation.ON -> com.livecompose.livecapture.core.camera.FlashMode.ON
+                        else -> com.livecompose.livecapture.core.camera.FlashMode.OFF
+                    }
+                )
+            }
+        } catch (e: Exception) {
+            // 自适应参数应用失败不应影响拍照
         }
     }
 

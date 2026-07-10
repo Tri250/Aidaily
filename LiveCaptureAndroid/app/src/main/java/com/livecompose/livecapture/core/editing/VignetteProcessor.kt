@@ -64,11 +64,24 @@ class VignetteProcessor {
     }
 
     /**
-     * 应用暗角到 Bitmap
+     * 应用暗角到 Bitmap（便捷方法，兼容 MasterPresetEngine）
      *
      * @param bitmap 输入 Bitmap
-     * @param params 暗角参数
-     * @return 调整后的 Bitmap；参数为默认时返回新拷贝
+     * @param intensity 暗角强度 0.0~1.0
+     * @return 调整后的 Bitmap
+     */
+    suspend fun apply(bitmap: Bitmap, intensity: Float = 0.5f): Bitmap = process(
+        bitmap,
+        VignetteParams(
+            intensity = intensity.coerceIn(0f, 1f),
+            midpoint = 0.5f,
+            feather = 0.5f,
+            roundness = true
+        )
+    )
+
+    /**
+     * 应用暗角到 Bitmap（完整参数）
      */
     suspend fun process(bitmap: Bitmap, params: VignetteParams): Bitmap = withContext(Dispatchers.Default) {
         if (params.isDefault) {
