@@ -26,7 +26,11 @@ import com.livecompose.livecapture.features.compliance.IcpFilingScreen
 import com.livecompose.livecapture.features.compliance.PrivacyPolicyScreen
 import com.livecompose.livecapture.features.compliance.UserAgreementScreen
 import com.livecompose.livecapture.features.onboarding.ShootingGuideScreen
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import com.livecompose.livecapture.core.logger.AppLogger
+import com.livecompose.livecapture.ui.design.DesignSystem
+import com.livecompose.livecapture.ui.design.LiveCaptureTheme
 
 /**
  * 应用主导航 - 单屏拍摄为核心，设置/图库集成到拍摄页面
@@ -34,6 +38,7 @@ import com.livecompose.livecapture.core.logger.AppLogger
  *   - 拍摄为主界面，无底部 Tab
  *   - 图库：拍摄页底部缩略条 + 全屏浮层
  *   - 设置：拍摄页顶部图标 → 底部浮层
+ *   - 拍摄页强制深色模式，对标 iOS CaptureView 的 .preferredColorScheme(.dark)
  */
 @Composable
 fun AppNavigation(windowSizeClass: WindowSizeClass? = null) {
@@ -43,19 +48,22 @@ fun AppNavigation(windowSizeClass: WindowSizeClass? = null) {
     val isExpanded = windowSizeClass?.widthSizeClass == WindowWidthSizeClass.Expanded
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // 主拍摄页面 - 大屏模式下使用更宽的预览区域
-        CaptureScreen(
-            isExpandedScreen = isExpanded,
-            onBack = {},
-            onNavigateToPhotoDetail = { photoId ->
-                navController.navigate("photo_detail/$photoId")
-            },
-            onNavigateToShootingGuide = { navController.navigate("shooting_guide") },
-            onNavigateToPrivacy = { navController.navigate("privacy") },
-            onNavigateToAgreement = { navController.navigate("agreement") },
-            onNavigateToCommunity = { navController.navigate("community") },
-            onNavigateToIcp = { navController.navigate("icp_filing") }
-        )
+        // 主拍摄页面 - 强制深色模式确保相机预览体验，对标 iOS .preferredColorScheme(.dark)
+        // 大屏模式下使用更宽的预览区域
+        LiveCaptureTheme(darkTheme = true) {
+            CaptureScreen(
+                isExpandedScreen = isExpanded,
+                onBack = {},
+                onNavigateToPhotoDetail = { photoId ->
+                    navController.navigate("photo_detail/$photoId")
+                },
+                onNavigateToShootingGuide = { navController.navigate("shooting_guide") },
+                onNavigateToPrivacy = { navController.navigate("privacy") },
+                onNavigateToAgreement = { navController.navigate("agreement") },
+                onNavigateToCommunity = { navController.navigate("community") },
+                onNavigateToIcp = { navController.navigate("icp_filing") }
+            )
+        }
 
         // 导航覆盖层（照片详情/编辑/社区/合规等页面）
         NavHost(
