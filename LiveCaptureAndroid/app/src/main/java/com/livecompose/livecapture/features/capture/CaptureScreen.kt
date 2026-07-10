@@ -191,6 +191,7 @@ fun CaptureScreen(
     val userGuidanceText by viewModel.userGuidanceText.collectAsState()
     val isPipelineEnabled by viewModel.isCompositionPipelineEnabled.collectAsState()
     val isAutoCapture by viewModel.isAutoCaptureEnabled.collectAsState()
+    val captureDelay by viewModel.captureDelay.collectAsState()
     val motionStable by viewModel.motionIsStable.collectAsState()
     val isFrontCamera = camera.isFrontCamera
     val galleryRecords by homeViewModel.records.collectAsState()
@@ -1161,6 +1162,16 @@ fun CaptureScreen(
                 onRawCaptureChange = { rawCaptureEnabled = it },
                 dngCaptureEnabled = dngCaptureEnabled,
                 onDngCaptureChange = { dngCaptureEnabled = it },
+                gridMode = gridMode,
+                onGridModeChange = { gridMode = it },
+                showLevel = showLevel,
+                onShowLevelChange = { showLevel = it },
+                showHistogram = showHistogram,
+                onShowHistogramChange = { showHistogram = it },
+                showZebra = showZebra,
+                onShowZebraChange = { showZebra = it },
+                smartCompositionEnabled = isPipelineEnabled,
+                onSmartCompositionChange = { viewModel.toggleCompositionPipeline() },
                 hyperfocalEnabled = hyperfocalEnabled,
                 onHyperfocalChange = { hyperfocalEnabled = it },
                 burstModeEnabled = burstModeEnabled,
@@ -1181,7 +1192,17 @@ fun CaptureScreen(
                 showFocusPeaking = showFocusPeaking,
                 onFocusPeakingChange = { showFocusPeaking = it },
                 hdrEnabled = hdrEnabled,
-                onHdrChange = { hdrEnabled = it }
+                onHdrChange = { hdrEnabled = it },
+                isBeautyEnabled = isBeautyEnabled,
+                onBeautyEnabledChange = { isBeautyEnabled = it },
+                showPortraitMode = showPortraitMode,
+                onPortraitModeChange = { showPortraitMode = it },
+                autoCaptureEnabled = isAutoCapture,
+                onAutoCaptureChange = { viewModel.toggleAutoCapture() },
+                captureDelay = captureDelay,
+                onCaptureDelayChange = { viewModel.setCaptureDelay(it) },
+                flashMode = flashMode,
+                onFlashModeChange = { camera.setFlashMode(it) }
             )
         }
 
@@ -2303,10 +2324,23 @@ private fun GalleryFullSheet2026(
 @Composable
 private fun SettingsBottomSheet2026(
     onDismiss: () -> Unit,
+    // 拍摄格式
     rawCaptureEnabled: Boolean,
     onRawCaptureChange: (Boolean) -> Unit,
     dngCaptureEnabled: Boolean,
     onDngCaptureChange: (Boolean) -> Unit,
+    // 构图辅助
+    gridMode: Int = 0,
+    onGridModeChange: (Int) -> Unit = {},
+    showLevel: Boolean = false,
+    onShowLevelChange: (Boolean) -> Unit = {},
+    showHistogram: Boolean = false,
+    onShowHistogramChange: (Boolean) -> Unit = {},
+    showZebra: Boolean = false,
+    onShowZebraChange: (Boolean) -> Unit = {},
+    smartCompositionEnabled: Boolean = false,
+    onSmartCompositionChange: (Boolean) -> Unit = {},
+    // 专业功能
     hyperfocalEnabled: Boolean,
     onHyperfocalChange: (Boolean) -> Unit,
     burstModeEnabled: Boolean,
@@ -2324,15 +2358,39 @@ private fun SettingsBottomSheet2026(
     showFocusPeaking: Boolean = false,
     onFocusPeakingChange: (Boolean) -> Unit = {},
     hdrEnabled: Boolean = false,
-    onHdrChange: (Boolean) -> Unit = {}
+    onHdrChange: (Boolean) -> Unit = {},
+    // 美颜
+    isBeautyEnabled: Boolean = true,
+    onBeautyEnabledChange: (Boolean) -> Unit = {},
+    showPortraitMode: Boolean = false,
+    onPortraitModeChange: (Boolean) -> Unit = {},
+    // 通用
+    autoCaptureEnabled: Boolean = true,
+    onAutoCaptureChange: (Boolean) -> Unit = {},
+    captureDelay: Double = 1.0,
+    onCaptureDelayChange: (Double) -> Unit = {},
+    flashMode: FlashMode = FlashMode.OFF,
+    onFlashModeChange: (FlashMode) -> Unit = {}
 ) {
     val context = LocalContext.current
 
-    var autoCaptureEnabled by remember { mutableStateOf(true) }
-    var captureDelay by remember { mutableStateOf(1.0) }
-    var gridMode by remember { mutableIntStateOf(0) }
     var phantomModeEnabled by remember { mutableStateOf(false) }
     var selectedThemeIndex by remember { mutableIntStateOf(0) }
+
+    // 拍摄格式（本地状态）
+    var jpegHeifIndex by remember { mutableIntStateOf(0) }
+    var qualityIndex by remember { mutableIntStateOf(0) }
+
+    // 专业功能（本地状态）
+    var mirrorFrontEnabled by remember { mutableStateOf(false) }
+    var voiceCaptureEnabled by remember { mutableStateOf(false) }
+
+    // 通用（本地状态）
+    var timerEnabled by remember { mutableStateOf(false) }
+    var timerDuration by remember { mutableIntStateOf(3) }
+    var hapticFeedbackEnabled by remember { mutableStateOf(true) }
+    var smartTrackingEnabled by remember { mutableStateOf(false) }
+    var locationTagEnabled by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -2397,10 +2455,45 @@ private fun SettingsBottomSheet2026(
                 }
             }
 
+            SettingsSectionHeader("拍摄格式", Icons.Default.PhotoCamera)
+            SettingsCard {
+                SettingsRow("图片格式", "JPEG 通用兼容 / HEIF 高效压缩", Icons.Default.Image) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf("JPEG", "HEIF").forEachIndexed { index, label ->
+                            FilterChip(
+                                selected = jpegHeifIndex == index,
+                                onClick = { jpegHeifIndex = index },
+                                label = { Text(label, style = DesignSystem.Typography.caption1) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = DesignSystem.Colors.primary.copy(alpha = 0.15f),
+                                    selectedLabelColor = DesignSystem.Colors.primary
+                                )
+                            )
+                        }
+                    }
+                }
+                SettingsDivider()
+                SettingsRow("画质设置", "影响照片文件大小与细节保留", Icons.Default.HighQuality) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf("标准", "高质量", "节省空间").forEachIndexed { index, label ->
+                            FilterChip(
+                                selected = qualityIndex == index,
+                                onClick = { qualityIndex = index },
+                                label = { Text(label, style = DesignSystem.Typography.caption1) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = DesignSystem.Colors.primary.copy(alpha = 0.15f),
+                                    selectedLabelColor = DesignSystem.Colors.primary
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
             SettingsSectionHeader("拍摄设置", Icons.Default.CameraAlt)
             SettingsCard {
                 SettingsSwitchRow("自动拍照", "对准构图框后自动触发拍摄", Icons.Default.Bolt, autoCaptureEnabled) {
-                    autoCaptureEnabled = it
+                    onAutoCaptureChange(it)
                 }
                 SettingsDivider()
                 SettingsRow("拍照延迟", "${"%.1f".format(captureDelay)}秒后触发", Icons.Default.Timer) {
@@ -2408,7 +2501,7 @@ private fun SettingsBottomSheet2026(
                         listOf(0.5, 1.0, 1.5, 2.0).forEach { delay ->
                             FilterChip(
                                 selected = captureDelay == delay,
-                                onClick = { captureDelay = delay },
+                                onClick = { onCaptureDelayChange(delay) },
                                 label = { Text("${"%.1f".format(delay)}秒", style = DesignSystem.Typography.caption1) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = DesignSystem.Colors.primary.copy(alpha = 0.15f),
@@ -2420,14 +2513,14 @@ private fun SettingsBottomSheet2026(
                 }
             }
 
-            SettingsSectionHeader("构图引擎", Icons.Default.AutoAwesome)
+            SettingsSectionHeader("拍摄辅助", Icons.Default.AutoAwesome)
             SettingsCard {
                 SettingsRow("网格线", "辅助构图参考线", Icons.Default.GridOn) {
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         listOf("关闭", "三分法", "黄金分割", "九宫格").forEachIndexed { index, label ->
                             FilterChip(
                                 selected = gridMode == index,
-                                onClick = { gridMode = index },
+                                onClick = { onGridModeChange(index) },
                                 label = { Text(label, style = DesignSystem.Typography.caption2) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = DesignSystem.Colors.primary.copy(alpha = 0.15f),
@@ -2437,6 +2530,14 @@ private fun SettingsBottomSheet2026(
                         }
                     }
                 }
+                SettingsDivider()
+                SettingsSwitchRow("水平仪", "实时显示设备倾斜角度，辅助水平构图", Icons.Default.AlignHorizontalLeft, showLevel) { onShowLevelChange(it) }
+                SettingsDivider()
+                SettingsSwitchRow("直方图", "实时亮度分布直方图，辅助曝光判断", Icons.Default.BarChart, showHistogram) { onShowHistogramChange(it) }
+                SettingsDivider()
+                SettingsSwitchRow("斑马纹", "过曝区域高亮提示，防止高光溢出", Icons.Default.Texture, showZebra) { onShowZebraChange(it) }
+                SettingsDivider()
+                SettingsSwitchRow("智能构图", "AI 实时分析场景，推荐最佳构图方案", Icons.Default.AutoAwesome, smartCompositionEnabled) { onSmartCompositionChange(it) }
             }
 
             SettingsSectionHeader("RAW 处理", Icons.Default.Camera)
@@ -2469,7 +2570,18 @@ private fun SettingsBottomSheet2026(
                 SettingsDivider()
                 SettingsSwitchRow("HDR 模式", "多曝光融合保留高光细节", Icons.Default.HdrOn, hdrEnabled) { onHdrChange(it) }
                 SettingsDivider()
+                SettingsSwitchRow("镜像前置", "前置摄像头拍摄时水平翻转预览画面", Icons.Default.FlipCameraAndroid, mirrorFrontEnabled) { mirrorFrontEnabled = it }
+                SettingsDivider()
+                SettingsSwitchRow("声控拍照", "通过语音指令触发快门拍照", Icons.Default.Mic, voiceCaptureEnabled) { voiceCaptureEnabled = it }
+                SettingsDivider()
                 SettingsSwitchRow("内存监控", "显示当前内存使用量、告警等级和峰值", Icons.Default.Memory, showMemoryMonitor) { onShowMemoryMonitorChange(it) }
+            }
+
+            SettingsSectionHeader("美颜", Icons.Default.Face)
+            SettingsCard {
+                SettingsSwitchRow("美颜开关", "启用 AI 智能美颜，自动优化肤色与肤质", Icons.Default.FaceRetouchingNatural, isBeautyEnabled) { onBeautyEnabledChange(it) }
+                SettingsDivider()
+                SettingsSwitchRow("虚化/人像模式", "背景虚化，突出人像主体", Icons.Default.Portrait, showPortraitMode) { onPortraitModeChange(it) }
             }
 
             SettingsSectionHeader("幻影模式", Icons.Default.Visibility)
@@ -2484,8 +2596,60 @@ private fun SettingsBottomSheet2026(
                 SettingsSwitchRow("视频防抖", "录制时启用电子防抖，减少画面抖动", Icons.Default.Vibration, videoStabilizationEnabled) { onVideoStabilizationChange(it) }
             }
 
+            SettingsSectionHeader("通用设置", Icons.Default.Settings)
+            SettingsCard {
+                SettingsSwitchRow("定时拍摄", "延迟触发快门，方便自拍与合影", Icons.Default.Timer, timerEnabled) { timerEnabled = it }
+                if (timerEnabled) {
+                    SettingsDivider()
+                    SettingsRow("定时时长", "${timerDuration}秒后自动拍摄", Icons.Default.Timer) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            listOf(3, 5, 10).forEach { sec ->
+                                FilterChip(
+                                    selected = timerDuration == sec,
+                                    onClick = { timerDuration = sec },
+                                    label = { Text("${sec}秒", style = DesignSystem.Typography.caption1) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = DesignSystem.Colors.primary.copy(alpha = 0.15f),
+                                        selectedLabelColor = DesignSystem.Colors.primary
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+                SettingsDivider()
+                SettingsSwitchRow("触觉反馈", "操作时触发振动反馈，提升交互确认感", Icons.Default.Vibration, hapticFeedbackEnabled) { hapticFeedbackEnabled = it }
+                SettingsDivider()
+                SettingsSwitchRow("智能追焦", "AI 自动识别并追踪移动主体，保持对焦", Icons.Default.GpsFixed, smartTrackingEnabled) { smartTrackingEnabled = it }
+                SettingsDivider()
+                SettingsSwitchRow("位置标记", "在照片 EXIF 中嵌入 GPS 地理位置信息", Icons.Default.LocationOn, locationTagEnabled) { locationTagEnabled = it }
+                SettingsDivider()
+                SettingsRow("闪光灯", "控制拍摄时闪光灯工作模式", Icons.Default.FlashlightOn) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf(FlashMode.OFF, FlashMode.AUTO, FlashMode.ON, FlashMode.TORCH).forEach { mode ->
+                            FilterChip(
+                                selected = flashMode == mode,
+                                onClick = { onFlashModeChange(mode) },
+                                label = { Text(mode.displayName, style = DesignSystem.Typography.caption1) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = DesignSystem.Colors.primary.copy(alpha = 0.15f),
+                                    selectedLabelColor = DesignSystem.Colors.primary
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
             SettingsSectionHeader("隐私与合规", Icons.Default.Security)
             SettingsCard {
+                SettingsClickRow("权限管理", "查看和管理应用已授权的各项权限", Icons.Default.AdminPanelSettings) {
+                    val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = android.net.Uri.parse("package:${context.packageName}")
+                    }
+                    context.startActivity(intent)
+                }
+                SettingsDivider()
                 ComplianceItem("隐私政策", Icons.Default.PrivacyTip, "privacy")
                 ComplianceItem("用户服务协议", Icons.Default.Description, "agreement")
                 ComplianceItem("个人信息收集清单", Icons.Default.ListAlt, "personal_info")

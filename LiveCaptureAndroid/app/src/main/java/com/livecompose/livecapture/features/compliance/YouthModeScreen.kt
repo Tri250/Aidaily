@@ -27,17 +27,6 @@ import com.livecompose.livecapture.core.compliance.YouthModeManager
 import com.livecompose.livecapture.ui.design.DesignSystem
 import kotlinx.coroutines.launch
 
-// 青少年模式界面统一深色风格（与 ComplianceScreens 对齐）
-private val YouthSurfaceColor = Color(0xFF1C1C1E)
-private val YouthCardColor = Color(0xFF2C2C2E)
-private val YouthDividerColor = Color.White.copy(alpha = 0.08f)
-private val YouthTextPrimary = Color.White
-private val YouthTextSecondary = Color.White.copy(alpha = 0.65f)
-private val YouthTextTertiary = Color.White.copy(alpha = 0.45f)
-private val YouthAccent = Color(0xFF3B82F6)
-private val YouthWarning = Color(0xFFF5B23D)
-private val YouthError = Color(0xFFF05959)
-
 /**
  * 密码弹窗状态
  */
@@ -103,8 +92,8 @@ fun YouthModeScreen(manager: YouthModeManager, onBack: () -> Unit) {
         snackbarHost = {
             SnackbarHost(snackbarHostState) { data ->
                 Snackbar(
-                    containerColor = YouthCardColor,
-                    contentColor = YouthTextPrimary
+                    containerColor = DesignSystem.Colors.gray2(),
+                    contentColor = DesignSystem.Colors.minimalLabel
                 ) {
                     Text(data.visuals.message)
                 }
@@ -112,16 +101,16 @@ fun YouthModeScreen(manager: YouthModeManager, onBack: () -> Unit) {
         },
         topBar = {
             TopAppBar(
-                title = { Text("青少年模式", color = YouthTextPrimary, fontWeight = FontWeight.Bold) },
+                title = { Text("青少年模式", color = DesignSystem.Colors.minimalLabel, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = YouthTextPrimary)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = DesignSystem.Colors.minimalLabel)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = YouthSurfaceColor)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DesignSystem.Colors.gray1())
             )
         },
-        containerColor = YouthSurfaceColor
+        containerColor = DesignSystem.Colors.gray1()
     ) { padding ->
         Column(
             modifier = Modifier
@@ -210,27 +199,27 @@ private fun HeaderCard(isEnabled: Boolean) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(YouthCardColor)
+            .background(DesignSystem.Colors.gray2())
             .padding(20.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = if (isEnabled) Icons.Default.Shield else Icons.Default.ShieldMoon,
                 contentDescription = null,
-                tint = if (isEnabled) YouthAccent else YouthTextSecondary,
+                tint = if (isEnabled) DesignSystem.Colors.primary else DesignSystem.Colors.minimalSecondaryLabel,
                 modifier = Modifier.size(28.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     "青少年模式",
-                    color = YouthTextPrimary,
+                    color = DesignSystem.Colors.minimalLabel,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 18.sp
                 )
                 Text(
                     if (isEnabled) "已开启，正在保护使用时长" else "未开启",
-                    color = YouthTextSecondary,
+                    color = DesignSystem.Colors.minimalSecondaryLabel,
                     fontSize = 13.sp
                 )
             }
@@ -238,7 +227,7 @@ private fun HeaderCard(isEnabled: Boolean) {
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             "开启后将限制每日使用时长、夜间禁用，并过滤社区与分享等不适合青少年的内容。",
-            color = YouthTextTertiary,
+            color = DesignSystem.Colors.minimalTertiaryLabel,
             fontSize = 13.sp,
             lineHeight = 19.sp
         )
@@ -253,14 +242,14 @@ private fun ToggleCard(isEnabled: Boolean, onToggle: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(YouthCardColor)
+            .background(DesignSystem.Colors.gray2())
             .clickable { onToggle() }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             "青少年模式",
-            color = YouthTextPrimary,
+            color = DesignSystem.Colors.minimalLabel,
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1f)
@@ -270,7 +259,7 @@ private fun ToggleCard(isEnabled: Boolean, onToggle: () -> Unit) {
             onCheckedChange = { onToggle() },
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
-                checkedTrackColor = YouthAccent
+                checkedTrackColor = DesignSystem.Colors.primary
             )
         )
     }
@@ -284,26 +273,26 @@ private fun UsageStatsCard(state: com.livecompose.livecapture.core.compliance.Yo
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(YouthCardColor)
+            .background(DesignSystem.Colors.gray2())
             .padding(20.dp)
     ) {
-        Text("今日使用情况", color = YouthTextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        Text("今日使用情况", color = DesignSystem.Colors.minimalLabel, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(16.dp))
         Row {
             Column(modifier = Modifier.weight(1f)) {
-                Text("已使用", color = YouthTextTertiary, fontSize = 12.sp)
+                Text("已使用", color = DesignSystem.Colors.minimalTertiaryLabel, fontSize = 12.sp)
                 Text(
                     state.todayUsageFormatted,
-                    color = YouthTextPrimary,
+                    color = DesignSystem.Colors.minimalLabel,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text("剩余可用", color = YouthTextTertiary, fontSize = 12.sp)
+                Text("剩余可用", color = DesignSystem.Colors.minimalTertiaryLabel, fontSize = 12.sp)
                 Text(
                     state.remainingTimeFormatted,
-                    color = if (state.isDailyLimitExceeded) YouthError else YouthAccent,
+                    color = if (state.isDailyLimitExceeded) DesignSystem.Colors.error else DesignSystem.Colors.primary,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -311,9 +300,9 @@ private fun UsageStatsCard(state: com.livecompose.livecapture.core.compliance.Yo
         }
         Spacer(modifier = Modifier.height(12.dp))
         when {
-            state.isLockedByTimeLimit -> StatusPill(text = "已达时长上限", color = YouthError)
-            state.isLockedByNightBan -> StatusPill(text = "夜间禁用时段", color = YouthWarning)
-            else -> StatusPill(text = "可正常使用", color = YouthAccent)
+            state.isLockedByTimeLimit -> StatusPill(text = "已达时长上限", color = DesignSystem.Colors.error)
+            state.isLockedByNightBan -> StatusPill(text = "夜间禁用时段", color = DesignSystem.Colors.warning)
+            else -> StatusPill(text = "可正常使用", color = DesignSystem.Colors.primary)
         }
     }
 }
@@ -341,29 +330,29 @@ private fun DailyLimitCard(currentMinutes: Int, onSelect: (Int) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(YouthCardColor)
+            .background(DesignSystem.Colors.gray2())
             .padding(20.dp)
     ) {
-        Text("每日使用时长限制", color = YouthTextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        Text("每日使用时长限制", color = DesignSystem.Colors.minimalLabel, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(4.dp))
-        Text("达到上限后将锁定应用", color = YouthTextTertiary, fontSize = 13.sp)
+        Text("达到上限后将锁定应用", color = DesignSystem.Colors.minimalTertiaryLabel, fontSize = 13.sp)
         Spacer(modifier = Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             options.forEach { minutes ->
                 val selected = currentMinutes == minutes
                 Text(
                     text = "$minutes 分钟",
-                    color = if (selected) Color.White else YouthTextSecondary,
+                    color = if (selected) Color.White else DesignSystem.Colors.minimalSecondaryLabel,
                     fontSize = 13.sp,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(if (selected) YouthAccent.copy(alpha = 0.25f) else DesignSystem.Colors.minimalOverlay)
+                        .background(if (selected) DesignSystem.Colors.primary.copy(alpha = 0.25f) else DesignSystem.Colors.minimalOverlay)
                         .border(
                             width = 1.dp,
-                            color = if (selected) YouthAccent else Color.Transparent,
+                            color = if (selected) DesignSystem.Colors.primary else Color.Transparent,
                             shape = RoundedCornerShape(10.dp)
                         )
                         .clickable { onSelect(minutes) }
@@ -392,15 +381,15 @@ private fun NightBanCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(YouthCardColor)
+            .background(DesignSystem.Colors.gray2())
             .padding(20.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("夜间禁用时段", color = YouthTextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text("夜间禁用时段", color = DesignSystem.Colors.minimalLabel, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 Text(
                     if (inBan) "当前处于禁用时段" else "${formatHour(startHour)} - ${formatHour(endHour)} 禁用",
-                    color = if (inBan) YouthWarning else YouthTextTertiary,
+                    color = if (inBan) DesignSystem.Colors.warning else DesignSystem.Colors.minimalTertiaryLabel,
                     fontSize = 13.sp
                 )
             }
@@ -410,7 +399,7 @@ private fun NightBanCard(
             // 起始时间
             Text(
                 text = "开始 ${formatHour(startHour)}",
-                color = YouthTextPrimary,
+                color = DesignSystem.Colors.minimalLabel,
                 fontSize = 13.sp,
                 modifier = Modifier
                     .weight(1f)
@@ -422,7 +411,7 @@ private fun NightBanCard(
             // 结束时间
             Text(
                 text = "结束 ${formatHour(endHour)}",
-                color = YouthTextPrimary,
+                color = DesignSystem.Colors.minimalLabel,
                 fontSize = 13.sp,
                 modifier = Modifier
                     .weight(1f)
@@ -472,7 +461,7 @@ private fun HourPickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title, color = YouthTextPrimary) },
+        title = { Text(title, color = DesignSystem.Colors.minimalLabel) },
         text = {
             Column {
                 options.forEach { h ->
@@ -485,21 +474,21 @@ private fun HourPickerDialog(
                     ) {
                         Text(
                             formatHour(h),
-                            color = if (h == current) YouthAccent else YouthTextPrimary,
+                            color = if (h == current) DesignSystem.Colors.primary else DesignSystem.Colors.minimalLabel,
                             fontWeight = if (h == current) FontWeight.SemiBold else FontWeight.Normal
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         if (h == current) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = YouthAccent)
+                            Icon(Icons.Default.Check, contentDescription = null, tint = DesignSystem.Colors.primary)
                         }
                     }
                 }
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("取消", color = YouthTextSecondary) } },
-        containerColor = YouthCardColor,
-        titleContentColor = YouthTextPrimary
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消", color = DesignSystem.Colors.minimalSecondaryLabel) } },
+        containerColor = DesignSystem.Colors.gray2(),
+        titleContentColor = DesignSystem.Colors.minimalLabel
     )
 }
 
@@ -516,12 +505,12 @@ private fun ContentFilterCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(YouthCardColor)
+            .background(DesignSystem.Colors.gray2())
             .padding(20.dp)
     ) {
-        Text("内容过滤", color = YouthTextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        Text("内容过滤", color = DesignSystem.Colors.minimalLabel, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(4.dp))
-        Text("限制不适合青少年的功能", color = YouthTextTertiary, fontSize = 13.sp)
+        Text("限制不适合青少年的功能", color = DesignSystem.Colors.minimalTertiaryLabel, fontSize = 13.sp)
         Spacer(modifier = Modifier.height(8.dp))
         FilterRow(
             icon = Icons.Default.Group,
@@ -530,7 +519,7 @@ private fun ContentFilterCard(
             checked = communityDisabled,
             onChange = onCommunityChange
         )
-        HorizontalDivider(color = YouthDividerColor, modifier = Modifier.padding(vertical = 4.dp))
+        HorizontalDivider(color = DesignSystem.Colors.minimalOverlay, modifier = Modifier.padding(vertical = 4.dp))
         FilterRow(
             icon = Icons.Default.Share,
             title = "禁用分享功能",
@@ -555,18 +544,18 @@ private fun FilterRow(
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null, tint = YouthTextSecondary, modifier = Modifier.size(22.dp))
+        Icon(icon, contentDescription = null, tint = DesignSystem.Colors.minimalSecondaryLabel, modifier = Modifier.size(22.dp))
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, color = YouthTextPrimary, fontSize = 15.sp)
-            Text(subtitle, color = YouthTextTertiary, fontSize = 12.sp)
+            Text(title, color = DesignSystem.Colors.minimalLabel, fontSize = 15.sp)
+            Text(subtitle, color = DesignSystem.Colors.minimalTertiaryLabel, fontSize = 12.sp)
         }
         Switch(
             checked = checked,
             onCheckedChange = onChange,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
-                checkedTrackColor = YouthAccent
+                checkedTrackColor = DesignSystem.Colors.primary
             )
         )
     }
@@ -580,24 +569,24 @@ private fun PasswordCard(hasPassword: Boolean, onReset: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(YouthCardColor)
+            .background(DesignSystem.Colors.gray2())
             .clickable { onReset() }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(Icons.Default.Lock, contentDescription = null, tint = YouthAccent, modifier = Modifier.size(22.dp))
+        Icon(Icons.Default.Lock, contentDescription = null, tint = DesignSystem.Colors.primary, modifier = Modifier.size(22.dp))
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text("密码保护", color = YouthTextPrimary, fontSize = 15.sp)
+            Text("密码保护", color = DesignSystem.Colors.minimalLabel, fontSize = 15.sp)
             Text(
                 if (hasPassword) "已设置 4 位数字密码" else "未设置密码",
-                color = YouthTextTertiary,
+                color = DesignSystem.Colors.minimalTertiaryLabel,
                 fontSize = 12.sp
             )
         }
         Text(
             if (hasPassword) "修改" else "设置",
-            color = YouthAccent,
+            color = DesignSystem.Colors.primary,
             fontSize = 14.sp
         )
     }
@@ -617,20 +606,20 @@ private fun HistoryCard(manager: YouthModeManager, onClear: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(YouthCardColor)
+            .background(DesignSystem.Colors.gray2())
             .padding(20.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 "最近 7 天使用记录",
-                color = YouthTextPrimary,
+                color = DesignSystem.Colors.minimalLabel,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f)
             )
             Text(
                 "清除",
-                color = YouthError,
+                color = DesignSystem.Colors.error,
                 fontSize = 13.sp,
                 modifier = Modifier.clickable {
                     manager.clearUsageHistory()
@@ -641,7 +630,7 @@ private fun HistoryCard(manager: YouthModeManager, onClear: () -> Unit) {
         }
         Spacer(modifier = Modifier.height(12.dp))
         if (history.isEmpty()) {
-            Text("暂无记录", color = YouthTextTertiary, fontSize = 13.sp, modifier = Modifier.padding(vertical = 8.dp))
+            Text("暂无记录", color = DesignSystem.Colors.minimalTertiaryLabel, fontSize = 13.sp, modifier = Modifier.padding(vertical = 8.dp))
         } else {
             history.forEach { record ->
                 Row(
@@ -650,15 +639,15 @@ private fun HistoryCard(manager: YouthModeManager, onClear: () -> Unit) {
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(record.date, color = YouthTextSecondary, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                    Text(record.date, color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 13.sp, modifier = Modifier.weight(1f))
                     Text(
                         formatUsage(record.seconds),
-                        color = YouthTextPrimary,
+                        color = DesignSystem.Colors.minimalLabel,
                         fontSize = 13.sp,
                         fontFamily = FontFamily.Monospace
                     )
                 }
-                HorizontalDivider(color = YouthDividerColor)
+                HorizontalDivider(color = DesignSystem.Colors.minimalOverlay)
             }
         }
     }
@@ -681,10 +670,10 @@ private fun PasswordVerifyDialog(
     var input by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(purpose, color = YouthTextPrimary) },
+        title = { Text(purpose, color = DesignSystem.Colors.minimalLabel) },
         text = {
             Column {
-                Text("请输入 4 位数字密码", color = YouthTextSecondary, fontSize = 14.sp)
+                Text("请输入 4 位数字密码", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
                     value = input,
@@ -692,11 +681,11 @@ private fun PasswordVerifyDialog(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = YouthTextPrimary,
-                        unfocusedTextColor = YouthTextPrimary,
-                        cursorColor = YouthAccent,
-                        focusedBorderColor = YouthAccent,
-                        unfocusedBorderColor = YouthDividerColor
+                        focusedTextColor = DesignSystem.Colors.minimalLabel,
+                        unfocusedTextColor = DesignSystem.Colors.minimalLabel,
+                        cursorColor = DesignSystem.Colors.primary,
+                        focusedBorderColor = DesignSystem.Colors.primary,
+                        unfocusedBorderColor = DesignSystem.Colors.minimalOverlay
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -705,11 +694,11 @@ private fun PasswordVerifyDialog(
         confirmButton = {
             TextButton(onClick = {
                 if (manager.isValidPasswordFormat(input)) onVerify(input) else onVerify("")
-            }) { Text("确定", color = YouthAccent) }
+            }) { Text("确定", color = DesignSystem.Colors.primary) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("取消", color = YouthTextSecondary) } },
-        containerColor = YouthCardColor,
-        titleContentColor = YouthTextPrimary
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消", color = DesignSystem.Colors.minimalSecondaryLabel) } },
+        containerColor = DesignSystem.Colors.gray2(),
+        titleContentColor = DesignSystem.Colors.minimalLabel
     )
 }
 
@@ -725,15 +714,15 @@ private fun PasswordSetupDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("设置青少年模式密码", color = YouthTextPrimary) },
+        title = { Text("设置青少年模式密码", color = DesignSystem.Colors.minimalLabel) },
         text = {
             Column {
-                Text("请设置 4 位数字密码，用于关闭模式和修改设置", color = YouthTextSecondary, fontSize = 13.sp)
+                Text("请设置 4 位数字密码，用于关闭模式和修改设置", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 13.sp)
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
                     value = input,
                     onValueChange = { if (it.length <= 4 && it.all(Char::isDigit)) input = it },
-                    label = { Text("密码", color = YouthTextSecondary) },
+                    label = { Text("密码", color = DesignSystem.Colors.minimalSecondaryLabel) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                     colors = fieldColors(),
@@ -743,7 +732,7 @@ private fun PasswordSetupDialog(
                 OutlinedTextField(
                     value = confirm,
                     onValueChange = { if (it.length <= 4 && it.all(Char::isDigit)) confirm = it },
-                    label = { Text("确认密码", color = YouthTextSecondary) },
+                    label = { Text("确认密码", color = DesignSystem.Colors.minimalSecondaryLabel) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                     colors = fieldColors(),
@@ -751,7 +740,7 @@ private fun PasswordSetupDialog(
                 )
                 error?.let {
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(it, color = YouthError, fontSize = 12.sp)
+                    Text(it, color = DesignSystem.Colors.error, fontSize = 12.sp)
                 }
             }
         },
@@ -765,21 +754,21 @@ private fun PasswordSetupDialog(
                         onConfirm(input)
                     }
                 }
-            }) { Text("确定", color = YouthAccent) }
+            }) { Text("确定", color = DesignSystem.Colors.primary) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("取消", color = YouthTextSecondary) } },
-        containerColor = YouthCardColor,
-        titleContentColor = YouthTextPrimary
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消", color = DesignSystem.Colors.minimalSecondaryLabel) } },
+        containerColor = DesignSystem.Colors.gray2(),
+        titleContentColor = DesignSystem.Colors.minimalLabel
     )
 }
 
 @Composable
 private fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedTextColor = YouthTextPrimary,
-    unfocusedTextColor = YouthTextPrimary,
-    cursorColor = YouthAccent,
-    focusedBorderColor = YouthAccent,
-    unfocusedBorderColor = YouthDividerColor,
-    focusedLabelColor = YouthAccent,
-    unfocusedLabelColor = YouthTextSecondary
+    focusedTextColor = DesignSystem.Colors.minimalLabel,
+    unfocusedTextColor = DesignSystem.Colors.minimalLabel,
+    cursorColor = DesignSystem.Colors.primary,
+    focusedBorderColor = DesignSystem.Colors.primary,
+    unfocusedBorderColor = DesignSystem.Colors.minimalOverlay,
+    focusedLabelColor = DesignSystem.Colors.primary,
+    unfocusedLabelColor = DesignSystem.Colors.minimalSecondaryLabel
 )

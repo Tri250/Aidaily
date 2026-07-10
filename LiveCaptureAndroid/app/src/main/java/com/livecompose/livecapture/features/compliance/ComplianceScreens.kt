@@ -11,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -28,10 +27,10 @@ fun UserAgreementScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("用户服务协议", color = Color.White, fontWeight = FontWeight.Bold) },
+                title = { Text("用户服务协议", color = DesignSystem.Colors.minimalLabel, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = Color.White)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = DesignSystem.Colors.minimalLabel)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DesignSystem.Colors.gray1())
@@ -65,10 +64,10 @@ fun PrivacyPolicyScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("构妙隐私政策", color = Color.White, fontWeight = FontWeight.Bold) },
+                title = { Text("构妙隐私政策", color = DesignSystem.Colors.minimalLabel, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = Color.White)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = DesignSystem.Colors.minimalLabel)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DesignSystem.Colors.gray1())
@@ -102,10 +101,10 @@ fun ThirdPartySDKScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("第三方SDK清单", color = Color.White, fontWeight = FontWeight.Bold) },
+                title = { Text("第三方SDK清单", color = DesignSystem.Colors.minimalLabel, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = Color.White)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = DesignSystem.Colors.minimalLabel)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DesignSystem.Colors.gray1())
@@ -140,10 +139,10 @@ fun PersonalInfoScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("个人信息收集清单", color = Color.White, fontWeight = FontWeight.Bold) },
+                title = { Text("个人信息收集清单", color = DesignSystem.Colors.minimalLabel, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = Color.White)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = DesignSystem.Colors.minimalLabel)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DesignSystem.Colors.gray1())

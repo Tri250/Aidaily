@@ -22,21 +22,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.livecompose.livecapture.core.compliance.IcpFilingInfo
 import com.livecompose.livecapture.core.logger.AppLogger
-
-// ICP 备案界面深色风格（与 ComplianceScreens 对齐）
-private val IcpSurfaceColor = Color(0xFF1C1C1E)
-private val IcpCardColor = Color(0xFF2C2C2E)
-private val IcpDividerColor = Color.White.copy(alpha = 0.08f)
-private val IcpTextPrimary = Color.White
-private val IcpTextTertiary = Color.White.copy(alpha = 0.45f)
-private val IcpAccent = Color(0xFF3B82F6)
+import com.livecompose.livecapture.ui.design.DesignSystem
 
 /**
  * ICP 备案信息展示界面
@@ -57,16 +49,16 @@ fun IcpFilingScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("ICP 备案", color = IcpTextPrimary, fontWeight = FontWeight.Bold) },
+                title = { Text("ICP 备案", color = DesignSystem.Colors.minimalLabel, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = IcpTextPrimary)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = DesignSystem.Colors.minimalLabel)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = IcpSurfaceColor)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DesignSystem.Colors.gray1())
             )
         },
-        containerColor = IcpSurfaceColor
+        containerColor = DesignSystem.Colors.gray1()
     ) { padding ->
         Column(
             modifier = Modifier
@@ -105,13 +97,13 @@ private fun HeaderSection(isFiled: Boolean) {
             Icon(
                 imageVector = Icons.Default.Shield,
                 contentDescription = null,
-                tint = IcpAccent,
+                tint = DesignSystem.Colors.primary,
                 modifier = Modifier.size(28.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))
             Text(
                 "ICP 备案信息",
-                color = IcpTextPrimary,
+                color = DesignSystem.Colors.minimalLabel,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -120,7 +112,7 @@ private fun HeaderSection(isFiled: Boolean) {
             "根据《中华人民共和国电信条例》和《互联网信息服务管理办法》规定，" +
                 if (isFiled) "本应用已完成 ICP 备案。"
                 else "本应用尚未完成 ICP 备案，请前往工信部备案系统完成备案。",
-            color = IcpTextTertiary,
+            color = DesignSystem.Colors.minimalTertiaryLabel,
             fontSize = 15.sp,
             lineHeight = 22.sp
         )
@@ -135,21 +127,21 @@ private fun FilingInfoCard(info: IcpFilingInfo) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(IcpCardColor)
+            .background(DesignSystem.Colors.gray2())
     ) {
         InfoRow(
             icon = Icons.Default.Apartment,
             title = "主办单位",
             value = info.companyName.ifBlank { "待备案" }
         )
-        HorizontalDivider(color = IcpDividerColor, modifier = Modifier.padding(start = 44.dp))
+        HorizontalDivider(color = DesignSystem.Colors.minimalOverlay, modifier = Modifier.padding(start = 44.dp))
         InfoRow(
             icon = Icons.Default.Badge,
             title = "ICP 备案号",
             value = info.icpNumber.ifBlank { "待备案" }
         )
         if (!info.networkSecurityNumber.isNullOrBlank()) {
-            HorizontalDivider(color = IcpDividerColor, modifier = Modifier.padding(start = 44.dp))
+            HorizontalDivider(color = DesignSystem.Colors.minimalOverlay, modifier = Modifier.padding(start = 44.dp))
             InfoRow(
                 icon = Icons.Default.Lock,
                 title = "网安备案号",
@@ -157,7 +149,7 @@ private fun FilingInfoCard(info: IcpFilingInfo) {
             )
         }
         if (info.auditDate.isNotBlank()) {
-            HorizontalDivider(color = IcpDividerColor, modifier = Modifier.padding(start = 44.dp))
+            HorizontalDivider(color = DesignSystem.Colors.minimalOverlay, modifier = Modifier.padding(start = 44.dp))
             InfoRow(
                 icon = Icons.Default.Public,
                 title = "审核日期",
@@ -182,20 +174,20 @@ private fun InfoRow(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = IcpAccent,
+            tint = DesignSystem.Colors.primary,
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(10.dp))
         Text(
             title,
-            color = IcpTextPrimary,
+            color = DesignSystem.Colors.minimalLabel,
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium
         )
         Spacer(modifier = Modifier.weight(1f))
         Text(
             value,
-            color = IcpTextTertiary,
+            color = DesignSystem.Colors.minimalTertiaryLabel,
             fontSize = 15.sp
         )
     }
@@ -209,7 +201,7 @@ private fun QueryLinkCard(queryUrl: String, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(IcpCardColor)
+            .background(DesignSystem.Colors.gray2())
             .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -217,13 +209,13 @@ private fun QueryLinkCard(queryUrl: String, onClick: () -> Unit) {
         Icon(
             imageVector = Icons.Default.Public,
             contentDescription = null,
-            tint = IcpAccent,
+            tint = DesignSystem.Colors.primary,
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(10.dp))
         Text(
             "前往工信部备案系统查询",
-            color = IcpAccent,
+            color = DesignSystem.Colors.primary,
             fontSize = 17.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1f)
@@ -231,7 +223,7 @@ private fun QueryLinkCard(queryUrl: String, onClick: () -> Unit) {
         Icon(
             imageVector = Icons.Default.ArrowOutward,
             contentDescription = "打开链接",
-            tint = IcpAccent,
+            tint = DesignSystem.Colors.primary,
             modifier = Modifier.size(16.dp)
         )
     }
@@ -257,14 +249,14 @@ private fun ExplanationSection() {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             "什么是 ICP 备案？",
-            color = IcpTextPrimary,
+            color = DesignSystem.Colors.minimalLabel,
             fontSize = 17.sp,
             fontWeight = FontWeight.SemiBold
         )
         Text(
             "ICP 备案（Internet Content Provider 备案）是中国大陆境内提供互联网信息服务的网站和应用的法定要求。" +
                 "所有在中国大陆运营的网站和应用都必须完成 ICP 备案。",
-            color = IcpTextTertiary,
+            color = DesignSystem.Colors.minimalTertiaryLabel,
             fontSize = 15.sp,
             lineHeight = 22.sp
         )

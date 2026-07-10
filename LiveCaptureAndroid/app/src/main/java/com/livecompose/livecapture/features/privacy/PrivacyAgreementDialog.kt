@@ -9,7 +9,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -84,7 +83,7 @@ fun PrivacyAgreementDialog(
         title = {
             Text(
                 text = "构妙 LiveCapture 隐私保护指引",
-                color = Color.White,
+                color = DesignSystem.Colors.minimalLabel,
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
                 textAlign = TextAlign.Center,
@@ -123,7 +122,7 @@ fun PrivacyAgreementDialog(
                 // 权限说明
                 Text(
                     text = "我们将会使用以下权限：",
-                    color = Color.White,
+                    color = DesignSystem.Colors.minimalLabel,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp
                 )
@@ -193,7 +192,7 @@ fun PrivacyAgreementDialog(
                 ) {
                     Text(
                         text = "同意并继续",
-                        color = Color.White,
+                        color = DesignSystem.Colors.minimalLabel,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -230,7 +229,7 @@ private fun FullPrivacyPolicyDialog(onBack: () -> Unit) {
             ) {
                 Text(
                     text = "构妙隐私政策",
-                    color = Color.White,
+                    color = DesignSystem.Colors.minimalLabel,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
