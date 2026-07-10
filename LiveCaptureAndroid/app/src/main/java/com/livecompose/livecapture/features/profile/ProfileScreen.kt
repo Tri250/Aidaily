@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.livecompose.livecapture.BuildConfig
 import com.livecompose.livecapture.di.AppContainer
 import com.livecompose.livecapture.ui.design.DesignSystem
 import com.livecompose.livecapture.core.permission.PermissionManager
@@ -131,7 +132,7 @@ fun ProfileScreen(
                     color = DesignSystem.Colors.textPrimary()
                 )
                 Text(
-                    "v1.1.7",
+                    "v${BuildConfig.VERSION_NAME}",
                     style = DesignSystem.Typography.callout,
                     color = DesignSystem.Colors.textTertiary()
                 )
@@ -216,7 +217,7 @@ private fun ProfileHeaderSection() {
                 Spacer(Modifier.height(DesignSystem.Spacing.xSmall))
 
                 Text(
-                    "构妙",
+                    "秒简相机",
                     style = DesignSystem.Typography.title2,
                     color = DesignSystem.Colors.textPrimary()
                 )

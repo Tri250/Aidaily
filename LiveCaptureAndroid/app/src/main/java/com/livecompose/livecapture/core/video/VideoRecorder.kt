@@ -125,7 +125,7 @@ open class VideoRecorder(private val context: Context) {
 
         // 1. 创建输出文件
         val outputDir = File(context.cacheDir, "videos").apply { mkdirs() }
-        val fileName = "LiveCapture_${System.currentTimeMillis()}.mp4"
+        val fileName = "MiaoJian_${System.currentTimeMillis()}.mp4"
         val outputFile = File(outputDir, fileName)
         if (outputFile.exists()) outputFile.delete()
         outputFilePath = outputFile.absolutePath

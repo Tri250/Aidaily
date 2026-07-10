@@ -1154,8 +1154,8 @@ private fun AIMatchColorButton(
                 .height(48.dp),
             enabled = !isProcessing && hasSourceImage,
             colors = ButtonDefaults.buttonColors(
-                containerColor = DesignSystem.Colors.accentWarm,
-                disabledContainerColor = DesignSystem.Colors.accentWarm.copy(alpha = 0.4f)
+                containerColor = DesignSystem.Colors.primary,
+                disabledContainerColor = DesignSystem.Colors.primary.copy(alpha = 0.4f)
             ),
             shape = RoundedCornerShape(DesignSystem.CornerRadius.medium)
         ) {

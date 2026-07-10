@@ -339,7 +339,7 @@ fun SettingsScreen() {
                 subtitle = "选择照片存储目录"
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    listOf("DCIM", "LiveCapture", "自定义").forEachIndexed { index, label ->
+                    listOf("DCIM", "秒简", "自定义").forEachIndexed { index, label ->
                         FilterChip(
                             selected = saveLocationIndex == index,
                             onClick = { saveLocationIndex = index },
@@ -514,7 +514,7 @@ fun SettingsScreen() {
             SettingsRow(
                 icon = Icons.Default.Info,
                 title = "版本信息",
-                subtitle = "构妙 LiveCapture v${BuildConfig.VERSION_NAME}"
+                subtitle = "秒简相机 v${BuildConfig.VERSION_NAME}"
             )
             SettingsDivider()
             SettingsClickRow(

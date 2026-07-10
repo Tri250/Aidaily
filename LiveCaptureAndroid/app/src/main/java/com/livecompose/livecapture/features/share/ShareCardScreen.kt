@@ -562,7 +562,7 @@ private val XiaohongshuRed = Color(0xFFF03838)
 private fun buildMetadata(record: PhotoRecord?): ShareCardMetadata {
     if (record == null) return ShareCardMetadata()
     return ShareCardMetadata(
-        title = "构妙 · LiveCompose",
+        title = "秒简相机",
         subtitle = null,
         date = record.creationDate,
         detectionMethod = record.detectionMethod,
@@ -586,15 +586,15 @@ private fun bitmapToShareUri(context: android.content.Context, bitmap: Bitmap): 
     }
 }
 
-/** 保存卡片到系统相册 (DCIM/LiveCapture)，返回是否成功 */
+/** 保存卡片到系统相册 (DCIM/MiaoJian)，返回是否成功 */
 private fun saveToGallery(context: android.content.Context, bitmap: Bitmap): Boolean {
-    val filename = "LiveCapture_${System.currentTimeMillis()}.jpg"
+    val filename = "MiaoJian_${System.currentTimeMillis()}.jpg"
     val resolver = context.contentResolver
     val contentValues = ContentValues().apply {
         put(MediaStore.Images.Media.DISPLAY_NAME, filename)
         put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_DCIM + "/LiveCapture")
+            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_DCIM + "/MiaoJian")
             put(MediaStore.Images.Media.IS_PENDING, 1)
         }
     }

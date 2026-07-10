@@ -83,7 +83,7 @@ class ImageExporter(private val contentResolver: ContentResolver) {
         options: ExportOptions,
         onProgress: ExportProgressCallback?
     ): String {
-        val dir = File(Environment.getExternalStorageDirectory(), "LiveCapture").also { it.mkdirs() }
+        val dir = File(Environment.getExternalStorageDirectory(), "MiaoJian").also { it.mkdirs() }
         val file = File(dir, filename)
         onProgress?.onProgress(0.3f, "编码中")
         val bytes = compressBitmap(bitmap, options)
@@ -106,7 +106,7 @@ class ImageExporter(private val contentResolver: ContentResolver) {
             put(MediaStore.Images.Media.DISPLAY_NAME, filename)
             put(MediaStore.Images.Media.MIME_TYPE, options.format.mimeType)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_DCIM + "/LiveCapture")
+                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_DCIM + "/MiaoJian")
                 put(MediaStore.Images.Media.IS_PENDING, 1)
             }
         }

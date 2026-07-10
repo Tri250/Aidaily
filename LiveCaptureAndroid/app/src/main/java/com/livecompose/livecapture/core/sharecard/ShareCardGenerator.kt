@@ -22,7 +22,7 @@ import java.util.Locale
  * 对标 iOS ShareCardGenerator.generate 的入参，包含品牌标题、副标题（作者/署名）、
  * 拍摄日期与 EXIF 拍摄参数，用于在卡片上渲染完整信息。
  *
- * @property title 主标题（品牌名），默认 "构妙 · LiveCompose"
+ * @property title 主标题（品牌名），默认 "秒简相机"
  * @property subtitle 副标题（作者/署名），优先级高于 [date]；为空时回退显示日期
  * @property date 拍摄日期时间戳（毫秒），用于生成中文日期文本
  * @property detectionMethod 构图检测方法
@@ -33,7 +33,7 @@ import java.util.Locale
  * @property imageHeight 图片高度（像素）
  */
 data class ShareCardMetadata(
-    val title: String = "构妙 · LiveCompose",
+    val title: String = "秒简相机",
     val subtitle: String? = null,
     val date: Long? = null,
     val detectionMethod: String? = null,
@@ -268,16 +268,16 @@ object ShareCardGenerator {
         // 顶部红色横条
         fillRect(canvas, RectF(0f, 0f, CARD_WIDTH.toFloat(), 8f), style.accentColor)
 
-        // 页眉 "构妙"（Georgia 风格衬线粗体）
+        // 页眉 "秒简"（Georgia 风格衬线粗体）
         val headerTf = Typeface.create(Typeface.SERIF, Typeface.BOLD)
-        val headerText = "构妙"
+        val headerText = "秒简"
         val headerPaint = textPaint(48f, style.titleColor, typeface = headerTf)
         val headerWidth = headerPaint.measureText(headerText)
         drawTextAtTopLeft(canvas, headerText, (CARD_WIDTH - headerWidth) / 2f, 40f, headerPaint)
         val headerHeight = headerPaint.fontMetrics.descent - headerPaint.fontMetrics.ascent
 
-        // 副标题 "LIVECAPTURE"，字距加宽
-        val subText = "LIVECAPTURE"
+        // 副标题 "MIAOJIAN"，字距加宽
+        val subText = "MIAOJIAN"
         val subPaint = textPaint(16f, style.subtitleColor).apply { letterSpacing = 0.25f /* ≈ 4px @ 16sp */ }
         val subWidth = subPaint.measureText(subText)
         drawTextAtTopLeft(canvas, subText, (CARD_WIDTH - subWidth) / 2f, 40f + headerHeight + 4f, subPaint)

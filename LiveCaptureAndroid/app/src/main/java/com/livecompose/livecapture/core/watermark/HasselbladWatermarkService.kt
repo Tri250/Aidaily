@@ -28,7 +28,7 @@ class HasselbladWatermarkService {
     }
 
     data class WatermarkConfig(
-        val cameraModel: String = "LiveCapture",
+        val cameraModel: String = "MiaoJian",
         val hasselbladBranding: String = " | Hasselblad",
         val focalLength: String = "24mm",
         val aperture: String = "f/1.8",
@@ -154,7 +154,7 @@ class HasselbladWatermarkService {
             isAntiAlias = true
             textAlign = Align.LEFT
         }
-        canvas.drawText("Shot on LiveCapture", brandX, logoY + barHeight * 0.22f, modelPaint)
+        canvas.drawText("Shot on MiaoJian", brandX, logoY + barHeight * 0.22f, modelPaint)
     }
 
     private fun drawBottomBarText(

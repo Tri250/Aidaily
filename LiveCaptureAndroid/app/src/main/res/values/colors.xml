@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-        构妙 LiveCapture 统一色板 - 魅族 Flyme 极简风格
-        品牌色：低饱和典雅蓝灰 #5B7FA5
+        秒简相机 统一色板 - 魅族 Flyme 极简风格
+        品牌色：秒简青绿 #00E676
         对标哈苏/徕卡的高端摄影应用设计语言
     -->
 
-    <!-- 品牌色 - 典雅蓝灰 -->
-    <color name="primary">#FF5B7FA5</color>
-    <color name="primary_light">#FF8FADC4</color>
-    <color name="primary_variant">#FF4A6B8A</color>
-    <color name="secondary">#FF7B8FA0</color>
-    <color name="accent">#FFC49B6C</color>
+    <!-- 品牌色 - 秒简青绿：参考秒简相机沉浸黑底与鲜活强调色 -->
+    <color name="primary">#FF00E676</color>
+    <color name="primary_light">#FF69F0AE</color>
+    <color name="primary_variant">#FF00C853</color>
+    <color name="secondary">#FF00BFA5</color>
+    <color name="accent">#FF00E5FF</color>
 
     <!-- 语义色 - 低饱和克制 -->
-    <color name="success">#FF5DA87A</color>
-    <color name="success_bg">#1F5DA87A</color>
-    <color name="warning">#FFD4A04A</color>
-    <color name="warning_bg">#1FD4A04A</color>
-    <color name="error">#FFC86666</color>
-    <color name="error_bg">#1FC86666</color>
-    <color name="info">#FF6BA3C7</color>
+    <color name="success">#FF00E676</color>
+    <color name="success_bg">#1F00E676</color>
+    <color name="warning">#FFFFB300</color>
+    <color name="warning_bg">#1FFFB300</color>
+    <color name="error">#FFFF5252</color>
+    <color name="error_bg">#1FFF5252</color>
+    <color name="info">#FF00E5FF</color>
 
     <!-- 中性色阶（浅色模式）- 对标 Flyme 灰度系统 -->
     <color name="gray0">#FFF8F8F7</color>
@@ -48,7 +48,7 @@
 
     <!-- 相机 UI（极简模式，纯黑背景） -->
     <color name="camera_overlay">#0DFFFFFF</color>
-    <color name="focus_ring">#FF5B7FA5</color>
+    <color name="focus_ring">#FF00E676</color>
     <color name="grid_line">#1FFFFFFF</color>
     <color name="minimal_background">#FF1A1A1A</color>
     <color name="minimal_overlay">#0DFFFFFF</color>

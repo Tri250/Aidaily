@@ -64,7 +64,7 @@ fun PrivacyPolicyScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("构妙隐私政策", color = DesignSystem.Colors.minimalLabel, fontWeight = FontWeight.Bold) },
+                title = { Text("秒简相机隐私政策", color = DesignSystem.Colors.minimalLabel, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = DesignSystem.Colors.minimalLabel)
@@ -173,11 +173,11 @@ private fun buildAgreementText(): String = """
 更新日期：2026年7月1日
 生效日期：2026年7月8日
 
-欢迎使用"构妙 LiveCapture"（以下简称"本应用"或"构妙"）。
+欢迎使用"秒简相机"（以下简称"本应用"或"秒简"）。
 
 一、服务说明
 
-1.1 构妙是一款基于端侧AI的智能构图辅助拍摄应用，提供实时构图指导、智能拍摄、照片编辑、LUT色彩预设等功能。
+1.1 秒简相机是一款基于端侧AI的智能构图辅助拍摄应用，提供实时构图指导、智能拍摄、照片编辑、LUT色彩预设等功能。
 
 1.2 本应用所有图像处理功能均在本地设备上运行，不会将您的照片上传至任何远程服务器。
 
@@ -227,12 +227,12 @@ private fun buildAgreementText(): String = """
 """.trimIndent()
 
 private fun buildPrivacyPolicyText(): String = """
-构妙隐私政策
+秒简相机隐私政策
 
 更新日期：2026年7月1日
 生效日期：2026年7月8日
 
-构妙（以下简称"我们"）深知个人信息对您的重要性，我们将按照法律法规的规定，保护您的个人信息及隐私安全。
+秒简相机（以下简称"我们"）深知个人信息对您的重要性，我们将按照法律法规的规定，保护您的个人信息及隐私安全。
 
 一、我们如何收集和使用您的个人信息
 
@@ -302,7 +302,7 @@ private fun buildPrivacyPolicyText(): String = """
 
 八、ICP备案信息
 
-应用名称：构妙 LiveCapture
+应用名称：秒简相机
 ICP备案号：待备案（请前往工信部ICP备案系统完成备案）
 """.trimIndent()
 

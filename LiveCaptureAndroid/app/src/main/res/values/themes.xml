@@ -5,7 +5,7 @@
         使用 Material NoActionBar 作为基础，Compose 自行管理 UI
         支持 Android 8.0+ (API 26+)
     -->
-    <style name="Theme.LiveCapture" parent="android:Theme.Material.NoActionBar">
+    <style name="Theme.MiaoJian" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/black</item>
         <item name="android:navigationBarColor">@android:color/black</item>
         <item name="android:windowBackground">@android:color/black</item>

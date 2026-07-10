@@ -35,7 +35,7 @@ class ComplianceScreensTest {
     fun `privacyPolicyText contains app name`() {
         // 测试隐私政策包含应用名称
         val text = callPrivateString("buildPrivacyPolicyText")
-        assertTrue("应包含"构妙"", text.contains("构妙"))
+        assertTrue("应包含"秒简"", text.contains("秒简"))
     }
 
     @Test
@@ -69,7 +69,7 @@ class ComplianceScreensTest {
     fun `userAgreementText contains app name`() {
         // 测试用户协议包含应用名称
         val text = callPrivateString("buildAgreementText")
-        assertTrue("应包含"构妙"", text.contains("构妙"))
+        assertTrue("应包含"秒简"", text.contains("秒简"))
     }
 
     @Test

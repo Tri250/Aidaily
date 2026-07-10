@@ -467,7 +467,7 @@ internal fun SettingsBottomSheet2026(
 
             SettingsSectionHeader("关于", Icons.Default.Info)
             SettingsCard {
-                SettingsRow("版本信息", "构妙 LiveCapture v1.1.7", Icons.Default.Info)
+                SettingsRow("版本信息", "秒简相机 v1.2.1", Icons.Default.Info)
                 SettingsDivider()
                 SettingsClickRow("ICP备案号", "待备案", Icons.Default.VerifiedUser) {
                     val intent = android.content.Intent(context, com.livecompose.livecapture.features.compliance.ComplianceHostActivity::class.java).apply {

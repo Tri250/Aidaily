@@ -221,7 +221,7 @@ sealed class AppError(open val message: String) {
             else "权限被拒绝：$permission"
 
         override val recoverySuggestion: String =
-            "请在「设置」>「应用管理」>「LiveCapture」>「权限」中开启相应权限"
+            "请在「设置」>「应用管理」>「秒简相机」>「权限」中开启相应权限"
     }
 
     // MARK: - 未知错误
