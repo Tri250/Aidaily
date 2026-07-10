@@ -91,6 +91,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import com.livecompose.livecapture.utilities.HapticManager
 import com.livecompose.livecapture.features.profile.ProfileScreen
+import com.livecompose.livecapture.MainActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -109,6 +110,7 @@ fun CaptureScreen(
     onNavigateToAgreement: (() -> Unit)? = null,
     onNavigateToCommunity: (() -> Unit)? = null,
     onNavigateToIcp: (() -> Unit)? = null,
+    isExpandedScreen: Boolean = false,
     viewModel: CaptureViewModel = viewModel(),
     homeViewModel: HomeViewModel = viewModel()
 ) {
@@ -219,6 +221,9 @@ fun CaptureScreen(
     var multiExposureFrameCount by remember { mutableIntStateOf(0) }
     var multiExposureBitmaps by remember { mutableStateOf<List<android.graphics.Bitmap>>(emptyList()) }
     var hdrEnabled by remember { mutableStateOf(false) }
+    var livePhotoEnabled by remember { mutableStateOf(false) }
+    var oneHandMode by remember { mutableStateOf(false) }
+    var leftHandMode by remember { mutableStateOf(false) }
     val quickShotManager = remember { QuickShotManager() }
     val multipleExposure = remember { MultipleExposure() }
     val dngCaptureManager = remember { DngCaptureManager(context) }
@@ -393,7 +398,15 @@ fun CaptureScreen(
     }
 
     DisposableEffect(Unit) {
+        // 注册音量键快门回调
+        MainActivity.onVolumeKeyCapture = {
+            scope.launch {
+                HapticManager.light()
+                viewModel.capturePhoto()
+            }
+        }
         onDispose {
+            MainActivity.onVolumeKeyCapture = null
             viewModel.onDisappear()
             try {
                 videoViewModel.stabilizer.stopStabilization()
@@ -432,7 +445,7 @@ fun CaptureScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .padding(
-                    horizontal = DesignSystem.Dimensions.previewMarginHorizontal,
+                    horizontal = if (isExpandedScreen) 48.dp else DesignSystem.Dimensions.previewMarginHorizontal,
                     vertical = DesignSystem.Dimensions.previewMarginTop
                 )
         ) {
@@ -1113,9 +1126,18 @@ fun CaptureScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(if (oneHandMode) 24.dp else 8.dp))
 
             // 快门控制行（缩略图 | 快门 | AI构图）
+            // 左手模式：水平翻转整个控制区
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (leftHandMode) Modifier.graphicsLayer { scaleX = -1f }
+                        else Modifier
+                    )
+            ) {
             ShutterControlRow(
                 galleryRecords = galleryRecords,
                 isAligned = isAligned,
@@ -1249,6 +1271,18 @@ fun CaptureScreen(
                                 viewModel.capturePhoto()
                                 // 显示拍照反馈
                                 Toast.makeText(context, "拍照完成", Toast.LENGTH_SHORT).show()
+                                // Live Photo: 拍摄后录制1.5秒动态短片
+                                if (livePhotoEnabled && selectedMode == CaptureMode.PHOTO) {
+                                    kotlinx.coroutines.delay(200)
+                                    try {
+                                        videoViewModel.startRecording()
+                                        kotlinx.coroutines.delay(1500)
+                                        videoViewModel.stopRecording()
+                                        Toast.makeText(context, "Live Photo 已保存", Toast.LENGTH_SHORT).show()
+                                    } catch (e: Exception) {
+                                        // Live Photo 录制失败不影响主拍照流程
+                                    }
+                                }
                                 // 连拍模式：连续拍摄3张
                                 if (burstModeEnabled) {
                                     repeat(3) { i ->
@@ -1296,6 +1330,7 @@ fun CaptureScreen(
                 isRecording = videoRecordingState.isRecording,
                 isVideoMode = selectedMode == CaptureMode.VIDEO || selectedMode == CaptureMode.TIMELAPSE // [v1.1.7] 延时模式也使用视频快门
             )
+            } // 关闭左手模式 Box
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -1312,7 +1347,9 @@ fun CaptureScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.navigationBarsPadding())
+            Spacer(modifier = Modifier.navigationBarsPadding().then(
+                if (oneHandMode) Modifier.padding(bottom = 24.dp) else Modifier
+            ))
         }
 
         // === 全屏覆盖层 ===
@@ -2841,6 +2878,12 @@ private fun SettingsBottomSheet2026(
                 }
                 SettingsDivider()
                 SettingsSwitchRow("HDR 模式", "多曝光融合保留高光细节", Icons.Default.HdrOn, hdrEnabled) { onHdrChange(it) }
+                SettingsDivider()
+                SettingsSwitchRow("Live Photo", "拍摄时同时记录1.5秒动态短片，让照片活起来", Icons.Default.MotionPhotosOn, livePhotoEnabled) { livePhotoEnabled = it }
+                SettingsDivider()
+                SettingsSwitchRow("单手模式", "将核心控件下移，适配大屏单手操作，方便拇指触达", Icons.Default.PanTool, oneHandMode) { oneHandMode = it }
+                SettingsDivider()
+                SettingsSwitchRow("左手模式", "镜像翻转控制栏布局，适配左手持机习惯", Icons.Default.SwipeLeft, leftHandMode) { leftHandMode = it }
                 SettingsDivider()
                 SettingsSwitchRow("镜像前置", "前置摄像头拍摄时水平翻转预览画面", Icons.Default.FlipCameraAndroid, mirrorFrontEnabled) { mirrorFrontEnabled = it }
                 SettingsDivider()

@@ -2,6 +2,8 @@ package com.livecompose.livecapture.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -24,6 +26,7 @@ import com.livecompose.livecapture.features.compliance.IcpFilingScreen
 import com.livecompose.livecapture.features.compliance.PrivacyPolicyScreen
 import com.livecompose.livecapture.features.compliance.UserAgreementScreen
 import com.livecompose.livecapture.features.onboarding.ShootingGuideScreen
+import com.livecompose.livecapture.core.logger.AppLogger
 
 /**
  * 应用主导航 - 单屏拍摄为核心，设置/图库集成到拍摄页面
@@ -33,12 +36,16 @@ import com.livecompose.livecapture.features.onboarding.ShootingGuideScreen
  *   - 设置：拍摄页顶部图标 → 底部浮层
  */
 @Composable
-fun AppNavigation() {
+fun AppNavigation(windowSizeClass: WindowSizeClass? = null) {
     val navController = rememberNavController()
 
+    // 大屏/折叠屏适配：根据窗口尺寸调整预览区域比例
+    val isExpanded = windowSizeClass?.widthSizeClass == WindowWidthSizeClass.Expanded
+
     Box(modifier = Modifier.fillMaxSize()) {
-        // 主拍摄页面
+        // 主拍摄页面 - 大屏模式下使用更宽的预览区域
         CaptureScreen(
+            isExpandedScreen = isExpanded,
             onBack = {},
             onNavigateToPhotoDetail = { photoId ->
                 navController.navigate("photo_detail/$photoId")

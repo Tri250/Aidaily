@@ -114,6 +114,19 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
     val isSwitchingCamera = MutableStateFlow(false)
     val isCompositionPipelineEnabled = MutableStateFlow(false)
 
+    // Live Photo 状态
+    private val _livePhotoEnabled = MutableStateFlow(false)
+    val livePhotoEnabled: StateFlow<Boolean> = _livePhotoEnabled.asStateFlow()
+
+    fun toggleLivePhoto() {
+        _livePhotoEnabled.value = !_livePhotoEnabled.value
+        if (_livePhotoEnabled.value) {
+            HapticManager.success()
+        } else {
+            HapticManager.light()
+        }
+    }
+
     private val _photoCaptureResult = MutableStateFlow<PhotoCaptureResult?>(null)
     val photoCaptureResult: StateFlow<PhotoCaptureResult?> = _photoCaptureResult.asStateFlow()
 

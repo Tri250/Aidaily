@@ -1,9 +1,11 @@
 package com.livecompose.livecapture
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.Choreographer
+import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -12,6 +14,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import com.livecompose.livecapture.core.logger.AppLogger
 import com.livecompose.livecapture.core.phantom.PhantomController
 import com.livecompose.livecapture.features.privacy.PrivacyAgreementDialog
@@ -26,6 +30,8 @@ import com.livecompose.livecapture.ui.design.LiveCaptureTheme
  * - 挖孔屏/刘海屏/灵动岛
  * - 折叠屏窗口变化
  * - 系统相机快捷入口
+ * - 音量键快门
+ * - 预测性返回手势
  */
 class MainActivity : ComponentActivity() {
 
@@ -33,6 +39,9 @@ class MainActivity : ComponentActivity() {
         private const val TAG = "MainActivity"
         const val ACTION_QUICK_CAPTURE = "com.livecompose.livecapture.QUICK_CAPTURE"
         const val ACTION_CAMERA_SHORTCUT = "android.media.action.STILL_IMAGE_CAMERA"
+
+        /** 音量键快门回调，由 CaptureScreen 注册 */
+        var onVolumeKeyCapture: (() -> Unit)? = null
     }
 
     /** 是否需要弹出幻影模式权限请求（来自磁贴点击的 Intent extra） */
@@ -151,11 +160,32 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    /**
+     * 音量键快门：按下音量键时触发拍照
+     * 适配 OPPO Find X9 等旗舰机的实体快门体验
+     */
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        return when (keyCode) {
+            KeyEvent.KEYCODE_VOLUME_DOWN,
+            KeyEvent.KEYCODE_VOLUME_UP -> {
+                val callback = onVolumeKeyCapture
+                if (callback != null) {
+                    callback()
+                    true
+                } else {
+                    super.onKeyDown(keyCode, event)
+                }
+            }
+            else -> super.onKeyDown(keyCode, event)
+        }
+    }
 }
 
 /**
  * 主屏幕：隐私协议 → 主界面
  */
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 private fun MainScreen(showGhostPermissions: Boolean = false) {
     var privacyAgreed by remember { mutableStateOf(false) }
@@ -163,6 +193,7 @@ private fun MainScreen(showGhostPermissions: Boolean = false) {
     var pendingGhostPermissions by remember { mutableStateOf(showGhostPermissions) }
 
     val context = LocalContext.current
+    val windowSizeClass = calculateWindowSizeClass(context as Activity)
 
     // 幻影模式权限请求 Launcher
     val ghostPermissionLauncher = rememberLauncherForActivityResult(
@@ -213,7 +244,7 @@ private fun MainScreen(showGhostPermissions: Boolean = false) {
         }
         else -> {
             LiveCaptureTheme {
-                AppNavigation()
+                AppNavigation(windowSizeClass = windowSizeClass)
             }
         }
     }
