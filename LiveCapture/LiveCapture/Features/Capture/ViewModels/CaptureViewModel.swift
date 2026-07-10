@@ -180,7 +180,7 @@ final class CaptureViewModel: ObservableObject {
 	private let motion = MotionStabilityMonitor()
 	private let detector: CropDetectionStrategy
 	private let boxCenterManager = BoxCenterManager()
-	private let intelligenceEngine = SceneIntelligenceEngine()
+	private(set) var intelligenceEngine = SceneIntelligenceEngine()
 
 	// MARK: - Published State
 	

@@ -203,6 +203,13 @@ struct CaptureView: View {
 							.transition(.move(edge: .top).combined(with: .opacity))
 					}
 
+					// AI 场景识别状态浮层
+					if viewModel.isAIEngineActive && !isImmersiveMode && showControls {
+						aiSceneIndicator
+							.padding(.top, 6)
+							.transition(.scale.combined(with: .opacity))
+					}
+
 					Spacer()
 
 					// 变焦指示器
@@ -461,6 +468,13 @@ struct CaptureView: View {
 				action: { cycleCompositionGuide() }
 			)
 
+			// AI 场景引擎
+			controlButton(
+				icon: viewModel.isAIEngineActive ? "brain.head.profile.fill" : "brain.head.profile",
+				isActive: viewModel.isAIEngineActive,
+				action: { viewModel.toggleAIEngine() }
+			)
+
 			Spacer()
 
 			// 水平仪
@@ -492,18 +506,25 @@ struct CaptureView: View {
 	}
 
 	@ViewBuilder
-	private func controlButton(icon: String, action: @escaping () -> Void) -> some View {
+	private func controlButton(icon: String, isActive: Bool = false, action: @escaping () -> Void) -> some View {
 		Button {
 			HapticManager.shared.light()
 			action()
 		} label: {
 			Image(systemName: icon)
 				.font(.system(size: 16, weight: .medium))
-				.foregroundColor(DesignSystem.Colors.minimalLabel)
+				.foregroundColor(isActive ? DesignSystem.Colors.primary : DesignSystem.Colors.minimalLabel)
 				.frame(width: 36, height: 36)
 				.background(
 					Circle()
-						.fill(DesignSystem.Colors.minimalDarkOverlay)
+						.fill(isActive ? DesignSystem.Colors.primary.opacity(0.2) : DesignSystem.Colors.minimalDarkOverlay)
+				)
+				.overlay(
+					Circle()
+						.strokeBorder(
+							isActive ? DesignSystem.Colors.primary.opacity(0.5) : Color.clear,
+							lineWidth: 1.5
+						)
 				)
 		}
 	}
@@ -655,6 +676,38 @@ struct CaptureView: View {
 			}
 		}
 		.allowsHitTesting(false)
+	}
+
+	// MARK: - AI Scene Indicator
+
+	private var aiSceneIndicator: some View {
+		HStack(spacing: 6) {
+			Image(systemName: viewModel.intelligenceEngine.currentScene.iconName)
+				.font(.system(size: 13, weight: .semibold))
+				.foregroundColor(DesignSystem.Colors.primary)
+
+			Text(viewModel.currentSceneName)
+				.font(.system(size: 13, weight: .medium, design: .rounded))
+				.foregroundColor(.white)
+
+			if !viewModel.aiSuggestedLens.isEmpty {
+				Text("·")
+					.foregroundColor(DesignSystem.Colors.minimalSecondaryLabel)
+				Text(viewModel.aiSuggestedZoom == 1.0 ? "1×" : String(format: "%.1f×", viewModel.aiSuggestedZoom))
+					.font(.system(size: 12, weight: .medium, design: .monospaced))
+					.foregroundColor(DesignSystem.Colors.primary)
+			}
+		}
+		.padding(.horizontal, 12)
+		.padding(.vertical, 6)
+		.background(
+			Capsule()
+				.fill(DesignSystem.Colors.minimalDarkOverlay)
+		)
+		.overlay(
+			Capsule()
+				.strokeBorder(DesignSystem.Colors.primary.opacity(0.3), lineWidth: 1)
+		)
 	}
 
 	// MARK: - Zoom Indicator

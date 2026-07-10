@@ -98,6 +98,12 @@ struct DebugPanel: View {
 	let focalLengthText: String
 	let isAligned: Bool
 	let onClose: () -> Void
+
+	// AI 引擎状态
+	var isAIEngineActive: Bool = false
+	var currentSceneName: String = ""
+	var aiSuggestedLens: String = ""
+	var aiSuggestedZoom: CGFloat = 1.0
 	
 	var body: some View {
 		VStack(spacing: 0) {
@@ -241,6 +247,39 @@ struct DebugPanel: View {
 						valueColor: isAligned ? DesignSystem.Colors.success : .white,
 						iconColor: isAligned ? DesignSystem.Colors.success : .gray
 					)
+				}
+
+				Divider()
+					.background(Color.white.opacity(0.1))
+
+				// AI 引擎信息
+				Group {
+					debugInfoRow(
+						icon: isAIEngineActive ? "brain.head.profile.fill" : "brain.head.profile",
+						title: "AI 引擎",
+						value: isAIEngineActive ? "已激活" : "未激活",
+						valueColor: isAIEngineActive ? DesignSystem.Colors.success : .gray,
+						iconColor: isAIEngineActive ? DesignSystem.Colors.primary : .gray
+					)
+
+					if isAIEngineActive {
+						debugInfoRow(
+							icon: "camera.fill",
+							title: "场景识别",
+							value: currentSceneName.isEmpty ? "分析中..." : currentSceneName,
+							valueColor: .white,
+							iconColor: DesignSystem.Colors.secondary
+						)
+
+						if !aiSuggestedLens.isEmpty {
+							debugInfoRow(
+								icon: "camera.aperture",
+								title: "建议镜头",
+								value: "\(aiSuggestedLens) / \(String(format: "%.1f×", aiSuggestedZoom))",
+								iconColor: DesignSystem.Colors.info
+							)
+						}
+					}
 				}
 			}
 			.padding(20)
