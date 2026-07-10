@@ -129,6 +129,7 @@ fun CaptureScreen(
     var showGallerySheet by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showProfileSheet by remember { mutableStateOf(false) }
+    var showDebugPanel by remember { mutableStateOf(false) }
 
     // [v1.1.7] 拍照后即时预览 - 由 ViewModel 驱动
     val reviewPhotoData by viewModel.reviewPhotoData.collectAsState()
@@ -549,6 +550,16 @@ fun CaptureScreen(
                     )
                 }
 
+                // 用户引导视图 - 对标 iOS UserGuidanceView
+                if (userGuidanceText.isNotEmpty() && cameraError == null) {
+                    UserGuidanceView(
+                        guidanceText = userGuidanceText,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 44.dp)
+                    )
+                }
+
                 // 水平仪
                 if (showLevel && cameraError == null) {
                     RedesignedLevelIndicator(tiltX = 0f, tiltY = 0f)
@@ -595,6 +606,42 @@ fun CaptureScreen(
                                 .padding(horizontal = 12.dp, vertical = 4.dp)
                         ) {
                             Text("稳定", style = DesignSystem.Typography.caption1, color = Color.White)
+                        }
+                    }
+                }
+
+                // 美学评分显示 - 对标 iOS NIMA/GAIC 双评分器
+                if (compositionScore != null && cameraError == null) {
+                    val score = compositionScore!!
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 8.dp, end = 8.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.Black.copy(alpha = 0.55f))
+                            .border(1.dp, when {
+                                score.overall >= 80 -> DesignSystem.Colors.success.copy(alpha = 0.5f)
+                                score.overall >= 60 -> DesignSystem.Colors.warning.copy(alpha = 0.5f)
+                                else -> DesignSystem.Colors.error.copy(alpha = 0.5f)
+                            }, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Column {
+                            Text(
+                                "${score.overall}",
+                                style = DesignSystem.Typography.title3,
+                                fontWeight = FontWeight.Bold,
+                                color = when {
+                                    score.overall >= 80 -> DesignSystem.Colors.success
+                                    score.overall >= 60 -> DesignSystem.Colors.warning
+                                    else -> DesignSystem.Colors.error
+                                }
+                            )
+                            Text(
+                                "构图评分",
+                                style = DesignSystem.Typography.betaBadge,
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
                         }
                     }
                 }
@@ -1052,7 +1099,7 @@ fun CaptureScreen(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // 功能图标行（Beta / 构图框 / 魔法棒 / 比例 / 翻转）
+            // 功能图标行（Beta / 构图框 / 魔法棒 / 比例 / 翻转 / 调试）
             ToolIconRow(
                 isGridEnabled = isGridEnabled,
                 onToggleGrid = {
@@ -1115,6 +1162,10 @@ fun CaptureScreen(
                             }
                         }
                     }
+                    interactionCounter++
+                },
+                onToggleDebug = {
+                    showDebugPanel = !showDebugPanel
                     interactionCounter++
                 }
             )
@@ -1397,6 +1448,32 @@ fun CaptureScreen(
         }
 
         // === 全屏覆盖层 ===
+
+        // 调试面板 - 对标 iOS DebugPanel
+        AnimatedVisibility(
+            visible = showDebugPanel,
+            enter = fadeIn(tween(250)) + slideInVertically(initialOffsetY = { -it / 3 }, animationSpec = tween(300, easing = FastOutSlowInEasing)),
+            exit = fadeOut(tween(200)) + slideOutVertically(targetOffsetY = { -it / 3 }, animationSpec = tween(200))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(top = 8.dp)
+            ) {
+                DebugPanel(
+                    debugMessage = viewModel.userGuidanceText.collectAsState().value,
+                    motionIsStable = isMotionStable,
+                    boxCenterInView = boxCenter,
+                    distanceToCenter = viewModel.distanceToCenter.collectAsState().value,
+                    detectionReady = viewModel.isCompositionPipelineEnabled.collectAsState().value,
+                    zoomDisplayText = zoomState.currentFactor.let { if (it < 1.0f) "${"%.1f".format(it)}x" else "${it.toInt()}x" },
+                    focalLengthText = "${(zoomState.currentFactor * 26).toInt()}mm",
+                    isAligned = isAligned,
+                    onClose = { showDebugPanel = false }
+                )
+            }
+        }
 
         // 拍照闪光
         AnimatedVisibility(
@@ -1833,7 +1910,8 @@ private fun ToolIconRow(
     onToggleRatio: () -> Unit,
     onToggleCamera: () -> Unit,
     onMagicWandClick: () -> Unit = {},
-    onBetaClick: () -> Unit = {}
+    onBetaClick: () -> Unit = {},
+    onToggleDebug: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -1878,6 +1956,13 @@ private fun ToolIconRow(
             icon = Icons.Default.FlipCameraAndroid,
             contentDescription = "切换前后摄像头",
             onClick = onToggleCamera
+        )
+
+        // 调试面板 - 对标 iOS TopControlBar 调试开关
+        ToolIconItem(
+            icon = Icons.Default.BugReport,
+            contentDescription = "调试面板",
+            onClick = onToggleDebug
         )
     }
 }

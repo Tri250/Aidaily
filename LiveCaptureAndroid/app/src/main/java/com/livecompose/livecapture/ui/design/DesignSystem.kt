@@ -70,31 +70,39 @@ object DesignSystem {
     // 参考：高端原生相机应用，无品牌色侵入拍摄界面
 
     object Colors {
-        // 品牌色 - 仅在非拍摄界面使用（设置、图库等）
-        val primary = Color(0xFF4A7C96)
-        val primaryLight = Color(0xFF7BA8C0)
-        val primaryDark = Color(0xFF3A6478)
-        val secondary = Color(0xFF6B5B8C)
-        val accent = Color(0xFFC9A055)
-        val accentWarm = Color(0xFFD4A84B)
+        // 品牌色 - 与 iOS LiveCapture DesignSystem 对齐
+        val primary = Color(0xFF007AFF)         // iOS: 清新蓝 (0.0, 0.48, 1.0)
+        val primaryLight = Color(0xFF4DA3FF)    // 浅蓝
+        val primaryDark = Color(0xFF0062CC)     // 深蓝
+        val secondary = Color(0xFF5956A6)       // iOS: 紫罗兰 (0.35, 0.34, 0.84)
+        val accent = Color(0xFFFF9400)          // iOS: 活力橙 (1.0, 0.58, 0.0)
+        val accentWarm = Color(0xFFFF9400)      // 同上
 
-        // 渐变色 - 相机模式
-        val gradientStart = Color(0xFF4A7C96)
-        val gradientEnd = Color(0xFF6B5B8C)
+        // 渐变色 - 与 iOS 完整5组渐变对齐
+        val gradientStart = Color(0xFF007AFF)
+        val gradientEnd = Color(0xFF5956A6)
+        val accentGradientStart = Color(0xFFFF9400)
+        val accentGradientEnd = Color(0xFFFF6B00)
+        val successGradientStart = Color(0xFF34C759)
+        val successGradientEnd = Color(0xFF248A3D)
+        val warningGradientStart = Color(0xFFFFCC00)
+        val warningGradientEnd = Color(0xFFFF9500)
+        val errorGradientStart = Color(0xFFFF3B30)
+        val errorGradientEnd = Color(0xFFD70015)
 
         // 相机专属色 - 极度克制
         val goldenGlow = Color(0xFFD4A84B)
         val recordingRed = Color(0xFFE04545)
         val nightModeBlue = Color(0xFF5B8BA8)
 
-        // 语义色 - 低饱和克制
-        val success = Color(0xFF5DA87A)
-        val successBg = Color(0xFF5DA87A).copy(alpha = 0.12f)
-        val warning = Color(0xFFD4A04A)
-        val warningBg = Color(0xFFD4A04A).copy(alpha = 0.12f)
-        val error = Color(0xFFC86666)
-        val errorBg = Color(0xFFC86666).copy(alpha = 0.12f)
-        val info = Color(0xFF6BA3C7)
+        // 语义色 - 与 iOS 对齐
+        val success = Color(0xFF34C759)         // iOS: 成功绿
+        val successBg = Color(0xFF34C759).copy(alpha = 0.12f)
+        val warning = Color(0xFFFFCC00)         // iOS: 警告黄
+        val warningBg = Color(0xFFFFCC00).copy(alpha = 0.12f)
+        val error = Color(0xFFFF3B30)           // iOS: 错误红
+        val errorBg = Color(0xFFFF3B30).copy(alpha = 0.12f)
+        val info = Color(0xFF5AC8FA)            // iOS: 信息蓝
 
         // 中性色阶 - 7 级灰度（Flyme 自然暖灰）
         @Composable
