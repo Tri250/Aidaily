@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <include domain="sharedpref" path="."/>
-    <exclude domain="external" path="LiveCapture/photos"/>
+    <include domain="sharedpref" path="." />
+    <exclude domain="file" path="LiveCapture/photos" />
+    <exclude domain="cache" path="." />
 </full-backup-content>

@@ -7,8 +7,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.livecompose.livecapture.core.design.LiveCaptureTheme
 import com.livecompose.livecapture.presentation.MainTabView
 import com.livecompose.livecapture.presentation.settings.SettingsViewModel
@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val settingsViewModel: SettingsViewModel = hiltViewModel()
-            val isDarkTheme by settingsViewModel.darkTheme.collectAsState()
+            val isDarkTheme by settingsViewModel.darkTheme.collectAsStateWithLifecycle()
 
             LiveCaptureTheme(darkTheme = isDarkTheme) {
                 Surface(

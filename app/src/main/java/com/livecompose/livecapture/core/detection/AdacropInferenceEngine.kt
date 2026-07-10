@@ -51,33 +51,43 @@ class AdacropInferenceEngine @Inject constructor(
     private var isDualOutput = false
     private var inputDataType: Int = 0 // 0 = float32, 1 = uint8
 
-    // #23: 模型加载状态跟踪，防止重复加载
+    // 模型加载状态跟踪，防止重复加载
     private val isLoadStarted = AtomicBoolean(false)
 
     private val inputBuffer: ByteBuffer
-    // #25: 复用 IntArray，避免每帧分配
+    // 复用 IntArray，避免每帧分配
     private val pixelBuffer: IntArray = IntArray(INPUT_SIZE * INPUT_SIZE)
+    // 复用输出数组，避免每帧分配
+    private val bboxOutput: Array<FloatArray> = Array(1) { FloatArray(NUM_BBOX_PARAMS) }
+    private val actionOutput: Array<FloatArray> = Array(1) { FloatArray(NUM_ACTIONS) }
+    private val outputMap: Map<Int, Any> = mapOf(0 to bboxOutput, 1 to actionOutput)
+    private val dualInputs: Array<Any> = arrayOf(inputBuffer)
 
     private val _isReady = MutableStateFlow(false)
     val isReady: StateFlow<Boolean> = _isReady
 
-    // #55: 模型加载中状态
+    // 模型加载中状态
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    // 模型加载失败状态（供 UI 提示降级模式）
+    private val _loadFailed = MutableStateFlow(false)
+    val loadFailed: StateFlow<Boolean> = _loadFailed
 
     private val _inferenceTime = MutableStateFlow(0L)
     val inferenceTime: StateFlow<Long> = _inferenceTime
 
     init {
-        // #23: init 仅分配 ByteBuffer，不在主线程加载模型
+        // init 仅分配 ByteBuffer，不在主线程加载模型
         val numPixels = INPUT_SIZE * INPUT_SIZE * 3
         inputBuffer = ByteBuffer.allocateDirect(numPixels * BYTES_PER_CHANNEL)
         inputBuffer.order(ByteOrder.nativeOrder())
     }
 
     /**
-     * #23: 异步加载模型，必须在后台线程调用。
+     * 异步加载模型，必须在后台线程调用。
      * 线程安全：使用 AtomicBoolean 防止重复加载。
+     * 失败时重置 isLoadStarted 允许重试。
      */
     suspend fun loadModelAsync() {
         if (!isLoadStarted.compareAndSet(false, true)) {
@@ -85,17 +95,21 @@ class AdacropInferenceEngine @Inject constructor(
             return
         }
         _isLoading.value = true
-        withContext(Dispatchers.IO) {
-            loadModel()
+        try {
+            withContext(Dispatchers.IO) {
+                loadModel()
+            }
+        } finally {
+            // try-finally 确保取消/异常时 isLoading 不卡死
+            _isLoading.value = false
         }
-        _isLoading.value = false
     }
 
     private fun loadModel() {
         try {
             val modelBuffer = loadModelFile()
             val options = Interpreter.Options()
-            // #29: 跟踪 NnApiDelegate 以便后续 close
+            // 跟踪 NnApiDelegate 以便后续 close
             try {
                 val delegate = NnApiDelegate()
                 nnApiDelegate = delegate
@@ -103,7 +117,9 @@ class AdacropInferenceEngine @Inject constructor(
             } catch (e: Exception) {
                 Log.w(TAG, "NNAPI not available, falling back to CPU")
             }
-            options.setNumThreads(4)
+            // 根据设备 CPU 核数动态设置线程数，保留一个核心给 UI
+            val numThreads = (Runtime.getRuntime().availableProcessors() - 1).coerceIn(1, 4)
+            options.setNumThreads(numThreads)
 
             interpreter = Interpreter(modelBuffer, options)
 
@@ -125,20 +141,36 @@ class AdacropInferenceEngine @Inject constructor(
             }
 
             _isReady.value = true
+            _loadFailed.value = false
             Log.d(TAG, "Model loaded successfully")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load model: ${e.message}. Running in fallback mode.")
+            Log.e(TAG, "Failed to load model: ${e.message}. Running in fallback mode.", e)
             _isReady.value = false
+            _loadFailed.value = true
+            // 加载失败时重置 isLoadStarted，允许后续重试
+            isLoadStarted.set(false)
+            // 清理可能已创建的 delegate
+            nnApiDelegate?.close()
+            nnApiDelegate = null
         }
     }
 
+    /**
+     * 加载模型文件并正确关闭 FD/Stream/Channel，避免 FD 泄漏
+     * MappedByteBuffer 创建后不再依赖 FD，可安全关闭
+     */
     private fun loadModelFile(): MappedByteBuffer {
         val assetFileDescriptor = context.assets.openFd(MODEL_FILE)
-        val inputStream = FileInputStream(assetFileDescriptor.fileDescriptor)
-        val fileChannel = inputStream.channel
-        val startOffset = assetFileDescriptor.startOffset
-        val declaredLength = assetFileDescriptor.declaredLength
-        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
+        assetFileDescriptor.use { afd ->
+            FileInputStream(afd.fileDescriptor).use { fis ->
+                val fileChannel = fis.channel
+                return fileChannel.map(
+                    FileChannel.MapMode.READ_ONLY,
+                    afd.startOffset,
+                    afd.declaredLength
+                )
+            }
+        }
     }
 
     suspend fun analyze(bitmap: Bitmap): CompositionResult = withContext(Dispatchers.Default) {
@@ -146,34 +178,29 @@ class AdacropInferenceEngine @Inject constructor(
 
         val interp = interpreter ?: return@withContext defaultResult()
 
+        var resizedBitmap: Bitmap? = null
+        var croppedBitmap: Bitmap? = null
         try {
-            val resizedBitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true)
+            resizedBitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true)
             preprocess(resizedBitmap)
 
             val bbox: FloatArray
             val actionProbs: FloatArray
 
             if (isDualOutput) {
-                val bboxOutput = Array(1) { FloatArray(NUM_BBOX_PARAMS) }
-                val actionOutput = Array(1) { FloatArray(NUM_ACTIONS) }
-                val outputMap = mapOf(0 to bboxOutput, 1 to actionOutput)
-                interp.runForMultipleInputsOutputs(arrayOf(inputBuffer), outputMap)
+                // 复用输出数组，避免每帧分配
+                interp.runForMultipleInputsOutputs(dualInputs, outputMap)
                 bbox = bboxOutput[0]
                 actionProbs = actionOutput[0]
-                resizedBitmap.recycle()
             } else {
-                val bboxOutput = Array(1) { FloatArray(NUM_BBOX_PARAMS) }
                 interp.run(inputBuffer, bboxOutput)
                 bbox = bboxOutput[0]
 
-                val croppedBitmap = cropAndResize(bitmap, bbox)
+                croppedBitmap = cropAndResize(bitmap, bbox)
                 preprocess(croppedBitmap)
 
-                val actionOutput = Array(1) { FloatArray(NUM_ACTIONS) }
                 interp.run(inputBuffer, actionOutput)
                 actionProbs = actionOutput[0]
-                resizedBitmap.recycle()
-                croppedBitmap.recycle()
             }
 
             _inferenceTime.value = System.currentTimeMillis() - startTime
@@ -197,6 +224,10 @@ class AdacropInferenceEngine @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Inference error", e)
             defaultResult()
+        } finally {
+            // 确保异常路径 Bitmap 也被回收，避免 native 内存泄漏
+            resizedBitmap?.recycle()
+            croppedBitmap?.recycle()
         }
     }
 
@@ -240,7 +271,7 @@ class AdacropInferenceEngine @Inject constructor(
 
     /**
      * NHWC 格式预处理: [1, 224, 224, 3]
-     * #25: 复用 pixelBuffer 避免每帧分配 IntArray
+     * 复用 pixelBuffer 避免每帧分配 IntArray
      */
     private fun preprocess(bitmap: Bitmap) {
         inputBuffer.rewind()
@@ -264,9 +295,14 @@ class AdacropInferenceEngine @Inject constructor(
     }
 
     /**
-     * #20: 裁切并缩放，增加零宽/零高安全检查
+     * 裁切并缩放，增加零宽/零高与退化 bitmap 安全检查
      */
     private fun cropAndResize(bitmap: Bitmap, bbox: FloatArray): Bitmap {
+        if (bitmap.width <= 0 || bitmap.height <= 0) {
+            Log.w(TAG, "cropAndResize: degenerate bitmap ${bitmap.width}x${bitmap.height}")
+            return Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true)
+        }
+
         val cx = bbox[0]
         val cy = bbox[1]
         val w = bbox[2]
@@ -274,13 +310,16 @@ class AdacropInferenceEngine @Inject constructor(
 
         val left = ((cx - w / 2) * bitmap.width).toInt().coerceIn(0, bitmap.width - 1)
         val top = ((cy - h / 2) * bitmap.height).toInt().coerceIn(0, bitmap.height - 1)
-        val right = ((cx + w / 2) * bitmap.width).toInt().coerceIn(left + 1, bitmap.width)
-        val bottom = ((cy + h / 2) * bitmap.height).toInt().coerceIn(top + 1, bitmap.height)
+        // coerceIn 要求 min <= max，确保 left+1 <= bitmap.width
+        val rightMax = (left + 1).coerceAtMost(bitmap.width)
+        val right = ((cx + w / 2) * bitmap.width).toInt().coerceIn(left + 1, rightMax)
+        val bottomMax = (top + 1).coerceAtMost(bitmap.height)
+        val bottom = ((cy + h / 2) * bitmap.height).toInt().coerceIn(top + 1, bottomMax)
 
         val cropWidth = right - left
         val cropHeight = bottom - top
 
-        // #20: 防止零宽/零高导致 createBitmap 崩溃
+        // 防止零宽/零高导致 createBitmap 崩溃
         if (cropWidth <= 0 || cropHeight <= 0) {
             Log.w(TAG, "cropAndResize: invalid crop size ${cropWidth}x${cropHeight}, using full bitmap")
             return Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true)
@@ -306,7 +345,7 @@ class AdacropInferenceEngine @Inject constructor(
     fun close() {
         interpreter?.close()
         interpreter = null
-        // #29: 关闭 NnApiDelegate 释放 NNAPI 资源
+        // 关闭 NnApiDelegate 释放 NNAPI 资源
         nnApiDelegate?.close()
         nnApiDelegate = null
         _isReady.value = false

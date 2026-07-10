@@ -1,5 +1,7 @@
 package com.livecompose.livecapture.core.storage
 
+import android.os.Build
+
 data class PhotoRecord(
     val id: String,
     val filePath: String,
@@ -27,6 +29,6 @@ data class ExifData(
     val shutterSpeed: String? = null,
     val aperture: String? = null,
     val focalLength: String? = null,
-    val make: String = "LiveCapture",
-    val model: String = "Android"
+    val make: String = Build.MANUFACTURER ?: "Android",
+    val model: String = Build.MODEL ?: "Android"
 )

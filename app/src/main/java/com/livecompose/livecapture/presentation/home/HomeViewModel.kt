@@ -31,7 +31,7 @@ class HomeViewModel @Inject constructor(
 
     fun deleteRecord(record: PhotoRecord) {
         viewModelScope.launch(Dispatchers.IO) {
-            storageService.deleteRecord(record)
+            storageService.deleteRecordAsync(record)
             _records.value = storageService.getAllRecords()
         }
     }

@@ -14,7 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -34,7 +35,7 @@ fun HomeView(
     viewModel: HomeViewModel = hiltViewModel(),
     navController: NavController? = null
 ) {
-    val records by viewModel.records.collectAsState()
+    val records by viewModel.records.collectAsStateWithLifecycle()
     var selectedRecord by remember { mutableStateOf<PhotoRecord?>(null) }
     val lifecycleOwner = LocalLifecycleOwner.current
 

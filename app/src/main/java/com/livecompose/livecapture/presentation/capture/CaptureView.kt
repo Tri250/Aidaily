@@ -9,6 +9,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -29,12 +30,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,19 +63,23 @@ fun CaptureView(
     val lifecycleOwner = LocalLifecycleOwner.current
     val previewView = remember { PreviewView(context) }
 
-    val stage by viewModel.pipelineStage.collectAsState()
-    val guidanceText by viewModel.guidanceText.collectAsState()
-    val trackPoint by viewModel.trackPoint.collectAsState()
-    val isAligned by viewModel.isAligned.collectAsState()
-    val zoomRatio by viewModel.zoomRatio.collectAsState()
-    val isTorchEnabled by viewModel.isTorchEnabled.collectAsState()
-    val inferenceTime by viewModel.inferenceTime.collectAsState()
-    val isModelReady by viewModel.isModelReady.collectAsState()
-    val currentScore by viewModel.currentScore.collectAsState()
-    val lastSavedPhotoPath by viewModel.lastSavedPhotoPath.collectAsState()
-    val exposureCompensation by viewModel.exposureCompensation.collectAsState()
-    val isCameraStarting by viewModel.isCameraStarting.collectAsState()
-    val cameraError by viewModel.cameraError.collectAsState()
+    val stage by viewModel.pipelineStage.collectAsStateWithLifecycle()
+    val guidanceText by viewModel.guidanceText.collectAsStateWithLifecycle()
+    val trackPoint by viewModel.trackPoint.collectAsStateWithLifecycle()
+    val isAligned by viewModel.isAligned.collectAsStateWithLifecycle()
+    val zoomRatio by viewModel.zoomRatio.collectAsStateWithLifecycle()
+    val isTorchEnabled by viewModel.isTorchEnabled.collectAsStateWithLifecycle()
+    val inferenceTime by viewModel.inferenceTime.collectAsStateWithLifecycle()
+    val isModelReady by viewModel.isModelReady.collectAsStateWithLifecycle()
+    val currentScore by viewModel.currentScore.collectAsStateWithLifecycle()
+    val exposureCompensation by viewModel.exposureCompensation.collectAsStateWithLifecycle()
+    val exposureRange by viewModel.exposureRange.collectAsStateWithLifecycle()
+    val zoomRange by viewModel.zoomRange.collectAsStateWithLifecycle()
+    val hasTorchUnit by viewModel.hasTorchUnit.collectAsStateWithLifecycle()
+    val lastSavedThumbPath by viewModel.lastSavedThumbPath.collectAsStateWithLifecycle()
+    val modelLoadFailed by viewModel.modelLoadFailed.collectAsStateWithLifecycle()
+    val isCameraStarting by viewModel.isCameraStarting.collectAsStateWithLifecycle()
+    val cameraError by viewModel.cameraError.collectAsStateWithLifecycle()
 
     // #7: 权限状态管理
     var hasCameraPermission by remember {
@@ -94,9 +101,9 @@ fun CaptureView(
         }
     }
 
-    // #8: 判断是否需要显示 Rationale
+    // #8: 判断是否需要显示 Rationale — 权限状态变化时重新计算
     val activity = context as? android.app.Activity
-    val shouldShowRationale = remember(hasBeenDenied) {
+    val shouldShowRationale = remember(hasBeenDenied, hasCameraPermission) {
         activity?.shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) ?: false
     }
 
@@ -111,6 +118,10 @@ fun CaptureView(
                 }
                 Lifecycle.Event.ON_RESUME -> {
                     isResumed = true
+                    // 从系统设置返回后重新检查权限状态，避免权限已授予但 UI 仍显示拒绝
+                    hasCameraPermission = ContextCompat.checkSelfPermission(
+                        context, Manifest.permission.CAMERA
+                    ) == PackageManager.PERMISSION_GRANTED
                 }
                 else -> {}
             }
@@ -214,30 +225,59 @@ fun CaptureView(
                         .windowInsetsPadding(WindowInsets.statusBars)
                 )
 
-                // Exposure Slider Panel
-                if (showExposureSlider) {
+                // Exposure Slider Panel — 动态绑定设备真实曝光范围
+                AnimatedVisibility(
+                    visible = showExposureSlider,
+                    enter = fadeIn() + slideInHorizontally { it / 2 },
+                    exit = fadeOut() + slideOutHorizontally { it / 2 },
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                ) {
                     ExposureSliderPanel(
                         value = exposureCompensation,
+                        valueRange = exposureRange,
                         onValueChange = { viewModel.setExposureCompensation(it) },
-                        onDismiss = { showExposureSlider = false },
-                        modifier = Modifier.align(Alignment.CenterEnd)
+                        onDismiss = { showExposureSlider = false }
                     )
                 }
 
-                // #55: 加载状态指示
-                if (isCameraStarting || !isModelReady) {
+                // #55: 加载状态指示 — 淡入淡出
+                AnimatedVisibility(
+                    visible = isCameraStarting || (!isModelReady && !modelLoadFailed),
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier = Modifier.align(Alignment.Center)
+                ) {
                     LoadingOverlay(
-                        text = if (isCameraStarting) "启动相机中..." else "加载 AI 模型中...",
-                        modifier = Modifier.align(Alignment.Center)
+                        text = if (isCameraStarting) "启动相机中..." else "加载 AI 模型中..."
                     )
+                }
+
+                // 模型加载失败降级提示
+                if (modelLoadFailed) {
+                    Surface(
+                        color = ErrorColor.copy(alpha = 0.8f),
+                        shape = RoundedCornerShape(CornerMedium),
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = "AI 模型加载失败，使用默认构图模式",
+                            color = Color.White,
+                            style = GuidanceTextStyle.copy(fontSize = 13.sp),
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                        )
+                    }
                 }
 
                 // Bottom Controls — #54: 刘海屏适配
                 BottomControls(
                     zoomRatio = zoomRatio,
+                    zoomRange = zoomRange,
                     isTorchEnabled = isTorchEnabled,
+                    hasTorchUnit = hasTorchUnit,
                     stage = stage,
-                    lastSavedPhotoPath = lastSavedPhotoPath,
+                    lastSavedThumbPath = lastSavedThumbPath,
                     onZoomChange = { viewModel.setZoom(it) },
                     onSwitchCamera = { viewModel.switchCamera(lifecycleOwner, previewView) },
                     onCapture = { viewModel.manualCapture() },
@@ -514,10 +554,19 @@ private fun TopControlBar(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = guidanceText,
-                        style = GuidanceTextStyle
-                    )
+                    // 指引文案切换淡入淡出动画
+                    AnimatedContent(
+                        targetState = guidanceText,
+                        transitionSpec = {
+                            fadeIn(tween(300)) togetherWith fadeOut(tween(200))
+                        },
+                        label = "guidanceText"
+                    ) { text ->
+                        Text(
+                            text = text,
+                            style = GuidanceTextStyle
+                        )
+                    }
                     if (inferenceTime > 0) {
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
@@ -552,10 +601,16 @@ private fun TopControlBar(
 @Composable
 private fun ExposureSliderPanel(
     value: Int,
+    valueRange: IntRange,
     onValueChange: (Int) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // 使用设备真实曝光范围，避免硬编码 -4..4 与设备能力脱节
+    val minVal = valueRange.first.toFloat()
+    val maxVal = valueRange.last.toFloat()
+    // steps = 区间内整数点数 - 1（Slider steps 不含两端）
+    val stepCount = (valueRange.last - valueRange.first - 1).coerceAtLeast(0)
     Surface(
         color = GuidanceBg,
         shape = RoundedCornerShape(CornerMedium),
@@ -572,10 +627,10 @@ private fun ExposureSliderPanel(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Slider(
-                value = value.toFloat(),
+                value = value.toFloat().coerceIn(minVal, maxVal),
                 onValueChange = { onValueChange(it.toInt()) },
-                valueRange = -4f..4f,
-                steps = 7,
+                valueRange = minVal..maxVal,
+                steps = stepCount,
                 modifier = Modifier.height(120.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -589,9 +644,11 @@ private fun ExposureSliderPanel(
 @Composable
 private fun BottomControls(
     zoomRatio: Float,
+    zoomRange: ClosedRange<Float>,
     isTorchEnabled: Boolean,
+    hasTorchUnit: Boolean,
     stage: CaptureViewModel.PipelineStage,
-    lastSavedPhotoPath: String?,
+    lastSavedThumbPath: String?,
     onZoomChange: (Float) -> Unit,
     onSwitchCamera: () -> Unit,
     onCapture: () -> Unit,
@@ -609,15 +666,25 @@ private fun BottomControls(
             .padding(bottom = 16.dp, start = 24.dp, end = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Zoom Slider
+        // Zoom Buttons — 根据设备真实缩放范围动态显示
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ZoomButton("0.5x", abs(zoomRatio - 0.5f) < 0.01f) { onZoomChange(0.5f) }
+            // 0.5x 仅在设备支持超广角时显示
+            if (zoomRange.start <= 0.5f) {
+                ZoomButton("0.5x", abs(zoomRatio - 0.5f) < 0.01f) { onZoomChange(0.5f) }
+            } else {
+                Spacer(Modifier.width(48.dp))
+            }
             ZoomButton("1x", abs(zoomRatio - 1.0f) < 0.01f) { onZoomChange(1.0f) }
-            ZoomButton("2x", abs(zoomRatio - 2.0f) < 0.01f) { onZoomChange(2.0f) }
+            // 2x 仅在设备支持时显示
+            if (zoomRange.endInclusive >= 2.0f) {
+                ZoomButton("2x", abs(zoomRatio - 2.0f) < 0.01f) { onZoomChange(2.0f) }
+            } else {
+                Spacer(Modifier.width(48.dp))
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -628,9 +695,10 @@ private fun BottomControls(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (lastSavedPhotoPath != null) {
+            // 缩略图使用 thumbPath（小图），避免解码全分辨率主图造成卡顿
+            if (lastSavedThumbPath != null) {
                 LastPhotoThumbnail(
-                    photoPath = lastSavedPhotoPath,
+                    photoPath = lastSavedThumbPath,
                     onClick = onGalleryClick
                 )
             } else {
@@ -660,11 +728,20 @@ private fun BottomControls(
                     )
                 }
                 Row {
-                    IconButton(onClick = onTorchToggle, modifier = Modifier.size(28.dp)) {
+                    // 无闪光灯单元时禁用按钮，避免假显示
+                    IconButton(
+                        onClick = onTorchToggle,
+                        enabled = hasTorchUnit,
+                        modifier = Modifier.size(28.dp)
+                    ) {
                         Icon(
                             imageVector = if (isTorchEnabled) Icons.Default.FlashOn else Icons.Default.FlashOff,
                             contentDescription = "Torch",
-                            tint = if (isTorchEnabled) Color.Yellow else Color.White,
+                            tint = when {
+                                !hasTorchUnit -> Color.White.copy(alpha = 0.3f)
+                                isTorchEnabled -> Color.Yellow
+                                else -> Color.White
+                            },
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -731,11 +808,24 @@ private fun CaptureButton(
         else -> Color.White
     }
 
-    val alpha = if (enabled || stage == CaptureViewModel.PipelineStage.IDLE) 1f else 0.4f
+    // 移除 IDLE 例外：IDLE 状态拍摄按钮应灰显，仅 TEMPLATE_READY/READY_TO_CAPTURE 时高亮
+    val alpha by animateFloatAsState(
+        targetValue = if (enabled) 1f else 0.4f,
+        animationSpec = tween(200),
+        label = "captureAlpha"
+    )
+
+    // 拍摄中环动画缩放
+    val ringScale by animateFloatAsState(
+        targetValue = if (stage == CaptureViewModel.PipelineStage.CAPTURING_PHOTO) 0.9f else 1f,
+        animationSpec = tween(150),
+        label = "ringScale"
+    )
 
     Box(
         modifier = Modifier
             .size(80.dp)
+            .scale(ringScale)
             .background(ringColor, CircleShape)
             .padding(4.dp)
             .alpha(alpha)

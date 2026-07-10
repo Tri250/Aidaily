@@ -15,6 +15,8 @@ import androidx.camera.core.ImageProxy
 import androidx.exifinterface.media.ExifInterface
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -36,15 +38,22 @@ class PhotoStorageService @Inject constructor(
         private const val MAX_THUMB_SIZE = 300
     }
 
+    // records.json 读写互斥锁，防止快速连拍时记录丢失
+    private val recordsMutex = Mutex()
+
     private val storageDir: File by lazy {
         File(context.getExternalFilesDir(null), "LiveCapture/photos").apply {
-            if (!exists()) mkdirs()
+            if (!exists() && !mkdirs()) {
+                Log.w(TAG, "Failed to create storage dir: $absolutePath")
+            }
         }
     }
 
     private val thumbsDir: File by lazy {
         File(storageDir, THUMBS_DIR).apply {
-            if (!exists()) mkdirs()
+            if (!exists() && !mkdirs()) {
+                Log.w(TAG, "Failed to create thumbs dir: $absolutePath")
+            }
         }
     }
 
@@ -58,67 +67,70 @@ class PhotoStorageService @Inject constructor(
         exifData: ExifData = ExifData(),
         aestheticScore: Float? = null
     ): PhotoRecord = withContext(Dispatchers.IO) {
-        // #14: decodeByteArray 可能返回 null，必须检查
-        val bitmap = imageProxyToBitmap(imageProxy)
-            ?: throw IllegalStateException("Failed to decode JPEG from ImageProxy")
-
-        // 3:4 裁切
-        val targetAspect = 3f / 4f
-        val croppedBitmap = cropToAspectRatio(bitmap, targetAspect)
-
-        // 旋转校正
-        val rotatedBitmap = rotateBitmap(croppedBitmap, imageProxy.imageInfo.rotationDegrees.toFloat())
-        // #13: degrees==0 时 rotatedBitmap === croppedBitmap，需追踪所有权避免双重 recycle
-        val rotatedIsNew = rotatedBitmap !== croppedBitmap
-
-        val fileName = "${UUID.randomUUID()}.jpg"
-
-        // 一次性压缩为 JPEG 字节，写入临时文件，再写 EXIF（避免 #31 重复压缩）
-        val tempFile = File(context.cacheDir, "capture_${System.currentTimeMillis()}.jpg")
         try {
-            FileOutputStream(tempFile).use { out ->
-                rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+            // decodeByteArray 可能返回 null，必须检查
+            val bitmap = imageProxyToBitmap(imageProxy)
+                ?: throw IllegalStateException("Failed to decode JPEG from ImageProxy")
+
+            // 3:4 裁切
+            val targetAspect = 3f / 4f
+            val croppedBitmap = cropToAspectRatio(bitmap, targetAspect)
+
+            // 旋转校正
+            val rotatedBitmap = rotateBitmap(croppedBitmap, imageProxy.imageInfo.rotationDegrees.toFloat())
+            // degrees==0 时 rotatedBitmap === croppedBitmap，需追踪所有权避免双重 recycle
+            val rotatedIsNew = rotatedBitmap !== croppedBitmap
+
+            val fileName = "${UUID.randomUUID()}.jpg"
+
+            // 一次性压缩为 JPEG 字节，写入临时文件，再写 EXIF（避免重复压缩）
+            val tempFile = File(context.cacheDir, "capture_${System.currentTimeMillis()}.jpg")
+            try {
+                FileOutputStream(tempFile).use { out ->
+                    rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                }
+                writeExif(tempFile, exifData)
+
+                // 保存主图到 MediaStore (API 29+) 或文件系统；MediaStore 失败时回退到私有目录
+                val savedPath = saveJpegToStorage(tempFile, fileName)
+
+                // 生成缩略图
+                val thumbBitmap = ThumbnailUtils.extractThumbnail(rotatedBitmap, MAX_THUMB_SIZE, MAX_THUMB_SIZE)
+                val thumbFile = File(thumbsDir, "thumb_$fileName")
+                FileOutputStream(thumbFile).use { out ->
+                    thumbBitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
+                }
+                thumbBitmap.recycle()
+
+                val record = PhotoRecord(
+                    id = UUID.randomUUID().toString(),
+                    filePath = savedPath,
+                    thumbPath = thumbFile.absolutePath,
+                    width = rotatedBitmap.width,
+                    height = rotatedBitmap.height,
+                    timestamp = System.currentTimeMillis(),
+                    iso = exifData.iso,
+                    shutterSpeed = exifData.shutterSpeed,
+                    aperture = exifData.aperture,
+                    focalLength = exifData.focalLength,
+                    cropRegion = cropRegion,
+                    aestheticScore = aestheticScore
+                )
+
+                addRecordToIndex(record)
+
+                // 安全回收，避免双重 recycle
+                if (rotatedIsNew) rotatedBitmap.recycle()
+                croppedBitmap.recycle()
+                bitmap.recycle()
+
+                record
+            } finally {
+                tempFile.delete()
             }
-            writeExif(tempFile, exifData)
-
-            // 保存主图到 MediaStore (API 29+) 或文件系统
-            val uri = saveJpegToStorage(tempFile, fileName)
-
-            // 生成缩略图
-            val thumbBitmap = ThumbnailUtils.extractThumbnail(rotatedBitmap, MAX_THUMB_SIZE, MAX_THUMB_SIZE)
-            val thumbFile = File(thumbsDir, "thumb_$fileName")
-            FileOutputStream(thumbFile).use { out ->
-                thumbBitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
-            }
-            thumbBitmap.recycle()
-
-            val filePath = if (uri != null) uri.toString() else File(storageDir, fileName).absolutePath
-
-            val record = PhotoRecord(
-                id = UUID.randomUUID().toString(),
-                filePath = filePath,
-                thumbPath = thumbFile.absolutePath,
-                width = rotatedBitmap.width,
-                height = rotatedBitmap.height,
-                timestamp = System.currentTimeMillis(),
-                iso = exifData.iso,
-                shutterSpeed = exifData.shutterSpeed,
-                aperture = exifData.aperture,
-                focalLength = exifData.focalLength,
-                cropRegion = cropRegion,
-                aestheticScore = aestheticScore
-            )
-
-            addRecordToIndex(record)
-
-            // #13: 安全回收，避免双重 recycle
-            if (rotatedIsNew) rotatedBitmap.recycle()
-            croppedBitmap.recycle()
-            bitmap.recycle()
-
-            record
         } finally {
-            tempFile.delete()
+            // ImageProxy 必须关闭，否则 CameraX 帧 buffer 耗尽导致后续拍摄死锁
+            imageProxy.close()
         }
     }
 
@@ -134,14 +146,16 @@ class PhotoStorageService @Inject constructor(
     private fun cropToAspectRatio(bitmap: Bitmap, aspectRatio: Float): Bitmap {
         val width = bitmap.width
         val height = bitmap.height
+        if (width <= 0 || height <= 0) return bitmap
         val currentAspect = width.toFloat() / height
 
         return if (currentAspect > aspectRatio) {
-            val newWidth = (height * aspectRatio).toInt()
+            // 防止 newWidth 计算为 0 导致 createBitmap 崩溃
+            val newWidth = maxOf(1, (height * aspectRatio).toInt()).coerceAtMost(width)
             val xOffset = (width - newWidth) / 2
             Bitmap.createBitmap(bitmap, xOffset, 0, newWidth, height)
         } else {
-            val newHeight = (width / aspectRatio).toInt()
+            val newHeight = maxOf(1, (width / aspectRatio).toInt()).coerceAtMost(height)
             val yOffset = (height - newHeight) / 2
             Bitmap.createBitmap(bitmap, 0, yOffset, width, newHeight)
         }
@@ -155,39 +169,53 @@ class PhotoStorageService @Inject constructor(
 
     /**
      * 将已压缩（含 EXIF）的 JPEG 文件写入 MediaStore (API 29+, 使用 IS_PENDING) 或文件系统
-     * #42: 使用 IS_PENDING 标记，确保写入完成前对其他 App 不可见
+     * MediaStore insert/openOutputStream 失败时回退到 App 私有目录，确保文件真实写入
+     * 返回最终写入的路径（content:// Uri 或文件绝对路径）
      */
-    private fun saveJpegToStorage(jpegFile: File, fileName: String): Uri? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+    private fun saveJpegToStorage(jpegFile: File, fileName: String): String {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val contentValues = ContentValues().apply {
                 put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
                 put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
                 put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/LiveCapture")
-                // #42: 写入期间标记为 PENDING
                 put(MediaStore.Images.Media.IS_PENDING, 1)
             }
-            val uri = context.contentResolver.insert(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                contentValues
-            )
-            uri?.let {
-                context.contentResolver.openOutputStream(it)?.use { out ->
+            val uri = try {
+                context.contentResolver.insert(
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                    contentValues
+                )
+            } catch (e: Exception) {
+                Log.w(TAG, "MediaStore insert failed, fallback to private dir", e)
+                null
+            }
+
+            if (uri != null) {
+                val streamOpened = context.contentResolver.openOutputStream(uri)?.use { out ->
                     jpegFile.inputStream().use { input -> input.copyTo(out) }
+                    true
+                } ?: false
+
+                if (streamOpened) {
+                    // 写入完成，清除 PENDING 标记
+                    val updateValues = ContentValues().apply {
+                        put(MediaStore.Images.Media.IS_PENDING, 0)
+                    }
+                    context.contentResolver.update(uri, updateValues, null, null)
+                    return uri.toString()
+                } else {
+                    // openOutputStream 失败，删除空占位记录并回退
+                    context.contentResolver.delete(uri, null, null)
+                    Log.w(TAG, "MediaStore openOutputStream failed, fallback to private dir")
                 }
-                // 写入完成，清除 PENDING 标记
-                val updateValues = ContentValues().apply {
-                    put(MediaStore.Images.Media.IS_PENDING, 0)
-                }
-                context.contentResolver.update(it, updateValues, null, null)
             }
-            uri
-        } else {
-            val file = File(storageDir, fileName)
-            jpegFile.inputStream().use { input ->
-                FileOutputStream(file).use { out -> input.copyTo(out) }
-            }
-            null
         }
+        // API < 29 或 MediaStore 失败：写入 App 私有目录
+        val file = File(storageDir, fileName)
+        jpegFile.inputStream().use { input ->
+            FileOutputStream(file).use { out -> input.copyTo(out) }
+        }
+        return file.absolutePath
     }
 
     private fun writeExif(file: File, exifData: ExifData) {
@@ -219,10 +247,35 @@ class PhotoStorageService @Inject constructor(
         }
     }
 
-    private fun addRecordToIndex(record: PhotoRecord) {
-        val records = getAllRecords().toMutableList()
-        records.add(0, record)
-        saveRecords(records)
+    // 互斥保护 records.json 读写，防止快速连拍时后写覆盖先写
+    private suspend fun addRecordToIndex(record: PhotoRecord) {
+        recordsMutex.withLock {
+            val records = getAllRecords().toMutableList()
+            records.add(0, record)
+            saveRecords(records)
+        }
+    }
+
+    suspend fun deleteRecordAsync(record: PhotoRecord) {
+        recordsMutex.withLock {
+            deleteRecordLocked(record)
+        }
+    }
+
+    private fun deleteRecordLocked(record: PhotoRecord) {
+        try {
+            // 删除 MediaStore Uri 或文件
+            if (record.filePath.startsWith("content://")) {
+                context.contentResolver.delete(Uri.parse(record.filePath), null, null)
+            } else {
+                File(record.filePath).delete()
+            }
+            File(record.thumbPath).delete()
+            val records = getAllRecords().filter { it.id != record.id }
+            saveRecords(records)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete record", e)
+        }
     }
 
     private fun saveRecords(records: List<PhotoRecord>) {
@@ -285,21 +338,5 @@ class PhotoStorageService @Inject constructor(
                 if (it.isNaN()) null else it.toFloat()
             }
         )
-    }
-
-    fun deleteRecord(record: PhotoRecord) {
-        try {
-            // 删除 MediaStore Uri 或文件
-            if (record.filePath.startsWith("content://")) {
-                context.contentResolver.delete(Uri.parse(record.filePath), null, null)
-            } else {
-                File(record.filePath).delete()
-            }
-            File(record.thumbPath).delete()
-            val records = getAllRecords().filter { it.id != record.id }
-            saveRecords(records)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete record", e)
-        }
     }
 }

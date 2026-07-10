@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.livecompose.livecapture.core.design.TitleTextStyle
 
 enum class DetectionMode(val label: String, val key: String) {
@@ -21,11 +22,11 @@ enum class DetectionMode(val label: String, val key: String) {
 fun SettingsView(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
-    val detectionMode by viewModel.detectionMode.collectAsState()
-    val autoCaptureEnabled by viewModel.autoCapture.collectAsState()
-    val captureDelay by viewModel.captureDelay.collectAsState()
-    val isDarkTheme by viewModel.darkTheme.collectAsState()
-    val torchEnabled by viewModel.torchEnabled.collectAsState()
+    val detectionMode by viewModel.detectionMode.collectAsStateWithLifecycle()
+    val autoCaptureEnabled by viewModel.autoCapture.collectAsStateWithLifecycle()
+    val captureDelay by viewModel.captureDelay.collectAsStateWithLifecycle()
+    val isDarkTheme by viewModel.darkTheme.collectAsStateWithLifecycle()
+    val torchEnabled by viewModel.torchEnabled.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier

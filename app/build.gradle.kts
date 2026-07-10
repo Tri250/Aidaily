@@ -99,7 +99,6 @@ dependencies {
 
     // Coroutines & Flow
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.0")
 
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")

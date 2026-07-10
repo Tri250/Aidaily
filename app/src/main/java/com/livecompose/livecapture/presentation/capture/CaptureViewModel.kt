@@ -18,6 +18,7 @@ import com.livecompose.livecapture.core.storage.CropRegion
 import com.livecompose.livecapture.core.storage.ExifData
 import com.livecompose.livecapture.core.storage.PhotoStorageService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -70,39 +71,54 @@ class CaptureViewModel @Inject constructor(
     private val _lastSavedPhotoPath = MutableStateFlow<String?>(null)
     val lastSavedPhotoPath: StateFlow<String?> = _lastSavedPhotoPath
 
+    // 缩略图路径（供 UI 加载小图，避免解码全分辨率主图）
+    private val _lastSavedThumbPath = MutableStateFlow<String?>(null)
+    val lastSavedThumbPath: StateFlow<String?> = _lastSavedThumbPath
+
     val isModelReady: StateFlow<Boolean> = detectionEngine.isReady
+    val isModelLoading: StateFlow<Boolean> = detectionEngine.isLoading
+    val modelLoadFailed: StateFlow<Boolean> = detectionEngine.loadFailed
 
     private val _currentScore = MutableStateFlow(0f)
     val currentScore: StateFlow<Float> = _currentScore
 
-    // #55: 加载状态指示
+    // 加载状态指示
     private val _isCameraStarting = MutableStateFlow(false)
     val isCameraStarting: StateFlow<Boolean> = _isCameraStarting
 
-    // #17: 相机错误状态
+    // 相机错误状态
     val cameraError: StateFlow<String?> = cameraManager.errorMessage
 
     val trackPoint: StateFlow<PointF?> = boxCenterManager.trackPoint
     val isAligned: StateFlow<Boolean> = boxCenterManager.isAligned
     val alignmentProgress: StateFlow<Float> = boxCenterManager.alignmentProgress
     val zoomRatio: StateFlow<Float> = cameraManager.zoomRatio
+    val zoomRange: StateFlow<ClosedRange<Float>> = cameraManager.zoomRange
     val isBackCamera: StateFlow<Boolean> = cameraManager.isBackCamera
     val isTorchEnabled: StateFlow<Boolean> = cameraManager.isTorchEnabled
+    val hasTorchUnit: StateFlow<Boolean> = cameraManager.hasTorchUnit
     val exposureCompensation: StateFlow<Int> = cameraManager.exposureCompensation
+    val exposureRange: StateFlow<IntRange> = cameraManager.exposureRange
+
+    // @Volatile 保证跨线程可见性（processFrame 在 analysisExecutor 线程读写）
+    @Volatile
+    private var isPipelineActive = false
+    @Volatile
+    private var isCapturing = false
+    @Volatile
+    private var detectionMode = "FAST"
+    @Volatile
+    private var lastInferenceTimeMs = 0L
+    @Volatile
+    private var autoCaptureEnabled = true
 
     private var lastDetectionResult: CompositionResult? = null
-    private var isPipelineActive = false
-    private var isCapturing = false
 
-    // #1: 检测模式 (FAST/PRO)
-    private var detectionMode = "FAST"
-    private var lastInferenceTimeMs = 0L
-
-    // #33: 状态转换协程引用，用于取消
+    // 协程引用，用于取消
     private var stateTransitionJob: Job? = null
-    // #66: 设置监听协程引用
     private var torchSettingsJob: Job? = null
     private var modeSettingsJob: Job? = null
+    private var autoCaptureJob: Job? = null
 
     fun startCamera(lifecycleOwner: LifecycleOwner, previewView: PreviewView) {
         if (isPipelineActive) return
@@ -119,12 +135,12 @@ class CaptureViewModel @Inject constructor(
         cameraManager.startCamera(lifecycleOwner, previewView)
         motionMonitor.startMonitoring()
 
-        // #23: 异步加载模型，避免主线程 ANR
+        // 异步加载模型，避免主线程 ANR
         viewModelScope.launch {
             detectionEngine.loadModelAsync()
         }
 
-        // #66/#37: 实时监听闪光灯设置变更并应用
+        // 实时监听闪光灯设置变更并应用
         torchSettingsJob?.cancel()
         torchSettingsJob = viewModelScope.launch {
             settingsRepository.torchEnabled.collect { enabled ->
@@ -132,19 +148,24 @@ class CaptureViewModel @Inject constructor(
             }
         }
 
-        // #1: 实时监听检测模式变更
+        // 实时监听检测模式变更
         modeSettingsJob?.cancel()
         modeSettingsJob = viewModelScope.launch {
             settingsRepository.detectionMode.collect { mode ->
                 detectionMode = mode
-                Log.d(TAG, "Detection mode: $mode")
             }
         }
 
-        // #55: 相机就绪后清除加载状态
+        // 缓存 autoCapture 设置，避免状态机每次 collect 都 first()
         viewModelScope.launch {
-            // 等待相机绑定完成
-            cameraManager.isCameraReady.first()
+            settingsRepository.autoCapture.collect { enabled ->
+                autoCaptureEnabled = enabled
+            }
+        }
+
+        // 相机就绪后清除加载状态（等待 isCameraReady 变为 true）
+        viewModelScope.launch {
+            cameraManager.isCameraReady.first { it }
             _isCameraStarting.value = false
         }
 
@@ -152,7 +173,6 @@ class CaptureViewModel @Inject constructor(
     }
 
     private fun observeStateTransitions() {
-        // #33: 取消之前的协程，避免泄漏
         stateTransitionJob?.cancel()
         stateTransitionJob = viewModelScope.launch {
             combine(
@@ -172,7 +192,8 @@ class CaptureViewModel @Inject constructor(
                         else PipelineStage.WAITING_FOR_STABILITY
                     }
                     PipelineStage.DETECTING_REGION -> {
-                        if (detectionReady && detectionEngine.isReady.value) PipelineStage.TEMPLATE_READY
+                        // 模型就绪且检测就绪时推进；模型加载失败时降级推进（使用默认构图）
+                        if (detectionReady) PipelineStage.TEMPLATE_READY
                         else PipelineStage.DETECTING_REGION
                     }
                     PipelineStage.TEMPLATE_READY -> {
@@ -190,25 +211,27 @@ class CaptureViewModel @Inject constructor(
                     updateGuidanceText(newStage)
                 }
 
-                if (newStage == PipelineStage.READY_TO_CAPTURE && !isCapturing) {
-                    val autoCaptureEnabled = settingsRepository.autoCapture.first()
-                    if (autoCaptureEnabled) {
-                        val delaySec = settingsRepository.captureDelay.first()
-                        autoCapture(delaySec)
-                    }
+                if (newStage == PipelineStage.READY_TO_CAPTURE && !isCapturing && autoCaptureEnabled) {
+                    val delaySec = settingsRepository.captureDelay.first()
+                    autoCapture(delaySec)
                 }
             }
         }
     }
 
     private fun processFrame(imageProxy: ImageProxy) {
-        // 模型未就绪时不处理帧
+        // 模型未就绪时：若加载失败则用默认结果推进状态机，否则跳过等待加载
         if (!detectionEngine.isReady.value) {
+            if (detectionEngine.loadFailed.value) {
+                // 模型加载失败，用默认结果推进检测就绪状态
+                _isDetectionReady.value = true
+                _currentScore.value = 0.5f
+            }
             cameraManager.onFrameProcessingComplete()
             return
         }
 
-        // #24: 推理节流 — FAST 模式限速 ~5fps，PRO 模式每帧处理
+        // 推理节流 — FAST 模式限速 ~5fps，PRO 模式每帧处理
         val now = System.currentTimeMillis()
         val throttleMs = if (detectionMode == "PRO") PRO_MODE_THROTTLE_MS else FAST_MODE_THROTTLE_MS
         if (throttleMs > 0 && now - lastInferenceTimeMs < throttleMs) {
@@ -243,7 +266,7 @@ class CaptureViewModel @Inject constructor(
                     motionData = motionData
                 )
 
-                // #1: PRO 模式持续显示动作指引；FAST 模式仅在 TEMPLATE_READY 显示
+                // PRO 模式持续显示动作指引；FAST 模式仅在 TEMPLATE_READY 显示
                 if (detectionMode == "PRO") {
                     updateGuidanceByAction(result.action)
                 } else {
@@ -251,6 +274,8 @@ class CaptureViewModel @Inject constructor(
                         updateGuidanceByAction(result.action)
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Frame processing error", e)
             } finally {
@@ -261,9 +286,10 @@ class CaptureViewModel @Inject constructor(
     }
 
     private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap {
-        val plane = imageProxy.planes[0]
+        val plane = imageProxy.planes.firstOrNull()
+            ?: throw IllegalStateException("ImageProxy has no planes")
         val buffer = plane.buffer
-        val pixelStride = plane.pixelStride
+        val pixelStride = plane.pixelStride.let { if (it <= 0) 4 else it }
         val rowStride = plane.rowStride
         val rowPadding = rowStride - pixelStride * imageProxy.width
 
@@ -276,7 +302,10 @@ class CaptureViewModel @Inject constructor(
         bitmap.copyPixelsFromBuffer(buffer)
 
         return if (rowPadding > 0) {
-            Bitmap.createBitmap(bitmap, 0, 0, imageProxy.width, imageProxy.height)
+            // 裁切掉 padding 区域，回收原始带 padding 的 Bitmap 避免 60fps 下内存泄漏
+            val cropped = Bitmap.createBitmap(bitmap, 0, 0, imageProxy.width, imageProxy.height)
+            bitmap.recycle()
+            cropped
         } else {
             bitmap
         }
@@ -289,7 +318,10 @@ class CaptureViewModel @Inject constructor(
             PipelineStage.WAITING_FOR_STABILITY -> "请保持手机稳定"
             PipelineStage.DETECTING_REGION -> "AI 分析画面中..."
             PipelineStage.TEMPLATE_READY -> "跟随指引移动手机"
-            PipelineStage.READY_TO_CAPTURE -> "即将自动拍摄"
+            PipelineStage.READY_TO_CAPTURE -> {
+                // 根据 autoCapture 设置显示不同文案
+                if (autoCaptureEnabled) "即将自动拍摄" else "对齐完美，点击拍摄"
+            }
             PipelineStage.CAPTURING_PHOTO -> "拍摄中..."
             PipelineStage.SAVING_PHOTO -> "保存中..."
             PipelineStage.ERROR -> "发生错误，请重试"
@@ -312,11 +344,18 @@ class CaptureViewModel @Inject constructor(
         if (isCapturing) return
         isCapturing = true
 
-        viewModelScope.launch {
+        autoCaptureJob?.cancel()
+        autoCaptureJob = viewModelScope.launch {
             try {
                 if (delaySeconds > 0) {
                     _guidanceText.value = "${delaySeconds} 秒后拍摄..."
                     delay(delaySeconds * 1000L)
+                }
+
+                // delay 后重新校验状态，避免用户移开后仍拍摄
+                if (!isPipelineActive || _pipelineStage.value != PipelineStage.READY_TO_CAPTURE) {
+                    isCapturing = false
+                    return@launch
                 }
 
                 _pipelineStage.value = PipelineStage.CAPTURING_PHOTO
@@ -324,6 +363,11 @@ class CaptureViewModel @Inject constructor(
 
                 cameraManager.capturePhoto(
                     onSuccess = { imageProxy ->
+                        if (!isPipelineActive) {
+                            // ViewModel 已 cleared，直接关闭 imageProxy
+                            imageProxy.close()
+                            return@onSuccess
+                        }
                         viewModelScope.launch {
                             try {
                                 _pipelineStage.value = PipelineStage.SAVING_PHOTO
@@ -342,7 +386,10 @@ class CaptureViewModel @Inject constructor(
                                 )
 
                                 _lastSavedPhotoPath.value = record.filePath
+                                _lastSavedThumbPath.value = record.thumbPath
                                 resetPipeline()
+                            } catch (e: CancellationException) {
+                                throw e
                             } catch (e: Exception) {
                                 Log.e(TAG, "Save failed", e)
                                 _pipelineStage.value = PipelineStage.ERROR
@@ -359,6 +406,8 @@ class CaptureViewModel @Inject constructor(
                         isCapturing = false
                     }
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Auto capture failed", e)
                 _pipelineStage.value = PipelineStage.ERROR
@@ -373,6 +422,8 @@ class CaptureViewModel @Inject constructor(
         if (_pipelineStage.value == PipelineStage.TEMPLATE_READY ||
             _pipelineStage.value == PipelineStage.READY_TO_CAPTURE
         ) {
+            // 取消进行中的自动拍摄延迟，立即拍摄
+            autoCaptureJob?.cancel()
             viewModelScope.launch {
                 autoCapture(0)
             }
@@ -388,7 +439,7 @@ class CaptureViewModel @Inject constructor(
         cameraManager.setZoom(zoomRatio)
     }
 
-    // #66: 闪光灯切换同步到设置，保证 Settings 和 Capture 一致
+    // 闪光灯切换同步到设置，保证 Settings 和 Capture 一致
     fun toggleTorch() {
         viewModelScope.launch {
             val current = settingsRepository.torchEnabled.first()
@@ -408,14 +459,19 @@ class CaptureViewModel @Inject constructor(
         )
     }
 
-    // #56: ERROR 状态重试
+    // ERROR 状态重试 — 完整重置所有状态
     fun retry() {
-        _pipelineStage.value = PipelineStage.IDLE
-        _isCameraStarting.value = false
+        autoCaptureJob?.cancel()
         isCapturing = false
         isPipelineActive = false
+        _isDetectionReady.value = false
+        lastDetectionResult = null
+        _currentScore.value = 0f
+        boxCenterManager.reset()
         cameraManager.stopCamera()
         motionMonitor.stopMonitoring()
+        _pipelineStage.value = PipelineStage.IDLE
+        _isCameraStarting.value = false
         // 重新启动将由 UI 触发 startCamera
     }
 
@@ -429,13 +485,14 @@ class CaptureViewModel @Inject constructor(
 
     fun stopCamera() {
         isPipelineActive = false
-        // #33: 取消状态转换和设置监听协程
         stateTransitionJob?.cancel()
         stateTransitionJob = null
         torchSettingsJob?.cancel()
         torchSettingsJob = null
         modeSettingsJob?.cancel()
         modeSettingsJob = null
+        autoCaptureJob?.cancel()
+        autoCaptureJob = null
         cameraManager.stopCamera()
         motionMonitor.stopMonitoring()
         _pipelineStage.value = PipelineStage.IDLE
@@ -446,16 +503,15 @@ class CaptureViewModel @Inject constructor(
         boxCenterManager.setScreenSize(width, height)
     }
 
-    // #15: Singleton 资源 (CameraManager, AdacropInferenceEngine) 的生命周期
-    // 与 App 进程一致，不能在 ViewModel.onCleared 中 shutdown/close，
-    // 否则 Activity 重建后 Singleton 已被永久关闭不可恢复。
-    // 仅停止相机预览和传感器监听。
+    // Singleton 资源生命周期与 App 进程一致，不在 onCleared 中 shutdown/close
+    // 仅停止相机预览和传感器监听
     override fun onCleared() {
         super.onCleared()
         isPipelineActive = false
         stateTransitionJob?.cancel()
         torchSettingsJob?.cancel()
         modeSettingsJob?.cancel()
+        autoCaptureJob?.cancel()
         cameraManager.stopCamera()
         motionMonitor.stopMonitoring()
     }
