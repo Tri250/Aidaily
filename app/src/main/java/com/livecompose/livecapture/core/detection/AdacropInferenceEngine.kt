@@ -2,9 +2,6 @@ package com.livecompose.livecapture.core.detection
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.ImageDecoder
-import android.os.Build
-import android.provider.MediaStore
 import android.util.Log
 import androidx.camera.core.ImageProxy
 import com.livecompose.livecapture.core.detection.CompositionResult.ActionType
@@ -130,17 +127,25 @@ class AdacropInferenceEngine @Inject constructor(
     }
 
     private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap {
-        val buffer = imageProxy.planes[0].buffer
-        val bytes = ByteArray(buffer.remaining())
-        buffer.get(bytes)
+        val plane = imageProxy.planes[0]
+        val buffer = plane.buffer
+        val pixelStride = plane.pixelStride
+        val rowStride = plane.rowStride
+        val rowPadding = rowStride - pixelStride * imageProxy.width
 
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            val source = ImageDecoder.createSource(bytes.inputStream())
-            ImageDecoder.decodeBitmap(source)
+        val bitmap = Bitmap.createBitmap(
+            imageProxy.width + rowPadding / pixelStride,
+            imageProxy.height,
+            Bitmap.Config.ARGB_8888
+        )
+        buffer.rewind()
+        bitmap.copyPixelsFromBuffer(buffer)
+
+        // 裁切掉 padding 部分
+        return if (rowPadding > 0) {
+            Bitmap.createBitmap(bitmap, 0, 0, imageProxy.width, imageProxy.height)
         } else {
-            @Suppress("DEPRECATION")
-            MediaStore.Images.Media.getBitmap(context.contentResolver,
-                android.net.Uri.parse(""))
+            bitmap
         }
     }
 

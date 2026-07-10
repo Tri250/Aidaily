@@ -3,6 +3,7 @@ package com.livecompose.livecapture.core.storage
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.ThumbnailUtils
 import android.os.Build
@@ -16,9 +17,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
-import java.io.OutputStream
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -113,21 +114,8 @@ class PhotoStorageService @Inject constructor(
         val bytes = ByteArray(buffer.remaining())
         buffer.get(bytes)
 
-        val yuvImage = android.graphics.YuvImage(
-            bytes,
-            android.graphics.ImageFormat.NV21,
-            imageProxy.width,
-            imageProxy.height,
-            null
-        )
-        val out = java.io.ByteArrayOutputStream()
-        yuvImage.compressToJpeg(
-            android.graphics.Rect(0, 0, imageProxy.width, imageProxy.height),
-            100,
-            out
-        )
-        val jpegBytes = out.toByteArray()
-        return android.graphics.BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.size)
+        // ImageCapture 默认输出 JPEG 格式
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
     }
 
     private fun cropToAspectRatio(bitmap: Bitmap, aspectRatio: Float): Bitmap {

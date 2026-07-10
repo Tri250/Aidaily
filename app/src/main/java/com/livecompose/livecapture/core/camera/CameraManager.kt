@@ -2,7 +2,6 @@ package com.livecompose.livecapture.core.camera
 
 import android.content.Context
 import android.util.Log
-import android.util.Size
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraControl
@@ -88,7 +87,7 @@ class CameraManager @Inject constructor(
             .also { it.setSurfaceProvider(previewView.surfaceProvider) }
 
         imageAnalysis = ImageAnalysis.Builder()
-            .setTargetResolution(Size(1280, 720))
+            .setTargetAspectRatio(AspectRatio.RATIO_4_3)
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
             .build()
