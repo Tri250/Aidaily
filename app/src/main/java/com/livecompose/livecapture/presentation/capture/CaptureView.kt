@@ -50,6 +50,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.livecompose.livecapture.core.design.*
+import com.livecompose.livecapture.core.detection.AdacropInferenceEngine
 import com.livecompose.livecapture.presentation.Screen
 import java.io.File
 import kotlin.math.abs
@@ -78,6 +79,7 @@ fun CaptureView(
     val hasTorchUnit by viewModel.hasTorchUnit.collectAsStateWithLifecycle()
     val lastSavedThumbPath by viewModel.lastSavedThumbPath.collectAsStateWithLifecycle()
     val modelLoadFailed by viewModel.modelLoadFailed.collectAsStateWithLifecycle()
+    val activeModelVariant by viewModel.activeModelVariant.collectAsStateWithLifecycle()
     val isCameraStarting by viewModel.isCameraStarting.collectAsStateWithLifecycle()
     val cameraError by viewModel.cameraError.collectAsStateWithLifecycle()
 
@@ -218,6 +220,8 @@ fun CaptureView(
                     guidanceText = guidanceText,
                     isAligned = isAligned,
                     isModelReady = isModelReady,
+                    modelLoadFailed = modelLoadFailed,
+                    activeVariant = activeModelVariant,
                     inferenceTime = inferenceTime,
                     currentScore = currentScore,
                     modifier = Modifier
@@ -240,7 +244,7 @@ fun CaptureView(
                     )
                 }
 
-                // #55: 加载状态指示 — 淡入淡出
+                // #55: 加载状态指示 — 淡入淡出 (模型失败提示已在 TopControlBar 显示)
                 AnimatedVisibility(
                     visible = isCameraStarting || (!isModelReady && !modelLoadFailed),
                     enter = fadeIn(),
@@ -250,24 +254,6 @@ fun CaptureView(
                     LoadingOverlay(
                         text = if (isCameraStarting) "启动相机中..." else "加载 AI 模型中..."
                     )
-                }
-
-                // 模型加载失败降级提示
-                if (modelLoadFailed) {
-                    Surface(
-                        color = ErrorColor.copy(alpha = 0.8f),
-                        shape = RoundedCornerShape(CornerMedium),
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp)
-                    ) {
-                        Text(
-                            text = "AI 模型加载失败，使用默认构图模式",
-                            color = Color.White,
-                            style = GuidanceTextStyle.copy(fontSize = 13.sp),
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
-                        )
-                    }
                 }
 
                 // Bottom Controls — #54: 刘海屏适配
@@ -520,6 +506,8 @@ private fun TopControlBar(
     guidanceText: String,
     isAligned: Boolean,
     isModelReady: Boolean,
+    modelLoadFailed: Boolean,
+    activeVariant: AdacropInferenceEngine.ModelVariant?,
     inferenceTime: Long,
     currentScore: Float,
     modifier: Modifier = Modifier
@@ -530,13 +518,26 @@ private fun TopControlBar(
             .padding(top = 8.dp, start = 16.dp, end = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (!isModelReady) {
+        // 模型状态指示: 加载中 / 加载失败降级 / 正常显示当前变体
+        if (modelLoadFailed) {
             Surface(
                 color = ErrorColor.copy(alpha = 0.8f),
                 shape = RoundedCornerShape(CornerMedium)
             ) {
                 Text(
-                    text = "AI 模型加载中，使用默认构图",
+                    text = "AI 模型加载失败，使用默认构图",
+                    style = GuidanceTextStyle.copy(fontSize = 12.sp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+        } else if (!isModelReady) {
+            Surface(
+                color = GuidanceBg,
+                shape = RoundedCornerShape(CornerMedium)
+            ) {
+                Text(
+                    text = "AI 模型加载中...",
                     style = GuidanceTextStyle.copy(fontSize = 12.sp),
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                 )
@@ -554,6 +555,19 @@ private fun TopControlBar(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // 当前模型变体标识 (Student=Fast / Teacher=Pro)
+                    if (activeVariant != null) {
+                        Text(
+                            text = if (activeVariant == AdacropInferenceEngine.ModelVariant.TEACHER) "PRO" else "FAST",
+                            color = if (activeVariant == AdacropInferenceEngine.ModelVariant.TEACHER) TrackingDotAligned else Color.White.copy(alpha = 0.8f),
+                            style = GuidanceTextStyle.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color.White.copy(alpha = 0.15f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
                     // 指引文案切换淡入淡出动画
                     AnimatedContent(
                         targetState = guidanceText,

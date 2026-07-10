@@ -31,7 +31,9 @@ class AdacropInferenceEngine @Inject constructor(
 
     companion object {
         private const val TAG = "AdacropInferenceEngine"
-        private const val MODEL_FILE = "adacrop_student.tflite"
+        // Student (Fast 轻量) 与 Teacher (Pro 完整) 两个 TFLite 模型文件
+        private const val STUDENT_MODEL_FILE = "adacrop_student.tflite"
+        private const val TEACHER_MODEL_FILE = "adacrop_teacher.tflite"
         private const val INPUT_SIZE = 224
         private const val NUM_ACTIONS = 7
         private const val NUM_BBOX_PARAMS = 4
@@ -46,10 +48,24 @@ class AdacropInferenceEngine @Inject constructor(
         private const val SAFETY_MARGIN = 0.1f // 边缘安全区 10%
     }
 
+    /**
+     * 模型变体: 与 SettingsRepository 的 detectionMode 对应
+     * - STUDENT: Fast 模式, MobileNetV3-Small, 轻量 ~5fps
+     * - TEACHER: Pro 模式, MobileNetV3-Large, 全帧率最高精度
+     */
+    enum class ModelVariant(val assetFile: String) {
+        STUDENT(STUDENT_MODEL_FILE),
+        TEACHER(TEACHER_MODEL_FILE)
+    }
+
     private var interpreter: Interpreter? = null
     private var nnApiDelegate: NnApiDelegate? = null
     private var isDualOutput = false
     private var inputDataType: Int = 0 // 0 = float32, 1 = uint8
+
+    // 当前已加载的变体, 用于判断是否需要切换重载
+    @Volatile
+    private var loadedVariant: ModelVariant? = null
 
     // 模型加载状态跟踪，防止重复加载
     private val isLoadStarted = AtomicBoolean(false)
@@ -77,6 +93,10 @@ class AdacropInferenceEngine @Inject constructor(
     private val _inferenceTime = MutableStateFlow(0L)
     val inferenceTime: StateFlow<Long> = _inferenceTime
 
+    // 当前活跃变体 (供 UI 显示当前模式)
+    private val _activeVariant = MutableStateFlow<ModelVariant?>(null)
+    val activeVariant: StateFlow<ModelVariant?> = _activeVariant
+
     init {
         // init 仅分配 ByteBuffer，不在主线程加载模型
         val numPixels = INPUT_SIZE * INPUT_SIZE * 3
@@ -85,11 +105,18 @@ class AdacropInferenceEngine @Inject constructor(
     }
 
     /**
-     * 异步加载模型，必须在后台线程调用。
+     * 异步加载指定变体模型，必须在后台线程调用。
      * 线程安全：使用 AtomicBoolean 防止重复加载。
      * 失败时重置 isLoadStarted 允许重试。
+     *
+     * @param variant 模型变体, 默认 STUDENT (Fast 模式)
      */
-    suspend fun loadModelAsync() {
+    suspend fun loadModelAsync(variant: ModelVariant = ModelVariant.STUDENT) {
+        // 若已加载相同变体则跳过
+        if (loadedVariant == variant && _isReady.value) {
+            Log.d(TAG, "$variant already loaded, skipping")
+            return
+        }
         if (!isLoadStarted.compareAndSet(false, true)) {
             Log.d(TAG, "Model load already started, skipping")
             return
@@ -97,7 +124,11 @@ class AdacropInferenceEngine @Inject constructor(
         _isLoading.value = true
         try {
             withContext(Dispatchers.IO) {
-                loadModel()
+                // 切换变体时先释放旧 interpreter
+                if (interpreter != null) {
+                    releaseInterpreter()
+                }
+                loadModel(variant)
             }
         } finally {
             // try-finally 确保取消/异常时 isLoading 不卡死
@@ -105,9 +136,26 @@ class AdacropInferenceEngine @Inject constructor(
         }
     }
 
-    private fun loadModel() {
+    /**
+     * 切换模型变体 (Fast <-> Pro)。
+     * 若目标变体与当前一致则不操作; 否则释放旧模型并加载新变体。
+     */
+    suspend fun switchVariant(variant: ModelVariant) {
+        if (loadedVariant == variant && _isReady.value) {
+            Log.d(TAG, "Already on $variant, no switch needed")
+            return
+        }
+        Log.d(TAG, "Switching from $loadedVariant to $variant")
+        // 重置加载锁以允许重新加载
+        isLoadStarted.set(false)
+        _loadFailed.value = false
+        _isReady.value = false
+        loadModelAsync(variant)
+    }
+
+    private fun loadModel(variant: ModelVariant) {
         try {
-            val modelBuffer = loadModelFile()
+            val modelBuffer = loadModelFile(variant.assetFile)
             val options = Interpreter.Options()
             // 跟踪 NnApiDelegate 以便后续 close
             try {
@@ -128,23 +176,25 @@ class AdacropInferenceEngine @Inject constructor(
 
             if (outputDetails != null && outputDetails.size >= 2) {
                 isDualOutput = true
-                Log.d(TAG, "Model is single-input dual-output (bbox + action_probs)")
+                Log.d(TAG, "${variant}: single-input dual-output (bbox + action_probs)")
             } else {
                 isDualOutput = false
-                Log.d(TAG, "Model requires two-stage inference")
+                Log.d(TAG, "${variant}: requires two-stage inference")
             }
 
             // 检查输入数据类型，用于预处理分支
             if (inputDetails != null && inputDetails.isNotEmpty()) {
                 inputDataType = inputDetails[0].dataType()
-                Log.d(TAG, "Input data type: ${if (inputDataType == 0) "float32" else "uint8/other"}")
+                Log.d(TAG, "${variant}: input data type ${if (inputDataType == 0) "float32" else "uint8/other"}")
             }
 
+            loadedVariant = variant
+            _activeVariant.value = variant
             _isReady.value = true
             _loadFailed.value = false
-            Log.d(TAG, "Model loaded successfully")
+            Log.d(TAG, "$variant model loaded successfully")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load model: ${e.message}. Running in fallback mode.", e)
+            Log.e(TAG, "Failed to load $variant model: ${e.message}. Running in fallback mode.", e)
             _isReady.value = false
             _loadFailed.value = true
             // 加载失败时重置 isLoadStarted，允许后续重试
@@ -156,11 +206,11 @@ class AdacropInferenceEngine @Inject constructor(
     }
 
     /**
-     * 加载模型文件并正确关闭 FD/Stream/Channel，避免 FD 泄漏
+     * 加载指定模型文件并正确关闭 FD/Stream/Channel，避免 FD 泄漏
      * MappedByteBuffer 创建后不再依赖 FD，可安全关闭
      */
-    private fun loadModelFile(): MappedByteBuffer {
-        val assetFileDescriptor = context.assets.openFd(MODEL_FILE)
+    private fun loadModelFile(assetFile: String): MappedByteBuffer {
+        val assetFileDescriptor = context.assets.openFd(assetFile)
         assetFileDescriptor.use { afd ->
             FileInputStream(afd.fileDescriptor).use { fis ->
                 val fileChannel = fis.channel
@@ -171,6 +221,21 @@ class AdacropInferenceEngine @Inject constructor(
                 )
             }
         }
+    }
+
+    /**
+     * 释放当前 interpreter 与 delegate, 不重置加载状态 (供 switchVariant 复用)
+     */
+    private fun releaseInterpreter() {
+        try {
+            interpreter?.close()
+        } catch (e: Exception) {
+            Log.w(TAG, "Error closing interpreter", e)
+        }
+        interpreter = null
+        nnApiDelegate?.close()
+        nnApiDelegate = null
+        _isReady.value = false
     }
 
     suspend fun analyze(bitmap: Bitmap): CompositionResult = withContext(Dispatchers.Default) {
@@ -343,12 +408,9 @@ class AdacropInferenceEngine @Inject constructor(
     }
 
     fun close() {
-        interpreter?.close()
-        interpreter = null
-        // 关闭 NnApiDelegate 释放 NNAPI 资源
-        nnApiDelegate?.close()
-        nnApiDelegate = null
-        _isReady.value = false
+        releaseInterpreter()
+        loadedVariant = null
+        _activeVariant.value = null
         isLoadStarted.set(false)
     }
 }

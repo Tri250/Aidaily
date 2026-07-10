@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.livecompose.livecapture.core.camera.CameraManager
 import com.livecompose.livecapture.core.detection.AdacropInferenceEngine
+import com.livecompose.livecapture.core.detection.AdacropInferenceEngine.ModelVariant
 import com.livecompose.livecapture.core.detection.CompositionResult
 import com.livecompose.livecapture.core.motion.BoxCenterManager
 import com.livecompose.livecapture.core.motion.MotionStabilityMonitor
@@ -78,6 +79,7 @@ class CaptureViewModel @Inject constructor(
     val isModelReady: StateFlow<Boolean> = detectionEngine.isReady
     val isModelLoading: StateFlow<Boolean> = detectionEngine.isLoading
     val modelLoadFailed: StateFlow<Boolean> = detectionEngine.loadFailed
+    val activeModelVariant: StateFlow<AdacropInferenceEngine.ModelVariant?> = detectionEngine.activeVariant
 
     private val _currentScore = MutableStateFlow(0f)
     val currentScore: StateFlow<Float> = _currentScore
@@ -135,9 +137,9 @@ class CaptureViewModel @Inject constructor(
         cameraManager.startCamera(lifecycleOwner, previewView)
         motionMonitor.startMonitoring()
 
-        // 异步加载模型，避免主线程 ANR
+        // 异步加载 Student 模型 (Fast 模式默认), 避免主线程 ANR
         viewModelScope.launch {
-            detectionEngine.loadModelAsync()
+            detectionEngine.loadModelAsync(ModelVariant.STUDENT)
         }
 
         // 实时监听闪光灯设置变更并应用
@@ -148,11 +150,14 @@ class CaptureViewModel @Inject constructor(
             }
         }
 
-        // 实时监听检测模式变更
+        // 实时监听检测模式变更: PRO 切换到 Teacher 模型, FAST 切换回 Student
         modeSettingsJob?.cancel()
         modeSettingsJob = viewModelScope.launch {
             settingsRepository.detectionMode.collect { mode ->
                 detectionMode = mode
+                val targetVariant = if (mode == "PRO") ModelVariant.TEACHER else ModelVariant.STUDENT
+                // 切换模型变体 (若与当前一致则内部跳过)
+                detectionEngine.switchVariant(targetVariant)
             }
         }
 

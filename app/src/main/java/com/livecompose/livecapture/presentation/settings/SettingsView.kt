@@ -14,8 +14,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.livecompose.livecapture.core.design.TitleTextStyle
 
 enum class DetectionMode(val label: String, val key: String) {
-    FAST("快速 (节电模式 ~5fps)", "FAST"),
-    PRO("专业 (全帧率连续检测)", "PRO")
+    FAST("快速 (Student 模型, 节电 ~5fps)", "FAST"),
+    PRO("专业 (Teacher 模型, 全帧率高精度)", "PRO")
 }
 
 @Composable
