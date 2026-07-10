@@ -9,14 +9,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.livecompose.livecapture.core.design.TitleTextStyle
 
+enum class DetectionMode(val label: String, val key: String) {
+    FAST("快速 (MobileNetV3)", "FAST"),
+    PRO("专业 (ResNet50)", "PRO")
+}
+
 @Composable
-fun SettingsView() {
-    var detectionMode by remember { mutableStateOf(DetectionMode.FAST) }
-    var autoCaptureEnabled by remember { mutableStateOf(true) }
-    var captureDelay by remember { mutableStateOf(0) }
-    var isDarkTheme by remember { mutableStateOf(true) }
+fun SettingsView(
+    viewModel: SettingsViewModel = hiltViewModel()
+) {
+    val detectionMode by viewModel.detectionMode.collectAsState()
+    val autoCaptureEnabled by viewModel.autoCapture.collectAsState()
+    val captureDelay by viewModel.captureDelay.collectAsState()
+    val isDarkTheme by viewModel.darkTheme.collectAsState()
+    val torchEnabled by viewModel.torchEnabled.collectAsState()
 
     Column(
         modifier = Modifier
@@ -37,15 +46,15 @@ fun SettingsView() {
                         .fillMaxWidth()
                         .height(56.dp)
                         .selectable(
-                            selected = detectionMode == mode,
-                            onClick = { detectionMode = mode },
+                            selected = detectionMode == mode.key,
+                            onClick = { viewModel.setDetectionMode(mode.key) },
                             role = Role.RadioButton
                         )
                         .padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(
-                        selected = detectionMode == mode,
+                        selected = detectionMode == mode.key,
                         onClick = null
                     )
                     Text(
@@ -56,7 +65,7 @@ fun SettingsView() {
             }
         }
 
-        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
         // Auto Capture
         SettingsSection(title = "自动拍摄") {
@@ -70,12 +79,12 @@ fun SettingsView() {
                 Text("对齐后自动拍摄")
                 Switch(
                     checked = autoCaptureEnabled,
-                    onCheckedChange = { autoCaptureEnabled = it }
+                    onCheckedChange = { viewModel.setAutoCapture(it) }
                 )
             }
         }
 
-        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
         // Capture Delay
         SettingsSection(title = "拍摄延迟") {
@@ -86,10 +95,10 @@ fun SettingsView() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("${captureDelay} 秒")
+                Text("$captureDelay 秒")
                 Slider(
                     value = captureDelay.toFloat(),
-                    onValueChange = { captureDelay = it.toInt() },
+                    onValueChange = { viewModel.setCaptureDelay(it.toInt()) },
                     valueRange = 0f..5f,
                     steps = 4,
                     modifier = Modifier.width(200.dp)
@@ -97,7 +106,7 @@ fun SettingsView() {
             }
         }
 
-        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
         // Theme
         SettingsSection(title = "主题") {
@@ -111,12 +120,31 @@ fun SettingsView() {
                 Text("深色模式")
                 Switch(
                     checked = isDarkTheme,
-                    onCheckedChange = { isDarkTheme = it }
+                    onCheckedChange = { viewModel.setDarkTheme(it) }
                 )
             }
         }
 
-        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+        // Torch
+        SettingsSection(title = "闪光灯") {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("默认开启闪光灯")
+                Switch(
+                    checked = torchEnabled,
+                    onCheckedChange = { viewModel.setTorchEnabled(it) }
+                )
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
         // About
         SettingsSection(title = "关于") {
@@ -132,7 +160,7 @@ fun SettingsView() {
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
                 Text(
-                    "框架: TensorFlow Lite",
+                    "框架: TensorFlow Lite + NNAPI",
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
@@ -154,9 +182,4 @@ private fun SettingsSection(
         )
         content()
     }
-}
-
-enum class DetectionMode(val label: String) {
-    FAST("快速 (MobileNetV3)"),
-    PRO("专业 (ResNet50)")
 }

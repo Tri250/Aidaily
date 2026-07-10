@@ -3,7 +3,6 @@ package com.livecompose.livecapture.core.detection
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
-import androidx.camera.core.ImageProxy
 import com.livecompose.livecapture.core.detection.CompositionResult.ActionType
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +34,10 @@ class AdacropInferenceEngine @Inject constructor(
     }
 
     private var interpreter: Interpreter? = null
+    private var isDualOutput = false // 模型是单输入双输出还是需要两次推理
+    private var inputDataType: Int = 0 // 0 = float32, 1 = uint8
+
+    // NHWC 格式输入 buffer: [1, 224, 224, 3]
     private val inputBuffer: ByteBuffer
     private val bboxOutputBuffer: ByteBuffer
     private val actionOutputBuffer: ByteBuffer
@@ -61,17 +64,42 @@ class AdacropInferenceEngine @Inject constructor(
 
     private fun loadModel() {
         try {
+            val modelBuffer = loadModelFile()
             val options = Interpreter.Options().apply {
                 // 优先使用 NNAPI 加速
-                addDelegate(NnApiDelegate())
+                try {
+                    addDelegate(NnApiDelegate())
+                } catch (e: Exception) {
+                    Log.w(TAG, "NNAPI not available, falling back to CPU")
+                }
                 setNumThreads(4)
             }
-            val modelBuffer = loadModelFile()
             interpreter = Interpreter(modelBuffer, options)
+
+            // 检查模型输入/输出结构
+            val inputDetails = interpreter?.getInputDetails()
+            val outputDetails = interpreter?.getOutputDetails()
+
+            if (outputDetails != null && outputDetails.size >= 2) {
+                // 单输入双输出模型: [bbox, action_probs]
+                isDualOutput = true
+                Log.d(TAG, "Model is single-input dual-output (bbox + action_probs)")
+            } else {
+                // 需要两次推理
+                isDualOutput = false
+                Log.d(TAG, "Model requires two-stage inference")
+            }
+
+            // 检查输入数据类型
+            if (inputDetails != null && inputDetails.isNotEmpty()) {
+                inputDataType = inputDetails[0].dataType()
+                Log.d(TAG, "Input data type: ${if (inputDataType == 0) "float32" else "uint8"}")
+            }
+
             _isReady.value = true
             Log.d(TAG, "Model loaded successfully")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load model", e)
+            Log.e(TAG, "Failed to load model: ${e.message}. Running in fallback mode.")
             _isReady.value = false
         }
     }
@@ -85,75 +113,86 @@ class AdacropInferenceEngine @Inject constructor(
         return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
     }
 
-    suspend fun analyze(imageProxy: ImageProxy): CompositionResult = withContext(Dispatchers.Default) {
+    suspend fun analyze(bitmap: Bitmap): CompositionResult = withContext(Dispatchers.Default) {
         val startTime = System.currentTimeMillis()
 
-        // 1. 将 ImageProxy 转换为 Bitmap 并 resize 到 224x224
-        val bitmap = imageProxyToBitmap(imageProxy)
-        val resizedBitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true)
+        val interp = interpreter ?: return@withContext defaultResult()
 
-        // 2. 预处理: RGB 归一化到 [0, 1]
-        preprocess(resizedBitmap)
+        try {
+            // 1. resize 到 224x224
+            val resizedBitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true)
 
-        // 3. Stage 1: BBox Head 推理
-        val interpreter = this@AdacropInferenceEngine.interpreter
-            ?: return@withContext defaultResult()
+            // 2. 预处理: NHWC 格式，RGB 归一化到 [0, 1]
+            preprocess(resizedBitmap)
 
-        val bboxOutput = Array(1) { FloatArray(NUM_BBOX_PARAMS) }
-        interpreter.run(inputBuffer, bboxOutput)
-        val bbox = bboxOutput[0]
+            if (isDualOutput) {
+                // 单输入双输出: 一次推理同时获取 bbox 和 action_probs
+                val bboxOutput = Array(1) { FloatArray(NUM_BBOX_PARAMS) }
+                val actionOutput = Array(1) { FloatArray(NUM_ACTIONS) }
 
-        // 4. Stage 2: Actor Policy 推理
-        // 构建 state: 裁切图像 + bbox 状态
-        val croppedBitmap = cropAndResize(bitmap, bbox)
-        preprocess(croppedBitmap)
+                val outputMap = mapOf(
+                    0 to bboxOutput,
+                    1 to actionOutput
+                )
+                interp.runForMultipleInputsOutputs(arrayOf(inputBuffer), outputMap)
 
-        val actionOutput = Array(1) { FloatArray(NUM_ACTIONS) }
-        interpreter.run(inputBuffer, actionOutput)
-        val actionProbs = actionOutput[0]
-        val action = argMax(actionProbs)
+                _inferenceTime.value = System.currentTimeMillis() - startTime
 
-        _inferenceTime.value = System.currentTimeMillis() - startTime
+                val bbox = bboxOutput[0]
+                val actionProbs = actionOutput[0]
+                val action = argMax(actionProbs)
 
-        resizedBitmap.recycle()
-        croppedBitmap.recycle()
+                resizedBitmap.recycle()
 
-        CompositionResult(
-            bbox = bbox,
-            action = action,
-            actionProbabilities = actionProbs,
-            confidence = actionProbs.maxOrNull() ?: 0.5f
-        )
-    }
+                CompositionResult(
+                    bbox = bbox,
+                    action = action,
+                    actionProbabilities = actionProbs,
+                    confidence = actionProbs.maxOrNull() ?: 0.5f
+                )
+            } else {
+                // 两阶段推理: Stage 1 BBox Head → Stage 2 Actor Policy
+                val bboxOutput = Array(1) { FloatArray(NUM_BBOX_PARAMS) }
+                interp.run(inputBuffer, bboxOutput)
+                val bbox = bboxOutput[0]
 
-    private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap {
-        val plane = imageProxy.planes[0]
-        val buffer = plane.buffer
-        val pixelStride = plane.pixelStride
-        val rowStride = plane.rowStride
-        val rowPadding = rowStride - pixelStride * imageProxy.width
+                // 构建 Stage 2 输入: 裁切后的图像
+                val croppedBitmap = cropAndResize(bitmap, bbox)
+                preprocess(croppedBitmap)
 
-        val bitmap = Bitmap.createBitmap(
-            imageProxy.width + rowPadding / pixelStride,
-            imageProxy.height,
-            Bitmap.Config.ARGB_8888
-        )
-        buffer.rewind()
-        bitmap.copyPixelsFromBuffer(buffer)
+                val actionOutput = Array(1) { FloatArray(NUM_ACTIONS) }
+                interp.run(inputBuffer, actionOutput)
+                val actionProbs = actionOutput[0]
+                val action = argMax(actionProbs)
 
-        // 裁切掉 padding 部分
-        return if (rowPadding > 0) {
-            Bitmap.createBitmap(bitmap, 0, 0, imageProxy.width, imageProxy.height)
-        } else {
-            bitmap
+                _inferenceTime.value = System.currentTimeMillis() - startTime
+
+                resizedBitmap.recycle()
+                croppedBitmap.recycle()
+
+                CompositionResult(
+                    bbox = bbox,
+                    action = action,
+                    actionProbabilities = actionProbs,
+                    confidence = actionProbs.maxOrNull() ?: 0.5f
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Inference error", e)
+            defaultResult()
         }
     }
 
+    /**
+     * NHWC 格式预处理: [1, 224, 224, 3]
+     * 按像素逐个写入 R, G, B float 值
+     */
     private fun preprocess(bitmap: Bitmap) {
         inputBuffer.rewind()
         val pixels = IntArray(INPUT_SIZE * INPUT_SIZE)
         bitmap.getPixels(pixels, 0, INPUT_SIZE, 0, 0, INPUT_SIZE, INPUT_SIZE)
 
+        // NHWC: 逐像素写入 [H, W, C]
         for (pixel in pixels) {
             val r = (pixel shr 16 and 0xFF) / 255.0f
             val g = (pixel shr 8 and 0xFF) / 255.0f

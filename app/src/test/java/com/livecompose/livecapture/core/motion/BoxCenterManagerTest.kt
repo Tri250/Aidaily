@@ -1,5 +1,7 @@
 package com.livecompose.livecapture.core.motion
 
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -7,15 +9,21 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class BoxCenterManagerTest {
 
     private lateinit var manager: BoxCenterManager
 
     @Before
     fun setup() {
-        manager = BoxCenterManager()
-        manager.updateScreenCenter(720f, 1280f)
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        manager = BoxCenterManager(context)
+        manager.setScreenSize(720f, 1280f)
     }
 
     @Test

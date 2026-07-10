@@ -74,8 +74,8 @@ fun MainTabView() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.LiveCompose.route) { LiveComposeView() }
-            composable(Screen.Home.route) { HomeView() }
-            composable(Screen.Capture.route) { CaptureView() }
+            composable(Screen.Home.route) { HomeView(navController = navController) }
+            composable(Screen.Capture.route) { CaptureView(navController = navController) }
             composable(Screen.Settings.route) { SettingsView() }
         }
     }

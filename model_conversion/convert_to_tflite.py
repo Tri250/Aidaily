@@ -163,7 +163,8 @@ def convert_tf_to_tflite(saved_model_dir: str, output_path: str, quantize: str =
 
         converter.representative_dataset = representative_dataset
         converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
-        converter.inference_input_type = tf.uint8
+        # 保持 float32 输入/输出，端侧预处理使用 float32，避免类型不匹配
+        converter.inference_input_type = tf.float32
         converter.inference_output_type = tf.float32
 
     tflite_model = converter.convert()
@@ -191,10 +192,8 @@ def verify_tflite_model(tflite_path: str, input_size: int = 224):
     print(f"Input shape: {input_details[0]['shape']}")
     print(f"Output shapes: {[d['shape'] for d in output_details]}")
 
-    # Test inference
+    # Test inference - 使用 float32 输入（端侧 AdacropInferenceEngine 使用 float32）
     test_input = np.random.rand(1, input_size, input_size, 3).astype(np.float32)
-    if input_details[0]['dtype'] == np.uint8:
-        test_input = (test_input * 255).astype(np.uint8)
 
     interpreter.set_tensor(input_details[0]['index'], test_input)
     interpreter.invoke()

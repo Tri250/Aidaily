@@ -1,14 +1,12 @@
 package com.livecompose.livecapture.presentation.home
 
-import androidx.compose.foundation.background
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,21 +16,28 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.livecompose.livecapture.core.design.TitleTextStyle
 import com.livecompose.livecapture.core.storage.PhotoRecord
-import com.livecompose.livecapture.core.storage.PhotoStorageService
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun HomeView() {
-    val context = LocalContext.current
-    val storageService = remember { PhotoStorageService(context) }
-    var records by remember { mutableStateOf(storageService.getAllRecords()) }
+fun HomeView(
+    viewModel: HomeViewModel = hiltViewModel(),
+    navController: NavController? = null
+) {
+    val records by viewModel.records.collectAsState()
     var selectedRecord by remember { mutableStateOf<PhotoRecord?>(null) }
+
+    // 每次页面显示时刷新
+    LaunchedEffect(Unit) {
+        viewModel.loadRecords()
+    }
 
     Column(
         modifier = Modifier
@@ -77,8 +82,7 @@ fun HomeView() {
             record = record,
             onDismiss = { selectedRecord = null },
             onDelete = {
-                storageService.deleteRecord(record)
-                records = storageService.getAllRecords()
+                viewModel.deleteRecord(record)
                 selectedRecord = null
             }
         )
@@ -90,6 +94,16 @@ private fun PhotoThumbnail(
     record: PhotoRecord,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
+
+    // 缩略图始终用本地文件路径
+    val thumbModel = remember(record.thumbPath) {
+        ImageRequest.Builder(context)
+            .data(File(record.thumbPath))
+            .crossfade(true)
+            .build()
+    }
+
     Box(
         modifier = Modifier
             .aspectRatio(3f / 4f)
@@ -97,10 +111,7 @@ private fun PhotoThumbnail(
             .clickable(onClick = onClick)
     ) {
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(File(record.thumbPath))
-                .crossfade(true)
-                .build(),
+            model = thumbModel,
             contentDescription = "Photo",
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
@@ -114,7 +125,21 @@ private fun PhotoDetailDialog(
     onDismiss: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val context = LocalContext.current
     val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+
+    // 主图加载: 支持 MediaStore Uri 和文件路径
+    val mainImageModel = remember(record.filePath) {
+        val data = if (record.filePath.startsWith("content://")) {
+            Uri.parse(record.filePath)
+        } else {
+            File(record.filePath)
+        }
+        ImageRequest.Builder(context)
+            .data(data)
+            .crossfade(true)
+            .build()
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -122,10 +147,7 @@ private fun PhotoDetailDialog(
         text = {
             Column {
                 AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(File(record.filePath))
-                        .crossfade(true)
-                        .build(),
+                    model = mainImageModel,
                     contentDescription = "Photo detail",
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
@@ -142,6 +164,10 @@ private fun PhotoDetailDialog(
                 record.shutterSpeed?.let { DetailItem("快门", it) }
                 record.aperture?.let { DetailItem("光圈", it) }
                 record.focalLength?.let { DetailItem("焦距", it) }
+                record.aestheticScore?.let { DetailItem("美学评分", String.format("%.2f", it)) }
+                record.cropRegion?.let { region ->
+                    DetailItem("裁切区域", "(${String.format("%.2f", region.centerX)}, ${String.format("%.2f", region.centerY)})")
+                }
             }
         },
         confirmButton = {
