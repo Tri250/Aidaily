@@ -103,7 +103,8 @@ private val LiveCaptureTypography = Typography(
  */
 @Composable
 fun LiveCaptureTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    // 2026 极简影像：默认强制深色，确保拍摄/设置/图库一致的高端沉浸体验
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) buildDarkColorScheme() else buildLightColorScheme()

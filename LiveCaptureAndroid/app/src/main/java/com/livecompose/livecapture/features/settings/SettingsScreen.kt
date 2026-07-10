@@ -92,14 +92,37 @@ fun SettingsScreen() {
             .background(DesignSystem.Colors.backgroundPrimary())
             .verticalScroll(rememberScrollState())
     ) {
-        // 头部
+        // 头部 - 2026 极简影像：大标题 + 反馈/关闭
         Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            "设置",
-            style = DesignSystem.Typography.largeTitle,
-            color = DesignSystem.Colors.textPrimary(),
-            modifier = Modifier.padding(horizontal = 20.dp)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                "设置",
+                style = DesignSystem.Typography.largeTitle,
+                color = DesignSystem.Colors.minimalLabel
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { /* TODO: 打开反馈入口 */ }) {
+                    Text(
+                        "反馈",
+                        color = DesignSystem.Colors.primary,
+                        style = DesignSystem.Typography.subheadline
+                    )
+                }
+                IconButton(onClick = { /* TODO: 关闭设置页 */ }) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "关闭",
+                        tint = DesignSystem.Colors.minimalLabel
+                    )
+                }
+            }
+        }
         Spacer(modifier = Modifier.height(24.dp))
 
         // ====== 外观 ======
@@ -574,26 +597,19 @@ private fun SectionHeader(title: String, icon: ImageVector) {
             .padding(bottom = 10.dp, top = 20.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 左侧强调色块
+        // 左侧薄荷绿强调色块
         Box(
             modifier = Modifier
                 .width(3.dp)
-                .height(18.dp)
+                .height(16.dp)
                 .clip(RoundedCornerShape(1.5.dp))
                 .background(DesignSystem.Colors.primary)
         )
         Spacer(modifier = Modifier.width(10.dp))
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = DesignSystem.Colors.primary,
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
         Text(
             title,
             style = DesignSystem.Typography.headline,
-            color = DesignSystem.Colors.textPrimary(),
+            color = DesignSystem.Colors.minimalLabel,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 0.5.sp
         )
@@ -606,7 +622,7 @@ private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .liquidGlass(cornerRadius = DesignSystem.CornerRadius.large, intensity = 0.08f)
+            .liquidGlass(cornerRadius = DesignSystem.CornerRadius.large, intensity = 0.06f)
             .padding(4.dp),
         content = content
     )

@@ -70,19 +70,19 @@ object DesignSystem {
     // 参考：高端原生相机应用，无品牌色侵入拍摄界面
 
     object Colors {
-        // 品牌色 - 与 iOS LiveCapture DesignSystem 对齐
-        val primary = Color(0xFF007AFF)         // iOS: 清新蓝 (0.0, 0.48, 1.0)
-        val primaryLight = Color(0xFF4DA3FF)    // 浅蓝
-        val primaryDark = Color(0xFF0062CC)     // 深蓝
+        // 品牌色 - 2026 极简影像：薄荷绿高光 + 纯黑沉浸
+        val primary = Color(0xFF33D58A)         // 薄荷绿：快门环 / 焦点框 / 选中态 / 开关
+        val primaryLight = Color(0xFF5EE6A8)    // 浅薄荷
+        val primaryDark = Color(0xFF24B374)     // 深薄荷
         val secondary = Color(0xFF5956A6)       // iOS: 紫罗兰 (0.35, 0.34, 0.84)
-        val accent = Color(0xFFFF9400)          // iOS: 活力橙 (1.0, 0.58, 0.0)
-        val accentWarm = Color(0xFFFF9400)      // 同上
+        val accent = Color(0xFFD4A84B)          // 暖金：成就 / 胶片高光 / 评分
+        val accentWarm = Color(0xFFD4A84B)      // 同上
 
-        // 渐变色 - 与 iOS 完整5组渐变对齐
-        val gradientStart = Color(0xFF007AFF)
-        val gradientEnd = Color(0xFF5956A6)
-        val accentGradientStart = Color(0xFFFF9400)
-        val accentGradientEnd = Color(0xFFFF6B00)
+        // 渐变色 - 青绿 → 霁青，呼应取景器焦点与天空
+        val gradientStart = Color(0xFF33D58A)
+        val gradientEnd = Color(0xFF3A7CA5)
+        val accentGradientStart = Color(0xFFD4A84B)
+        val accentGradientEnd = Color(0xFFFF8A65)
         val successGradientStart = Color(0xFF34C759)
         val successGradientEnd = Color(0xFF248A3D)
         val warningGradientStart = Color(0xFFFFCC00)
@@ -95,9 +95,9 @@ object DesignSystem {
         val recordingRed = Color(0xFFE04545)
         val nightModeBlue = Color(0xFF5B8BA8)
 
-        // 语义色 - 与 iOS 对齐
-        val success = Color(0xFF34C759)         // iOS: 成功绿
-        val successBg = Color(0xFF34C759).copy(alpha = 0.12f)
+        // 语义色 - 与品牌薄荷绿对齐
+        val success = Color(0xFF33D58A)         // 成功绿（同品牌薄荷绿）
+        val successBg = Color(0xFF33D58A).copy(alpha = 0.12f)
         val warning = Color(0xFFFFCC00)         // iOS: 警告黄
         val warningBg = Color(0xFFFFCC00).copy(alpha = 0.12f)
         val error = Color(0xFFFF3B30)           // iOS: 错误红
@@ -302,13 +302,17 @@ object DesignSystem {
             letterSpacing = 0.4f.sp, lineHeight = 10.sp
         )
 
-        // 行高计算
-        fun lineHeightFor(size: Float): Float = size * 1.4f
+        // 行高计算：标题更紧凑，中文正文保持 1.4 呼吸感
+        fun lineHeightFor(size: Float): Float = when {
+            size >= 28 -> size * 1.2f
+            size >= 20 -> size * 1.25f
+            else -> size * 1.4f
+        }
 
-        // 字间距常量
-        const val titleKerning: Float = -0.3f
-        const val bodyKerning: Float = 0f
-        const val captionKerning: Float = 0.2f
+        // 字间距常量：标题收紧提升精致感，正文略微收紧，注脚保持清晰
+        const val titleKerning: Float = -0.5f
+        const val bodyKerning: Float = -0.1f
+        const val captionKerning: Float = 0f
     }
 
     // MARK: - Spacing（严格 4pt 基准网格）
