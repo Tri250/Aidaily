@@ -1,11 +1,18 @@
 package com.livecompose.livecapture.features.gallery
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +31,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoFixHigh
+import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Expand
 import androidx.compose.material.icons.filled.Healing
 import androidx.compose.material.icons.filled.InvertColors
@@ -45,13 +53,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
@@ -60,10 +75,13 @@ import com.livecompose.livecapture.core.editing.AIEditViewModel
 import com.livecompose.livecapture.core.editing.ImageExpander
 import com.livecompose.livecapture.core.editing.SkyReplacer
 import com.livecompose.livecapture.core.editing.StyleTransfer
+import com.livecompose.livecapture.core.lut.AiColorMatcher
 import com.livecompose.livecapture.core.processing.HealingBrushProcessor
 import com.livecompose.livecapture.di.AppContainer
 import com.livecompose.livecapture.ui.design.DesignSystem
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +108,48 @@ fun AIEditScreen(
     val healingBrushX by viewModel.healingBrushX.collectAsState()
     val healingBrushY by viewModel.healingBrushY.collectAsState()
     val healingBrushRadius by viewModel.healingBrushRadius.collectAsState()
+
+    // === AI 仿色状态 ===
+    var isColorMatching by remember { mutableStateOf(false) }
+    var colorMatchResult by remember { mutableStateOf<Bitmap?>(null) }
+
+    // 图片选择器
+    val styleImagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            scope.launch {
+                isColorMatching = true
+                try {
+                    val styleBitmap = withContext(Dispatchers.IO) {
+                        val inputStream = context.contentResolver.openInputStream(uri)
+                        BitmapFactory.decodeStream(inputStream)
+                    }
+                    if (styleBitmap != null && sourceBitmap != null) {
+                        // 预处理风格图像
+                        val preprocessed = withContext(Dispatchers.Default) {
+                            AiColorMatcher.preprocessImage(styleBitmap)
+                        }
+                        // 生成 LUT 配方
+                        val recipe = withContext(Dispatchers.Default) {
+                            AiColorMatcher.matchFromStyleImage(preprocessed, "AI仿色")
+                        }
+                        // 应用仿色到原图
+                        val result = withContext(Dispatchers.Default) {
+                            AiColorMatcher.applyColorMatch(sourceBitmap!!, recipe)
+                        }
+                        colorMatchResult = result
+                        viewModel.setSourceImage(result)
+                        Toast.makeText(context, "AI仿色完成", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(context, "AI仿色失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                } finally {
+                    isColorMatching = false
+                }
+            }
+        }
+    }
 
     LaunchedEffect(sourceBitmap) {
         viewModel.setSourceImage(sourceBitmap)
@@ -172,7 +232,20 @@ fun AIEditScreen(
                 healingBrushY = healingBrushY,
                 onHealingBrushYChanged = { viewModel.setHealingBrushY(it) },
                 healingBrushRadius = healingBrushRadius,
-                onHealingBrushRadiusChanged = { viewModel.setHealingBrushRadius(it) }
+                onHealingBrushRadiusChanged = { viewModel.setHealingBrushRadius(it) },
+                viewModel = viewModel,
+                sourceImage = sourceImage
+            )
+
+            Spacer(modifier = Modifier.height(DesignSystem.Spacing.medium))
+
+            // MARK: - AI仿色入口
+            AIMatchColorButton(
+                isProcessing = isColorMatching,
+                hasSourceImage = sourceImage != null,
+                onClick = {
+                    styleImagePickerLauncher.launch("image/*")
+                }
             )
 
             Spacer(modifier = Modifier.height(DesignSystem.Spacing.medium))
@@ -428,7 +501,9 @@ private fun ToolParameterSection(
     healingBrushY: Float,
     onHealingBrushYChanged: (Float) -> Unit,
     healingBrushRadius: Float,
-    onHealingBrushRadiusChanged: (Float) -> Unit
+    onHealingBrushRadiusChanged: (Float) -> Unit,
+    viewModel: AIEditViewModel,
+    sourceImage: Bitmap?
 ) {
     Column(
         modifier = Modifier
@@ -440,7 +515,7 @@ private fun ToolParameterSection(
     ) {
         when (selectedTool) {
             AIEditViewModel.AIEditTool.REMOVE -> {
-                RemoveToolSection()
+                RemoveToolSection(viewModel, sourceImage)
             }
             AIEditViewModel.AIEditTool.SKY_REPLACE -> {
                 SkyReplaceSection(
@@ -481,7 +556,18 @@ private fun ToolParameterSection(
 // MARK: - 物体移除参数
 
 @Composable
-private fun RemoveToolSection() {
+private fun RemoveToolSection(
+    viewModel: AIEditViewModel,
+    sourceImage: Bitmap?
+) {
+    val maskRect by viewModel.maskRect.collectAsState()
+    val drawingCanvasSize = remember { mutableStateOf(androidx.compose.ui.geometry.Size.Zero) }
+
+    // 绘制状态
+    var isDrawing by remember { mutableStateOf(false) }
+    var drawStart by remember { mutableStateOf(Offset.Zero) }
+    var drawEnd by remember { mutableStateOf(Offset.Zero) }
+
     Column {
         Text(
             "物体移除",
@@ -495,24 +581,141 @@ private fun RemoveToolSection() {
             color = DesignSystem.Colors.textSecondary()
         )
         Spacer(modifier = Modifier.height(DesignSystem.Spacing.xSmall))
+
+        // 交互式绘制区域
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp)
+                .height(200.dp)
                 .clip(RoundedCornerShape(DesignSystem.CornerRadius.medium))
                 .border(
                     DesignSystem.Stroke.widthStandard,
                     DesignSystem.Colors.minimalBorder,
                     RoundedCornerShape(DesignSystem.CornerRadius.medium)
-                ),
-            contentAlignment = Alignment.Center
+                )
         ) {
-            Text(
-                "点击图片涂抹选择移除区域",
-                style = DesignSystem.Typography.caption1,
-                color = DesignSystem.Colors.textTertiary()
-            )
+            // 底层：源图像预览
+            if (sourceImage != null) {
+                androidx.compose.foundation.Image(
+                    bitmap = sourceImage.asImageBitmap(),
+                    contentDescription = "编辑原图",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(DesignSystem.Colors.minimalBackground),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "无图像",
+                        style = DesignSystem.Typography.caption1,
+                        color = DesignSystem.Colors.textTertiary()
+                    )
+                }
+            }
+
+            // 绘制层：遮罩区域
+            Canvas(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectDragGestures(
+                            onDragStart = { offset ->
+                                isDrawing = true
+                                val canvasW = drawingCanvasSize.value.width
+                                val canvasH = drawingCanvasSize.value.height
+                                if (canvasW > 0 && canvasH > 0) {
+                                    drawStart = offset
+                                    drawEnd = offset
+                                }
+                            },
+                            onDrag = { change, _ ->
+                                change.consume()
+                                val canvasW = drawingCanvasSize.value.width
+                                val canvasH = drawingCanvasSize.value.height
+                                if (canvasW > 0 && canvasH > 0) {
+                                    drawEnd = change.position
+                                }
+                            },
+                            onDragEnd = {
+                                isDrawing = false
+                                val canvasW = drawingCanvasSize.value.width
+                                val canvasH = drawingCanvasSize.value.height
+                                if (canvasW > 0 && canvasH > 0) {
+                                    val left = (minOf(drawStart.x, drawEnd.x) / canvasW).coerceIn(0f, 1f)
+                                    val top = (minOf(drawStart.y, drawEnd.y) / canvasH).coerceIn(0f, 1f)
+                                    val right = (maxOf(drawStart.x, drawEnd.x) / canvasW).coerceIn(0f, 1f)
+                                    val bottom = (maxOf(drawStart.y, drawEnd.y) / canvasH).coerceIn(0f, 1f)
+                                    val rect = android.graphics.RectF(left, top, right, bottom)
+                                    viewModel.setMaskRect(rect)
+                                }
+                                drawStart = Offset.Zero
+                                drawEnd = Offset.Zero
+                            },
+                            onDragCancel = {
+                                isDrawing = false
+                                drawStart = Offset.Zero
+                                drawEnd = Offset.Zero
+                            }
+                        )
+                    }
+                    .drawWithContent {
+                        drawingCanvasSize.value = size
+                        drawContent()
+                    }
+            ) {
+                // 绘制已有的遮罩矩形
+                maskRect?.let { rect ->
+                    val canvasW = size.width
+                    val canvasH = size.height
+                    val left = rect.left * canvasW
+                    val top = rect.top * canvasH
+                    val right = rect.right * canvasW
+                    val bottom = rect.bottom * canvasH
+                    drawRect(
+                        color = Color.Red.copy(alpha = 0.35f),
+                        topLeft = Offset(left, top),
+                        size = Size(right - left, bottom - top)
+                    )
+                    drawRect(
+                        color = Color.Red.copy(alpha = 0.7f),
+                        topLeft = Offset(left, top),
+                        size = Size(right - left, bottom - top),
+                        style = Stroke(width = 2.dp.toPx())
+                    )
+                }
+
+                // 绘制当前拖拽中的遮罩
+                if (isDrawing && drawStart != Offset.Zero && drawEnd != Offset.Zero) {
+                    val left = minOf(drawStart.x, drawEnd.x)
+                    val top = minOf(drawStart.y, drawEnd.y)
+                    val right = maxOf(drawStart.x, drawEnd.x)
+                    val bottom = maxOf(drawStart.y, drawEnd.y)
+                    drawRect(
+                        color = Color.Red.copy(alpha = 0.35f),
+                        topLeft = Offset(left, top),
+                        size = Size(right - left, bottom - top)
+                    )
+                    drawRect(
+                        color = Color.Red.copy(alpha = 0.7f),
+                        topLeft = Offset(left, top),
+                        size = Size(right - left, bottom - top),
+                        style = Stroke(width = 2.dp.toPx())
+                    )
+                }
+            }
         }
+
+        // 提示文字
+        Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxxSmall))
+        Text(
+            if (maskRect != null) "已选择移除区域，点击「应用」按钮执行移除" else "拖动手指在图片上绘制矩形移除区域",
+            style = DesignSystem.Typography.caption2,
+            color = DesignSystem.Colors.textTertiary()
+        )
     }
 }
 
@@ -916,6 +1119,57 @@ private fun HealingBrushSection(
                 textAlign = TextAlign.End
             )
         }
+    }
+}
+
+// MARK: - AI仿色按钮
+
+@Composable
+private fun AIMatchColorButton(
+    isProcessing: Boolean,
+    hasSourceImage: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier.padding(horizontal = DesignSystem.Spacing.small)
+    ) {
+        Button(
+            onClick = onClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            enabled = !isProcessing && hasSourceImage,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = DesignSystem.Colors.accentWarm,
+                disabledContainerColor = DesignSystem.Colors.accentWarm.copy(alpha = 0.4f)
+            ),
+            shape = RoundedCornerShape(DesignSystem.CornerRadius.medium)
+        ) {
+            if (isProcessing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.width(DesignSystem.Spacing.xxxSmall))
+                Text("AI仿色中…", style = DesignSystem.Typography.headline, color = Color.White)
+            } else {
+                Icon(
+                    Icons.Default.ColorLens,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(DesignSystem.Spacing.xxxSmall))
+                Text("AI仿色 - 从风格图片生成色彩", style = DesignSystem.Typography.headline, color = Color.White)
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            "选择一张风格图片，AI将分析其色彩方案并应用到当前照片",
+            style = DesignSystem.Typography.caption2,
+            color = DesignSystem.Colors.minimalLabelTertiary,
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
     }
 }
 

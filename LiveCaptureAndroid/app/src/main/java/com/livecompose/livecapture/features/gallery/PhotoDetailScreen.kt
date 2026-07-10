@@ -24,7 +24,6 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,13 +97,13 @@ fun PhotoDetailScreen(
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "返回",
-                        tint = Color.White
+                        tint = DesignSystem.Colors.minimalLabel
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 // 编辑按钮
                 IconButton(onClick = { onEdit(photoId) }) {
-                    Icon(Icons.Default.Edit, contentDescription = "编辑", tint = Color.White)
+                    Icon(Icons.Default.Edit, contentDescription = "编辑", tint = DesignSystem.Colors.minimalLabel)
                 }
                 // AI编辑按钮
                 IconButton(onClick = { showAIEdit = true }) {
@@ -112,13 +111,13 @@ fun PhotoDetailScreen(
                 }
                 // 调整按钮
                 IconButton(onClick = { onAdjust(photoId) }) {
-                    Icon(Icons.Default.Tune, contentDescription = "调整", tint = Color.White)
+                    Icon(Icons.Default.Tune, contentDescription = "调整", tint = DesignSystem.Colors.minimalLabel)
                 }
                 // 分享按钮
                 IconButton(onClick = {
                     sharePhoto(context, photoFile)
                 }) {
-                    Icon(Icons.Default.Share, contentDescription = "分享", tint = Color.White)
+                    Icon(Icons.Default.Share, contentDescription = "分享", tint = DesignSystem.Colors.minimalLabel)
                 }
                 // 删除按钮
                 IconButton(onClick = { showDeleteConfirm = true }) {
@@ -160,26 +159,25 @@ fun PhotoDetailScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(DesignSystem.Spacing.small))
 
             // 拍摄参数区域
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = DesignSystem.Spacing.small)
             ) {
                 // 拍摄日期
                 record?.let {
                     val dateFormat = SimpleDateFormat("yyyy年M月d日 HH:mm:ss", Locale.CHINA)
                     Text(
                         text = dateFormat.format(Date(it.creationDate)),
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
+                        style = DesignSystem.Typography.callout,
+                        color = DesignSystem.Colors.minimalLabel
                     )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(DesignSystem.Spacing.xSmall))
 
                 // 拍摄参数卡片
                 Card(
@@ -187,16 +185,15 @@ fun PhotoDetailScreen(
                     colors = CardDefaults.cardColors(
                         containerColor = DesignSystem.Colors.gray1()
                     ),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(DesignSystem.CornerRadius.medium)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(DesignSystem.Spacing.small)) {
                         Text(
                             "拍摄参数",
-                            color = Color.White,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold
+                            style = DesignSystem.Typography.headline,
+                            color = DesignSystem.Colors.minimalLabel
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxSmall))
 
                         // 从 EXIF 优先读取，否则用 record 中的值
                         Row(
@@ -216,7 +213,7 @@ fun PhotoDetailScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxSmall))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -231,7 +228,7 @@ fun PhotoDetailScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(DesignSystem.Spacing.xSmall))
 
                 // RGB 直方图卡片
                 if (bitmap != null) {
@@ -241,21 +238,20 @@ fun PhotoDetailScreen(
                         colors = CardDefaults.cardColors(
                             containerColor = DesignSystem.Colors.gray1()
                         ),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(DesignSystem.CornerRadius.medium)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Column(modifier = Modifier.padding(DesignSystem.Spacing.small)) {
                             Text(
                                 "RGB 直方图",
-                                color = Color.White,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold
+                                style = DesignSystem.Typography.headline,
+                                color = DesignSystem.Colors.minimalLabel
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxSmall))
                             if (bmp != null) RgbHistogram(bmp)
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(DesignSystem.Spacing.xSmall))
                 }
 
                 // GPS 位置卡片
@@ -265,37 +261,36 @@ fun PhotoDetailScreen(
                         colors = CardDefaults.cardColors(
                             containerColor = DesignSystem.Colors.gray1()
                         ),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(DesignSystem.CornerRadius.medium)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Column(modifier = Modifier.padding(DesignSystem.Spacing.small)) {
                             Text(
                                 "GPS 位置",
-                                color = Color.White,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold
+                                style = DesignSystem.Typography.headline,
+                                color = DesignSystem.Colors.minimalLabel
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxSmall))
                             Text(
                                 "纬度: ${exifData.gpsLatitude ?: "-"}",
                                 color = DesignSystem.Colors.minimalSecondaryLabel,
-                                fontSize = 13.sp
+                                style = DesignSystem.Typography.footnote
                             )
                             Text(
                                 "经度: ${exifData.gpsLongitude ?: "-"}",
                                 color = DesignSystem.Colors.minimalSecondaryLabel,
-                                fontSize = 13.sp
+                                style = DesignSystem.Typography.footnote
                             )
                             if (exifData.gpsAltitude != null) {
                                 Text(
                                     "海拔: ${exifData.gpsAltitude}",
                                     color = DesignSystem.Colors.minimalSecondaryLabel,
-                                    fontSize = 13.sp
+                                    style = DesignSystem.Typography.footnote
                                 )
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(DesignSystem.Spacing.xSmall))
                 }
 
                 // 文件信息卡片
@@ -304,59 +299,58 @@ fun PhotoDetailScreen(
                     colors = CardDefaults.cardColors(
                         containerColor = DesignSystem.Colors.gray1()
                     ),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(DesignSystem.CornerRadius.medium)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(DesignSystem.Spacing.small)) {
                         Text(
                             "文件信息",
-                            color = Color.White,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold
+                            style = DesignSystem.Typography.headline,
+                            color = DesignSystem.Colors.minimalLabel
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxSmall))
                         Text(
                             "格式: ${photoFile.extension.uppercase()}",
                             color = DesignSystem.Colors.minimalSecondaryLabel,
-                            fontSize = 13.sp
+                            style = DesignSystem.Typography.footnote
                         )
                         Text(
                             "大小: ${formatFileSize(photoFile.length())}",
                             color = DesignSystem.Colors.minimalSecondaryLabel,
-                            fontSize = 13.sp
+                            style = DesignSystem.Typography.footnote
                         )
                         exifData?.cameraModel?.let {
                             Text(
                                 "相机型号: $it",
                                 color = DesignSystem.Colors.minimalSecondaryLabel,
-                                fontSize = 13.sp
+                                style = DesignSystem.Typography.footnote
                             )
                         }
                         exifData?.dateTime?.let {
                             Text(
                                 "拍摄时间: $it",
                                 color = DesignSystem.Colors.minimalSecondaryLabel,
-                                fontSize = 13.sp
+                                style = DesignSystem.Typography.footnote
                             )
                         }
                         exifData?.flash?.let {
                             Text(
                                 "闪光灯: $it",
                                 color = DesignSystem.Colors.minimalSecondaryLabel,
-                                fontSize = 13.sp
+                                style = DesignSystem.Typography.footnote
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(DesignSystem.Spacing.xSmall))
 
                 // AI 质量评估卡片
                 if (bitmap != null) {
                     AIQualityAssessmentCard(bitmap!!, context)
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(DesignSystem.Spacing.xSmall))
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(DesignSystem.Spacing.xLarge))
             }
         }
     }
@@ -399,16 +393,14 @@ private fun ParamItem(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value,
-            color = Color.White,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            fontFamily = FontFamily.Monospace
+            style = DesignSystem.Typography.monoBody,
+            color = DesignSystem.Colors.minimalLabel
         )
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxxSmall))
         Text(
             text = label,
             color = DesignSystem.Colors.minimalSecondaryLabel,
-            fontSize = 11.sp
+            style = DesignSystem.Typography.caption2
         )
     }
 }
@@ -546,9 +538,9 @@ private fun AIQualityAssessmentCard(bitmap: Bitmap, context: android.content.Con
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.gray1()),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(DesignSystem.CornerRadius.medium)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(DesignSystem.Spacing.small)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.Default.AutoAwesome,
@@ -556,19 +548,18 @@ private fun AIQualityAssessmentCard(bitmap: Bitmap, context: android.content.Con
                     tint = DesignSystem.Colors.primary,
                     modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(DesignSystem.Spacing.xxSmall))
                 Text(
                     "AI 画质评估",
-                    color = Color.White,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
+                    style = DesignSystem.Typography.headline,
+                    color = DesignSystem.Colors.minimalLabel
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxSmall))
 
             // 质量等级
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("综合评分: ", color = DesignSystem.Colors.minimalSecondaryLabel, fontSize = 13.sp)
+                Text("综合评分: ", color = DesignSystem.Colors.minimalSecondaryLabel, style = DesignSystem.Typography.footnote)
                 Text(
                     "${quality.overallScore.roundToInt()}分",
                     color = when (quality.qualityGrade) {
@@ -580,15 +571,15 @@ private fun AIQualityAssessmentCard(bitmap: Bitmap, context: android.content.Con
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(DesignSystem.Spacing.xxSmall))
                 Text(
                     quality.qualityGrade.displayName,
                     color = DesignSystem.Colors.minimalSecondaryLabel,
-                    fontSize = 12.sp
+                    style = DesignSystem.Typography.caption1
                 )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxxSmall))
 
             // 各维度进度条
             QualityBar("锐度", quality.sharpnessScore)
@@ -598,18 +589,17 @@ private fun AIQualityAssessmentCard(bitmap: Bitmap, context: android.content.Con
 
             // 构图分析
             if (composition != null) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxSmall))
                 Text(
                     "AI 构图分析",
                     color = DesignSystem.Colors.minimalLabel,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
+                    style = DesignSystem.Typography.footnote
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxxSmall))
                 Text(
                     "类型: ${composition.compositionType}",
                     color = DesignSystem.Colors.minimalSecondaryLabel,
-                    fontSize = 12.sp
+                    style = DesignSystem.Typography.caption1
                 )
                 QualityBar("三分法", composition.ruleOfThirdsScore)
                 QualityBar("对称性", composition.symmetryScore)
@@ -617,26 +607,25 @@ private fun AIQualityAssessmentCard(bitmap: Bitmap, context: android.content.Con
                 Text(
                     composition.feedback,
                     color = DesignSystem.Colors.minimalSecondaryLabel,
-                    fontSize = 11.sp,
-                    modifier = Modifier.padding(top = 4.dp)
+                    style = DesignSystem.Typography.caption2,
+                    modifier = Modifier.padding(top = DesignSystem.Spacing.xxxSmall)
                 )
             }
 
             // 增强建议
             if (enhancements.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxSmall))
                 Text(
                     "AI 增强建议",
                     color = DesignSystem.Colors.minimalLabel,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
+                    style = DesignSystem.Typography.footnote
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(DesignSystem.Spacing.xxxSmall))
                 enhancements.take(3).forEach { suggestion ->
                     Text(
                         "• ${suggestion.title}",
                         color = DesignSystem.Colors.minimalSecondaryLabel,
-                        fontSize = 12.sp
+                        style = DesignSystem.Typography.caption1
                     )
                 }
             }
@@ -655,7 +644,7 @@ private fun QualityBar(label: String, score: Float) {
         Text(
             label,
             color = DesignSystem.Colors.minimalSecondaryLabel,
-            fontSize = 11.sp,
+            style = DesignSystem.Typography.caption2,
             modifier = Modifier.width(32.dp)
         )
         Box(
@@ -679,11 +668,11 @@ private fun QualityBar(label: String, score: Float) {
                     )
             )
         }
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(DesignSystem.Spacing.xxxSmall))
         Text(
             "${score.toInt()}",
             color = DesignSystem.Colors.minimalSecondaryLabel,
-            fontSize = 10.sp
+            style = DesignSystem.Typography.toolLabel
         )
     }
 }

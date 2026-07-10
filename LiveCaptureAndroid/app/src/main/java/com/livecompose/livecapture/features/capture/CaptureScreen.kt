@@ -1,5 +1,6 @@
 package com.livecompose.livecapture.features.capture
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.PointF
 import android.graphics.RectF
@@ -20,6 +21,8 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -48,12 +51,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.livecompose.livecapture.core.camera.*
 import com.livecompose.livecapture.core.camera.RawCaptureManager
 import com.livecompose.livecapture.core.camera.DngCaptureManager
 import com.livecompose.livecapture.core.camera.HyperfocalCalculator
 import com.livecompose.livecapture.core.camera.HyperfocalResult
+import com.livecompose.livecapture.core.filter.AiFilterRecommender
+import com.livecompose.livecapture.core.filter.FilterRecommendation
 import com.livecompose.livecapture.core.processing.QuickShotManager
 import com.livecompose.livecapture.core.processing.MultipleExposure
 import com.livecompose.livecapture.core.portrait.PortraitViewModel
@@ -65,6 +71,7 @@ import com.livecompose.livecapture.core.video.VideoStabilizer
 import com.livecompose.livecapture.core.video.VideoMode
 import com.livecompose.livecapture.core.video.SlowMotionSpeed
 import com.livecompose.livecapture.core.video.VideoRecordingState
+import com.livecompose.livecapture.di.AppContainer
 import com.livecompose.livecapture.features.capture.components.*
 import com.livecompose.livecapture.features.home.HomeViewModel
 import com.livecompose.livecapture.core.storage.PhotoRecord
@@ -75,6 +82,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import com.livecompose.livecapture.utilities.HapticManager
 import com.livecompose.livecapture.features.profile.ProfileScreen
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * 2026旗舰影像主拍摄界面 - 纯黑沉浸式设计
@@ -133,6 +142,11 @@ fun CaptureScreen(
     var isBeautyEnabled by remember { mutableStateOf(true) }
     var showPortraitMode by remember { mutableStateOf(false) }
     val portraitViewModel = remember { PortraitViewModel(context) }
+
+    // === AI 滤镜推荐状态 ===
+    var showFilterRecommendationSheet by remember { mutableStateOf(false) }
+    val filterRecommendations by viewModel.aiFilterRecommendations.collectAsState()
+    val appContainer = remember { AppContainer.getInstance(context) }
 
     // === 底部导航选中 ===
     var bottomNavSelected by remember { mutableIntStateOf(0) }
@@ -473,7 +487,10 @@ fun CaptureScreen(
                         .align(Alignment.BottomEnd)
                         .padding(end = 12.dp, bottom = 64.dp)
                 ) {
-                    MagicWandButton(onClick = { /* 滤镜/魔法效果 */ })
+                    MagicWandButton(onClick = {
+                        showFilterRecommendationSheet = true
+                        controlsVisible = false
+                    })
                 }
 
                 // 预览区底部变焦条 - 增加底部padding避免手指遮挡
@@ -757,7 +774,51 @@ fun CaptureScreen(
                     }
                     interactionCounter++
                 },
-                onToggleCamera = { triggerCameraFlip(); interactionCounter++ }
+                onToggleCamera = { triggerCameraFlip(); interactionCounter++ },
+                onMagicWandClick = {
+                    showFilterRecommendationSheet = true
+                    controlsVisible = false
+                },
+                onBetaClick = {
+                    scope.launch {
+                        try {
+                            // 捕获当前帧并应用自动增强
+                            val originalCallback = camera.onPhotoDataReady
+                            val photoData = kotlinx.coroutines.CompletableDeferred<ByteArray?>()
+                            camera.onPhotoDataReady = { data ->
+                                photoData.complete(data)
+                            }
+                            camera.capturePhoto()
+                            val data = photoData.await()
+                            camera.onPhotoDataReady = originalCallback
+                            if (data != null) {
+                                val bitmap = withContext(Dispatchers.Default) {
+                                    BitmapFactory.decodeByteArray(data, 0, data.size)
+                                }
+                                if (bitmap != null) {
+                                    val enhanced = withContext(Dispatchers.Default) {
+                                        appContainer.autoEnhancer.autoEnhance(bitmap)
+                                    }
+                                    val stream = java.io.ByteArrayOutputStream()
+                                    withContext(Dispatchers.Default) {
+                                        enhanced.compress(Bitmap.CompressFormat.JPEG, 95, stream)
+                                    }
+                                    val enhancedData = stream.toByteArray()
+                                    stream.close()
+                                    appContainer.photoStorageService.savePhoto(enhancedData, "auto_enhance")
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(context, "AI增强完成", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(context, "AI增强失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                    interactionCounter++
+                }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -1011,7 +1072,16 @@ fun CaptureScreen(
             PortraitModeOverlay(
                 viewModel = portraitViewModel,
                 onDismiss = { showPortraitMode = false },
-                onProcessImage = { bitmap -> portraitViewModel.processImage(bitmap) }
+                onProcessImage = { bitmap -> portraitViewModel.processImage(bitmap) },
+                skinProtectionFilter = appContainer.skinProtectionFilter
+            )
+        }
+
+        // AI滤镜推荐底部弹窗
+        if (showFilterRecommendationSheet) {
+            FilterRecommendationSheet(
+                recommendations = filterRecommendations,
+                onDismiss = { showFilterRecommendationSheet = false }
             )
         }
 
@@ -1167,7 +1237,9 @@ private fun ToolIconRow(
     onToggleGrid: () -> Unit,
     currentRatio: String,
     onToggleRatio: () -> Unit,
-    onToggleCamera: () -> Unit
+    onToggleCamera: () -> Unit,
+    onMagicWandClick: () -> Unit = {},
+    onBetaClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -1179,10 +1251,10 @@ private fun ToolIconRow(
         // Beta 靶心图标
         ToolIconItem(
             icon = Icons.Default.Adjust,
-            contentDescription = "Beta功能",
+            contentDescription = "AI一键增强",
             label = "Beta",
             isBeta = true,
-            onClick = { /* Beta功能 */ }
+            onClick = onBetaClick
         )
 
         // 构图框
@@ -1196,8 +1268,8 @@ private fun ToolIconRow(
         // 魔法棒编辑
         ToolIconItem(
             icon = Icons.Default.AutoFixHigh,
-            contentDescription = "魔法效果",
-            onClick = { /* 编辑功能 */ }
+            contentDescription = "AI滤镜推荐",
+            onClick = onMagicWandClick
         )
 
         // 比例切换
@@ -2215,7 +2287,7 @@ private fun SettingsBottomSheet2026(
 
             SettingsSectionHeader("关于", Icons.Default.Info)
             SettingsCard {
-                SettingsRow("版本信息", "构妙 LiveCapture v1.1.6", Icons.Default.Info)
+                SettingsRow("版本信息", "构妙 LiveCapture v1.1.7", Icons.Default.Info)
                 SettingsDivider()
                 SettingsClickRow("ICP备案号", "待备案", Icons.Default.VerifiedUser) {
                     val intent = android.content.Intent(context, com.livecompose.livecapture.features.compliance.ComplianceHostActivity::class.java).apply {
@@ -2344,9 +2416,437 @@ private fun ComplianceItem(title: String, icon: ImageVector, page: String) {
 private fun PortraitModeOverlay(
     viewModel: com.livecompose.livecapture.core.portrait.PortraitViewModel,
     onDismiss: () -> Unit,
-    onProcessImage: (android.graphics.Bitmap) -> Unit
+    onProcessImage: (android.graphics.Bitmap) -> Unit,
+    skinProtectionFilter: com.livecompose.livecapture.core.filter.SkinProtectionFilter
 ) {
-    // TODO: 实现人像模式浮层
+    val skinSmoothing by viewModel.skinSmoothing.collectAsState()
+    val skinTone by viewModel.skinTone.collectAsState()
+    val faceSlimming by viewModel.faceSlimming.collectAsState()
+    val eyeBrightening by viewModel.eyeBrightening.collectAsState()
+    val currentPreset by viewModel.currentPreset.collectAsState()
+    val processedPreview by viewModel.processedPreview.collectAsState()
+    val isProcessing by viewModel.isProcessing.collectAsState()
+    val hasPortrait by viewModel.hasPortrait.collectAsState()
+    val faceCount by viewModel.faceCount.collectAsState()
+
+    // 进出场动画
+    var isVisible by remember { mutableStateOf(false) }
+    val animatedAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(350, easing = FastOutSlowInEasing),
+        label = "portrait_overlay_alpha"
+    )
+    val animatedOffset by animateFloatAsState(
+        targetValue = if (isVisible) 0f else 120f,
+        animationSpec = tween(400, easing = FastOutSlowInEasing),
+        label = "portrait_overlay_offset"
+    )
+
+    LaunchedEffect(Unit) { isVisible = true }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DesignSystem.Colors.minimalBackground)
+            .graphicsLayer {
+                alpha = animatedAlpha
+                translationY = animatedOffset
+            }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
+        ) {
+            // 标题栏
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DesignSystem.Spacing.small, vertical = DesignSystem.Spacing.xxSmall),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = {
+                    isVisible = false
+                    // 延迟关闭以播放动画
+                    kotlinx.coroutines.MainScope().launch {
+                        delay(400)
+                        onDismiss()
+                    }
+                }) {
+                    Text("取消", color = DesignSystem.Colors.minimalLabelSecondary)
+                }
+                Text(
+                    "人像模式",
+                    style = DesignSystem.Typography.title3,
+                    color = DesignSystem.Colors.minimalLabel,
+                    fontWeight = FontWeight.SemiBold
+                )
+                TextButton(onClick = {
+                    isVisible = false
+                    kotlinx.coroutines.MainScope().launch {
+                        delay(400)
+                        onDismiss()
+                    }
+                }) {
+                    Text("完成", color = DesignSystem.Colors.primary)
+                }
+            }
+
+            // 人像预览区域
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DesignSystem.Spacing.small)
+                    .height(280.dp)
+                    .clip(RoundedCornerShape(DesignSystem.CornerRadius.large))
+                    .liquidGlass(cornerRadius = DesignSystem.CornerRadius.large, intensity = 0.08f),
+                contentAlignment = Alignment.Center
+            ) {
+                if (processedPreview != null) {
+                    Image(
+                        bitmap = processedPreview!!.asImageBitmap(),
+                        contentDescription = "人像预览",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                } else if (isProcessing) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(
+                            color = DesignSystem.Colors.primary,
+                            strokeWidth = 3.dp,
+                            modifier = Modifier.size(40.dp)
+                        )
+                        Spacer(Modifier.height(DesignSystem.Spacing.xxSmall))
+                        Text(
+                            "处理中…",
+                            style = DesignSystem.Typography.subheadline,
+                            color = DesignSystem.Colors.minimalLabelSecondary
+                        )
+                    }
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.Face,
+                            contentDescription = null,
+                            tint = DesignSystem.Colors.minimalLabelTertiary,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(Modifier.height(DesignSystem.Spacing.xxSmall))
+                        Text(
+                            "人像预览",
+                            style = DesignSystem.Typography.subheadline,
+                            color = DesignSystem.Colors.minimalLabelTertiary
+                        )
+                        if (faceCount > 0) {
+                            Text(
+                                "检测到 ${faceCount} 张人脸",
+                                style = DesignSystem.Typography.caption1,
+                                color = DesignSystem.Colors.minimalLabelQuaternary
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(DesignSystem.Spacing.medium))
+
+            // 预设选择
+            Text(
+                "预设",
+                style = DesignSystem.Typography.headline,
+                color = DesignSystem.Colors.minimalLabel,
+                modifier = Modifier.padding(horizontal = DesignSystem.Spacing.small)
+            )
+            Spacer(Modifier.height(DesignSystem.Spacing.xxSmall))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DesignSystem.Spacing.small),
+                horizontalArrangement = Arrangement.spacedBy(DesignSystem.Spacing.xxxSmall)
+            ) {
+                PortraitBeautyPreset.entries.forEach { preset ->
+                    val isSelected = preset == currentPreset
+                    val bgColor = if (isSelected) DesignSystem.Colors.primary
+                    else DesignSystem.Colors.minimalOverlayMedium
+                    val textColor = if (isSelected) Color.White
+                    else DesignSystem.Colors.minimalLabelSecondary
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(DesignSystem.CornerRadius.medium))
+                            .background(bgColor)
+                            .clickable { viewModel.applyPreset(preset) }
+                            .padding(vertical = DesignSystem.Spacing.xxSmall),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            preset.displayName,
+                            style = DesignSystem.Typography.caption1,
+                            color = textColor,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(DesignSystem.Spacing.medium))
+
+            // 美颜参数调节
+            Text(
+                "美颜参数",
+                style = DesignSystem.Typography.headline,
+                color = DesignSystem.Colors.minimalLabel,
+                modifier = Modifier.padding(horizontal = DesignSystem.Spacing.small)
+            )
+            Spacer(Modifier.height(DesignSystem.Spacing.xxSmall))
+
+            // 参数调节卡片
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DesignSystem.Spacing.small)
+                    .clip(RoundedCornerShape(DesignSystem.CornerRadius.large))
+                    .liquidGlass(cornerRadius = DesignSystem.CornerRadius.large, intensity = 0.06f)
+                    .padding(DesignSystem.Spacing.small)
+            ) {
+                // 磨皮
+                BeautySliderRow(
+                    label = "磨皮",
+                    icon = Icons.Default.Face,
+                    value = skinSmoothing,
+                    onValueChange = { viewModel.setSkinSmoothing(it) },
+                    valueRange = 0f..1f
+                )
+
+                Spacer(Modifier.height(DesignSystem.Spacing.xxSmall))
+
+                // 美白
+                BeautySliderRow(
+                    label = "美白",
+                    icon = Icons.Default.BrightnessHigh,
+                    value = skinTone,
+                    onValueChange = { viewModel.setSkinTone(it) },
+                    valueRange = -1f..1f,
+                    displayTransform = { value ->
+                        when {
+                            value < -0.3f -> "冷白"
+                            value < 0.3f -> "自然"
+                            else -> "暖黄"
+                        }
+                    }
+                )
+
+                Spacer(Modifier.height(DesignSystem.Spacing.xxSmall))
+
+                // 瘦脸
+                BeautySliderRow(
+                    label = "瘦脸",
+                    icon = Icons.Default.Face3,
+                    value = faceSlimming,
+                    onValueChange = { viewModel.setFaceSlimming(it) },
+                    valueRange = 0f..1f
+                )
+
+                Spacer(Modifier.height(DesignSystem.Spacing.xxSmall))
+
+                // 大眼
+                BeautySliderRow(
+                    label = "大眼",
+                    icon = Icons.Default.RemoveRedEye,
+                    value = eyeBrightening,
+                    onValueChange = { viewModel.setEyeBrightening(it) },
+                    valueRange = 0f..1f
+                )
+            }
+
+            Spacer(Modifier.height(DesignSystem.Spacing.medium))
+
+            // 人像虚化
+            val portraitBlur by viewModel.portraitBlur.collectAsState()
+            Text(
+                "人像虚化",
+                style = DesignSystem.Typography.headline,
+                color = DesignSystem.Colors.minimalLabel,
+                modifier = Modifier.padding(horizontal = DesignSystem.Spacing.small)
+            )
+            Spacer(Modifier.height(DesignSystem.Spacing.xxSmall))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DesignSystem.Spacing.small)
+                    .clip(RoundedCornerShape(DesignSystem.CornerRadius.large))
+                    .liquidGlass(cornerRadius = DesignSystem.CornerRadius.large, intensity = 0.06f)
+                    .padding(DesignSystem.Spacing.small)
+            ) {
+                BeautySliderRow(
+                    label = "虚化",
+                    icon = Icons.Default.BlurOn,
+                    value = portraitBlur,
+                    onValueChange = { viewModel.setPortraitBlur(it) },
+                    valueRange = 0f..1f
+                )
+            }
+
+            Spacer(Modifier.height(DesignSystem.Spacing.medium))
+
+            // 皮肤保护开关
+            var skinProtectionEnabled by remember { mutableStateOf(true) }
+            Text(
+                "AI皮肤保护",
+                style = DesignSystem.Typography.headline,
+                color = DesignSystem.Colors.minimalLabel,
+                modifier = Modifier.padding(horizontal = DesignSystem.Spacing.small)
+            )
+            Spacer(Modifier.height(DesignSystem.Spacing.xxSmall))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DesignSystem.Spacing.small)
+                    .clip(RoundedCornerShape(DesignSystem.CornerRadius.large))
+                    .liquidGlass(cornerRadius = DesignSystem.CornerRadius.large, intensity = 0.06f)
+                    .padding(horizontal = DesignSystem.Spacing.small, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.Face,
+                    null,
+                    tint = if (skinProtectionEnabled) DesignSystem.Colors.primary
+                    else DesignSystem.Colors.minimalLabelTertiary,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "皮肤保护",
+                        style = DesignSystem.Typography.headline,
+                        color = DesignSystem.Colors.textPrimary()
+                    )
+                    Text(
+                        "应用滤镜时保护皮肤区域不被过度染色",
+                        style = DesignSystem.Typography.caption2,
+                        color = DesignSystem.Colors.minimalLabelSecondary
+                    )
+                }
+                Switch(
+                    checked = skinProtectionEnabled,
+                    onCheckedChange = {
+                        skinProtectionEnabled = it
+                        skinProtectionFilter.skinFilterIntensity = if (it) 0.3f else 1.0f
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = DesignSystem.Colors.primary,
+                        uncheckedThumbColor = DesignSystem.Colors.gray4(),
+                        uncheckedTrackColor = DesignSystem.Colors.gray3()
+                    )
+                )
+            }
+
+            Spacer(Modifier.height(DesignSystem.Spacing.medium))
+
+            // 操作按钮
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DesignSystem.Spacing.small),
+                horizontalArrangement = Arrangement.spacedBy(DesignSystem.Spacing.xSmall)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        isVisible = false
+                        kotlinx.coroutines.MainScope().launch {
+                            delay(400)
+                            onDismiss()
+                        }
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(DesignSystem.CornerRadius.medium),
+                    border = BorderStroke(DesignSystem.Stroke.widthStandard, DesignSystem.Colors.minimalBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DesignSystem.Colors.minimalLabel)
+                ) {
+                    Text("取消", style = DesignSystem.Typography.headline)
+                }
+                Button(
+                    onClick = {
+                        isVisible = false
+                        kotlinx.coroutines.MainScope().launch {
+                            delay(400)
+                            onDismiss()
+                        }
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(DesignSystem.CornerRadius.medium),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = DesignSystem.Colors.primary,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("应用", style = DesignSystem.Typography.headline)
+                }
+            }
+
+            Spacer(Modifier.height(DesignSystem.Spacing.large))
+        }
+    }
+}
+
+@Composable
+private fun BeautySliderRow(
+    label: String,
+    icon: ImageVector,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    displayTransform: ((Float) -> String)? = null
+) {
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = DesignSystem.Colors.minimalLabelSecondary,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(DesignSystem.Spacing.xxxSmall))
+            Text(
+                label,
+                style = DesignSystem.Typography.subheadline,
+                color = DesignSystem.Colors.minimalLabel
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                displayTransform?.invoke(value) ?: "${(value * 100).toInt()}%",
+                style = DesignSystem.Typography.caption1,
+                color = DesignSystem.Colors.primary
+            )
+        }
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = valueRange,
+            modifier = Modifier.fillMaxWidth(),
+            colors = SliderDefaults.colors(
+                thumbColor = DesignSystem.Colors.primary,
+                activeTrackColor = DesignSystem.Colors.primary,
+                inactiveTrackColor = DesignSystem.Colors.minimalOverlayMedium,
+                activeTickColor = DesignSystem.Colors.primary,
+                inactiveTickColor = DesignSystem.Colors.minimalOverlay
+            )
+        )
+    }
 }
 
 // ====== 视频编辑浮层 ======
@@ -2599,6 +3099,211 @@ private fun formatVideoTime(seconds: Long): String {
     val mins = seconds / 60
     val secs = seconds % 60
     return String.format("%02d:%02d", mins, secs)
+}
+
+// ====== AI滤镜推荐底部弹窗 ======
+
+@Composable
+private fun FilterRecommendationSheet(
+    recommendations: List<FilterRecommendation>,
+    onDismiss: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable(onClick = onDismiss)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.45f)
+                .align(Alignment.BottomCenter)
+                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                .background(DesignSystem.Colors.backgroundPrimary())
+                .clickable(enabled = false, onClick = {})
+        ) {
+            // 拖动指示器
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    Modifier
+                        .width(36.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(DesignSystem.Colors.gray4())
+                )
+            }
+
+            // 标题
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.AutoAwesome,
+                    null,
+                    tint = DesignSystem.Colors.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "AI 滤镜推荐",
+                    style = DesignSystem.Typography.title2,
+                    color = DesignSystem.Colors.textPrimary(),
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = onDismiss) {
+                    Text("关闭", color = DesignSystem.Colors.primary)
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            if (recommendations.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.AutoFixHigh,
+                            null,
+                            tint = DesignSystem.Colors.minimalLabelTertiary,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "AI正在分析场景...",
+                            style = DesignSystem.Typography.subheadline,
+                            color = DesignSystem.Colors.minimalLabelTertiary
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "请确保相机对着拍摄场景",
+                            style = DesignSystem.Typography.caption2,
+                            color = DesignSystem.Colors.minimalLabelQuaternary
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(recommendations) { recommendation ->
+                        FilterRecommendationCard(recommendation = recommendation)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun FilterRecommendationCard(
+    recommendation: FilterRecommendation
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(DesignSystem.CornerRadius.medium))
+            .liquidGlass(cornerRadius = DesignSystem.CornerRadius.medium, intensity = 0.06f)
+            .clickable {
+                // 点击应用滤镜
+                scope.launch {
+                    try {
+                        val appContainer = AppContainer.getInstance(context)
+                        // 这里可以触发拍照并应用推荐的滤镜
+                        Toast.makeText(context, "已选择: ${recommendation.preset.name}", Toast.LENGTH_SHORT).show()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "应用滤镜失败", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .padding(12.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // 预设图标
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(DesignSystem.Colors.primary.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.FilterVintage,
+                    null,
+                    tint = DesignSystem.Colors.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        recommendation.preset.name,
+                        style = DesignSystem.Typography.headline,
+                        color = DesignSystem.Colors.textPrimary(),
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    // 置信度标签
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(
+                                when {
+                                    recommendation.confidence >= 0.8f -> DesignSystem.Colors.success.copy(alpha = 0.15f)
+                                    recommendation.confidence >= 0.6f -> DesignSystem.Colors.warning.copy(alpha = 0.15f)
+                                    else -> DesignSystem.Colors.minimalOverlayMedium
+                                }
+                            )
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            "${(recommendation.confidence * 100).toInt()}%",
+                            style = DesignSystem.Typography.caption2,
+                            color = when {
+                                recommendation.confidence >= 0.8f -> DesignSystem.Colors.success
+                                recommendation.confidence >= 0.6f -> DesignSystem.Colors.warning
+                                else -> DesignSystem.Colors.minimalLabelSecondary
+                            }
+                        )
+                    }
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    recommendation.reason,
+                    style = DesignSystem.Typography.caption2,
+                    color = DesignSystem.Colors.minimalLabelSecondary
+                )
+            }
+        }
+    }
 }
 
 // ====== 预设参数映射 ======
