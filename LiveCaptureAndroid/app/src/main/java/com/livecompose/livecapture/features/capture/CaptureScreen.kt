@@ -65,6 +65,7 @@ import com.livecompose.livecapture.core.composition.CompositionScorer
 import com.livecompose.livecapture.core.composition.CompositionGuideType
 import com.livecompose.livecapture.core.composition.CompositionScore
 import com.livecompose.livecapture.core.onboarding.FeatureTipOverlay
+import com.livecompose.livecapture.core.permission.PermissionManager
 import com.livecompose.livecapture.core.performance.MemoryUsageView
 import com.livecompose.livecapture.core.processing.QuickShotManager
 import com.livecompose.livecapture.core.processing.MultipleExposure
@@ -198,6 +199,7 @@ fun CaptureScreen(
     var showHistogram by remember { mutableStateOf(false) }
     var showZebra by remember { mutableStateOf(false) }
     var showLevel by remember { mutableStateOf(false) }
+    var showFocusPeaking by remember { mutableStateOf(false) }
 
     // === 专业功能状态 ===
     var rawCaptureEnabled by remember { mutableStateOf(false) }
@@ -210,6 +212,7 @@ fun CaptureScreen(
     var multiExposureEnabled by remember { mutableStateOf(false) }
     var multiExposureFrameCount by remember { mutableIntStateOf(0) }
     var multiExposureBitmaps by remember { mutableStateOf<List<android.graphics.Bitmap>>(emptyList()) }
+    var hdrEnabled by remember { mutableStateOf(false) }
     val quickShotManager = remember { QuickShotManager() }
     val multipleExposure = remember { MultipleExposure() }
     val dngCaptureManager = remember { DngCaptureManager(context) }
@@ -530,6 +533,15 @@ fun CaptureScreen(
                             Text("稳定", style = DesignSystem.Typography.caption1, color = Color.White)
                         }
                     }
+                }
+
+                // 峰值对焦覆盖层
+                if (showFocusPeaking && cameraError == null) {
+                    FocusPeakingOverlay(
+                        previewBitmap = null,
+                        peakColor = com.livecompose.livecapture.features.capture.components.PeakColor.RED,
+                        modifier = Modifier.matchParentSize()
+                    )
                 }
 
                 // 内存监控视图
@@ -934,6 +946,12 @@ fun CaptureScreen(
                                         showVideoEditor = true
                                     }
                                 } else {
+                                    // 检查麦克风权限
+                                    val permManager = com.livecompose.livecapture.core.permission.PermissionManager.getInstance(context)
+                                    if (!permManager.hasMicrophonePermission()) {
+                                        Toast.makeText(context, "视频录制需要麦克风权限", Toast.LENGTH_SHORT).show()
+                                        return@launch
+                                    }
                                     videoViewModel.startRecording()
                                     Toast.makeText(context, "开始录制视频", Toast.LENGTH_SHORT).show()
                                 }
@@ -958,7 +976,14 @@ fun CaptureScreen(
                                         dngCaptureManager.onError = { msg ->
                                             Toast.makeText(context, "DNG 错误: $msg", Toast.LENGTH_SHORT).show()
                                         }
+                                        // 先打开 DNG 相机再拍摄
+                                        dngCaptureManager.openCamera()
+                                        // 延迟等待相机打开
+                                        delay(300)
                                         dngCaptureManager.captureRaw()
+                                        // 拍摄完成后关闭 DNG 相机
+                                        delay(500)
+                                        dngCaptureManager.close()
                                     } else {
                                         Toast.makeText(context, "设备不支持 DNG 拍摄", Toast.LENGTH_SHORT).show()
                                     }
@@ -974,6 +999,39 @@ fun CaptureScreen(
                                 if (multiExposureEnabled) {
                                     multiExposureFrameCount++
                                     Toast.makeText(context, "多重曝光 ${multiExposureFrameCount}帧", Toast.LENGTH_SHORT).show()
+                                }
+                                // HDR 融合处理
+                                if (hdrEnabled) {
+                                    try {
+                                        // 捕获多帧用于 HDR
+                                        val hdrFusion = com.livecompose.livecapture.core.processing.HdrFusion()
+
+                                        // 捕获第一帧
+                                        val photoData1 = kotlinx.coroutines.CompletableDeferred<ByteArray?>()
+                                        val originalCallback = camera.onPhotoDataReady
+                                        camera.onPhotoDataReady = { data -> photoData1.complete(data) }
+                                        camera.capturePhoto()
+                                        val data1 = photoData1.await()
+                                        camera.onPhotoDataReady = originalCallback
+
+                                        if (data1 != null) {
+                                            val bitmap1 = BitmapFactory.decodeByteArray(data1, 0, data1.size)
+                                            if (bitmap1 != null) {
+                                                // 生成曝光补偿帧
+                                                val brackets = hdrFusion.generateExposureBrackets(bitmap1)
+                                                val fused = hdrFusion.fuse(brackets)
+                                                val stream = java.io.ByteArrayOutputStream()
+                                                fused.compress(Bitmap.CompressFormat.JPEG, 95, stream)
+                                                val hdrData = stream.toByteArray()
+                                                stream.close()
+                                                appContainer.photoStorageService.savePhoto(hdrData, "HDR")
+                                                Toast.makeText(context, "HDR 融合完成", Toast.LENGTH_SHORT).show()
+                                                return@launch
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "HDR 失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
                                 }
                                 // 基础拍照
                                 viewModel.capturePhoto()
@@ -1077,7 +1135,8 @@ fun CaptureScreen(
         // 手动控制面板
         if (showManualPanel && cameraError == null) {
             ManualControlPanelOverlay(
-                onDismiss = { showManualPanel = false }
+                onDismiss = { showManualPanel = false },
+                proCameraManager = appContainer.proCameraManager
             )
         }
 
@@ -1118,7 +1177,11 @@ fun CaptureScreen(
                 videoStabilizationEnabled = videoStabilizationEnabled,
                 onVideoStabilizationChange = { videoViewModel.toggleStabilization() },
                 showMemoryMonitor = showMemoryMonitor,
-                onShowMemoryMonitorChange = { showMemoryMonitor = it }
+                onShowMemoryMonitorChange = { showMemoryMonitor = it },
+                showFocusPeaking = showFocusPeaking,
+                onFocusPeakingChange = { showFocusPeaking = it },
+                hdrEnabled = hdrEnabled,
+                onHdrChange = { hdrEnabled = it }
             )
         }
 
@@ -2053,8 +2116,48 @@ private fun PhotoReviewOverlay2026(
 }
 
 @Composable
-private fun ManualControlPanelOverlay(onDismiss: () -> Unit) {
+private fun ManualControlPanelOverlay(
+    onDismiss: () -> Unit,
+    proCameraManager: com.livecompose.livecapture.core.camera.ProCameraManager
+) {
     var params by remember { mutableStateOf(ManualControlParams()) }
+
+    // 监听参数变化并应用到相机
+    LaunchedEffect(params.iso, params.isoAuto) {
+        if (!params.isoAuto) {
+            proCameraManager.setISO(params.iso)
+        } else {
+            proCameraManager.setAutoISO()
+        }
+    }
+    LaunchedEffect(params.shutterSpeed, params.shutterSpeedAuto) {
+        if (!params.shutterSpeedAuto) {
+            proCameraManager.setShutterSpeed(params.shutterSpeed)
+        } else {
+            proCameraManager.setAutoShutterSpeed()
+        }
+    }
+    LaunchedEffect(params.whiteBalance, params.customColorTemp) {
+        when (params.whiteBalance) {
+            com.livecompose.livecapture.features.capture.components.WhiteBalanceMode.AUTO -> proCameraManager.setAutoWhiteBalance()
+            com.livecompose.livecapture.features.capture.components.WhiteBalanceMode.DAYLIGHT -> proCameraManager.setWhiteBalance(5500)
+            com.livecompose.livecapture.features.capture.components.WhiteBalanceMode.CLOUDY -> proCameraManager.setWhiteBalance(6500)
+            com.livecompose.livecapture.features.capture.components.WhiteBalanceMode.INCANDESCENT -> proCameraManager.setWhiteBalance(3000)
+            com.livecompose.livecapture.features.capture.components.WhiteBalanceMode.FLUORESCENT -> proCameraManager.setWhiteBalance(4200)
+            com.livecompose.livecapture.features.capture.components.WhiteBalanceMode.CUSTOM -> proCameraManager.setWhiteBalance(params.customColorTemp)
+        }
+    }
+    LaunchedEffect(params.focusMode, params.manualFocusDistance) {
+        when (params.focusMode) {
+            com.livecompose.livecapture.features.capture.components.FocusMode.AF_S -> proCameraManager.setAutoFocus()
+            com.livecompose.livecapture.features.capture.components.FocusMode.AF_C -> proCameraManager.setContinuousAutoFocus()
+            com.livecompose.livecapture.features.capture.components.FocusMode.MF -> proCameraManager.setManualFocus(params.manualFocusDistance)
+        }
+    }
+    LaunchedEffect(params.exposureCompensation) {
+        proCameraManager.setExposureCompensation(params.exposureCompensation.toInt())
+    }
+
     Box(Modifier.fillMaxSize().background(DesignSystem.Colors.minimalBackground.copy(alpha = 0.95f))) {
         Column(Modifier.fillMaxSize().verticalScroll(androidx.compose.foundation.rememberScrollState())) {
             Row(
@@ -2070,7 +2173,14 @@ private fun ManualControlPanelOverlay(onDismiss: () -> Unit) {
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold
                 )
-                TextButton(onClick = onDismiss) { Text("完成", color = DesignSystem.Colors.primary) }
+                TextButton(onClick = {
+                    // 退出时恢复自动模式
+                    proCameraManager.setAutoISO()
+                    proCameraManager.setAutoShutterSpeed()
+                    proCameraManager.setAutoWhiteBalance()
+                    proCameraManager.setAutoFocus()
+                    onDismiss()
+                }) { Text("完成", color = DesignSystem.Colors.primary) }
             }
             ManualControlPanel(params = params, onParamsChanged = { params = it })
         }
@@ -2210,7 +2320,11 @@ private fun SettingsBottomSheet2026(
     videoStabilizationEnabled: Boolean = true,
     onVideoStabilizationChange: (Boolean) -> Unit = {},
     showMemoryMonitor: Boolean,
-    onShowMemoryMonitorChange: (Boolean) -> Unit
+    onShowMemoryMonitorChange: (Boolean) -> Unit,
+    showFocusPeaking: Boolean = false,
+    onFocusPeakingChange: (Boolean) -> Unit = {},
+    hdrEnabled: Boolean = false,
+    onHdrChange: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -2334,6 +2448,8 @@ private fun SettingsBottomSheet2026(
 
             SettingsSectionHeader("专业功能", Icons.Default.Tune)
             SettingsCard {
+                SettingsSwitchRow("峰值对焦", "Sobel 边缘检测高亮合焦区域", Icons.Default.CenterFocusStrong, showFocusPeaking) { onFocusPeakingChange(it) }
+                SettingsDivider()
                 SettingsSwitchRow("超焦距对焦", "自动对焦至超焦距距离，前后景均清晰", Icons.Default.CenterFocusStrong, hyperfocalEnabled) { onHyperfocalChange(it) }
                 SettingsDivider()
                 SettingsSwitchRow("连拍模式", "长按快门触发高速连拍", Icons.Default.BurstMode, burstModeEnabled) { onBurstModeChange(it) }
@@ -2350,6 +2466,8 @@ private fun SettingsBottomSheet2026(
                         }
                     }
                 }
+                SettingsDivider()
+                SettingsSwitchRow("HDR 模式", "多曝光融合保留高光细节", Icons.Default.HdrOn, hdrEnabled) { onHdrChange(it) }
                 SettingsDivider()
                 SettingsSwitchRow("内存监控", "显示当前内存使用量、告警等级和峰值", Icons.Default.Memory, showMemoryMonitor) { onShowMemoryMonitorChange(it) }
             }
