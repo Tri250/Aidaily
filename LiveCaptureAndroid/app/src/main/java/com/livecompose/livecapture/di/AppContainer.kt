@@ -17,6 +17,7 @@ import com.livecompose.livecapture.core.intelligence.ImageQualityAssessor
 import com.livecompose.livecapture.core.intelligence.PoseRecommendationEngine
 import com.livecompose.livecapture.core.intelligence.SceneIntelligenceEngine
 import com.livecompose.livecapture.core.logger.AppLogger
+import com.livecompose.livecapture.core.onboarding.FeatureTipManager
 import com.livecompose.livecapture.core.lut.AiColorMatcher
 import com.livecompose.livecapture.core.lut.LutImporter
 import com.livecompose.livecapture.core.motion.MotionStabilityMonitor
@@ -78,6 +79,13 @@ class AppContainer(context: Context) {
     /** 水平仪监控器（构图辅助） */
     val levelMonitor by lazy {
         LevelMonitor(applicationContext)
+    }
+
+    // MARK: - 新手引导
+
+    /** 功能提示管理器 */
+    val featureTipManager by lazy {
+        FeatureTipManager(applicationContext)
     }
 
     // MARK: - 智能与编辑
@@ -191,6 +199,7 @@ class AppContainer(context: Context) {
             lutImporter.dispose()
             communityManager.dispose()
             youthModeManager.dispose()
+            featureTipManager.dispose()
         } catch (e: Exception) {
             AppLogger.w(TAG, "清理资源时发生异常", e)
         }

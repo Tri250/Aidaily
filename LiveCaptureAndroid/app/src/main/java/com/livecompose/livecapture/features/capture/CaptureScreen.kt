@@ -60,6 +60,12 @@ import com.livecompose.livecapture.core.camera.HyperfocalCalculator
 import com.livecompose.livecapture.core.camera.HyperfocalResult
 import com.livecompose.livecapture.core.filter.AiFilterRecommender
 import com.livecompose.livecapture.core.filter.FilterRecommendation
+import com.livecompose.livecapture.core.composition.ARCompositionGuideOverlay
+import com.livecompose.livecapture.core.composition.CompositionScorer
+import com.livecompose.livecapture.core.composition.CompositionGuideType
+import com.livecompose.livecapture.core.composition.CompositionScore
+import com.livecompose.livecapture.core.onboarding.FeatureTipOverlay
+import com.livecompose.livecapture.core.performance.MemoryUsageView
 import com.livecompose.livecapture.core.processing.QuickShotManager
 import com.livecompose.livecapture.core.processing.MultipleExposure
 import com.livecompose.livecapture.core.portrait.PortraitViewModel
@@ -147,6 +153,15 @@ fun CaptureScreen(
     var showFilterRecommendationSheet by remember { mutableStateOf(false) }
     val filterRecommendations by viewModel.aiFilterRecommendations.collectAsState()
     val appContainer = remember { AppContainer.getInstance(context) }
+
+    // === 运动稳定性 ===
+    val isMotionStable by appContainer.motionMonitor.isStable.collectAsState()
+
+    // === 构图评分 ===
+    var compositionScore by remember { mutableStateOf<CompositionScore?>(null) }
+
+    // === 内存监控 ===
+    var showMemoryMonitor by remember { mutableStateOf(false) }
 
     // === 底部导航选中 ===
     var bottomNavSelected by remember { mutableIntStateOf(0) }
@@ -469,6 +484,56 @@ fun CaptureScreen(
                     )
                 }
 
+                // AR构图引导叠加层（构图评分+引导线+水平仪）
+                if (isGridEnabled && cameraError == null) {
+                    ARCompositionGuideOverlay(
+                        guideType = when (gridMode) {
+                            0 -> CompositionGuideType.NONE
+                            1 -> CompositionGuideType.RULE_OF_THIRDS
+                            2 -> CompositionGuideType.SYMMETRY
+                            3 -> CompositionGuideType.GOLDEN_SPIRAL
+                            4 -> CompositionGuideType.LEADING_LINES
+                            else -> CompositionGuideType.NONE
+                        },
+                        score = compositionScore,
+                        showScore = true,
+                        showLevel = true,
+                        rollAngle = 0f,
+                        modifier = Modifier.matchParentSize()
+                    )
+                }
+
+                // 运动稳定性指示器
+                if (cameraError == null) {
+                    if (isMotionStable) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 80.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(DesignSystem.Colors.success.copy(alpha = 0.7f))
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Text("稳定", style = DesignSystem.Typography.caption1, color = Color.White)
+                        }
+                    }
+                }
+
+                // 内存监控视图
+                AnimatedVisibility(
+                    visible = showMemoryMonitor,
+                    enter = fadeIn() + slideInVertically(),
+                    exit = fadeOut() + slideOutVertically(),
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    MemoryUsageView(
+                        monitor = appContainer.memoryMonitor,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+
                 // 右上角设置按钮
                 Box(
                     modifier = Modifier
@@ -754,6 +819,12 @@ fun CaptureScreen(
                 }
             }
 
+            // 功能提示覆盖层
+            FeatureTipOverlay(
+                manager = appContainer.featureTipManager,
+                modifier = Modifier.fillMaxSize()
+            )
+
             // === 底部控制区 ===
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -1032,7 +1103,9 @@ fun CaptureScreen(
                 slowMotionEnabled = slowMotionEnabled,
                 onSlowMotionChange = { slowMotionEnabled = it },
                 videoStabilizationEnabled = videoStabilizationEnabled,
-                onVideoStabilizationChange = { videoViewModel.toggleStabilization() }
+                onVideoStabilizationChange = { videoViewModel.toggleStabilization() },
+                showMemoryMonitor = showMemoryMonitor,
+                onShowMemoryMonitorChange = { showMemoryMonitor = it }
             )
         }
 
@@ -2122,7 +2195,9 @@ private fun SettingsBottomSheet2026(
     slowMotionEnabled: Boolean = false,
     onSlowMotionChange: (Boolean) -> Unit = {},
     videoStabilizationEnabled: Boolean = true,
-    onVideoStabilizationChange: (Boolean) -> Unit = {}
+    onVideoStabilizationChange: (Boolean) -> Unit = {},
+    showMemoryMonitor: Boolean,
+    onShowMemoryMonitorChange: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -2262,6 +2337,8 @@ private fun SettingsBottomSheet2026(
                         }
                     }
                 }
+                SettingsDivider()
+                SettingsSwitchRow("内存监控", "显示当前内存使用量、告警等级和峰值", Icons.Default.Memory, showMemoryMonitor) { onShowMemoryMonitorChange(it) }
             }
 
             SettingsSectionHeader("幻影模式", Icons.Default.Visibility)
