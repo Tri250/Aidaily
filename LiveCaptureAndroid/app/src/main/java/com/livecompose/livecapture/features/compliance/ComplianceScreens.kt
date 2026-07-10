@@ -27,10 +27,10 @@ fun UserAgreementScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("用户服务协议", color = DesignSystem.Colors.minimalLabel, fontWeight = FontWeight.Bold) },
+                title = { Text("用户服务协议", color = DesignSystem.Colors.textPrimary(), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = DesignSystem.Colors.minimalLabel)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = DesignSystem.Colors.textPrimary())
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DesignSystem.Colors.gray1())
@@ -47,7 +47,7 @@ fun UserAgreementScreen(onBack: () -> Unit) {
         ) {
             Text(
                 text = buildAgreementText(),
-                color = DesignSystem.Colors.minimalLabel,
+                color = DesignSystem.Colors.textPrimary(),
                 fontSize = 14.sp,
                 lineHeight = 22.sp
             )
@@ -64,10 +64,10 @@ fun PrivacyPolicyScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("秒简相机隐私政策", color = DesignSystem.Colors.minimalLabel, fontWeight = FontWeight.Bold) },
+                title = { Text("秒简相机隐私政策", color = DesignSystem.Colors.textPrimary(), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = DesignSystem.Colors.minimalLabel)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = DesignSystem.Colors.textPrimary())
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DesignSystem.Colors.gray1())
@@ -84,7 +84,7 @@ fun PrivacyPolicyScreen(onBack: () -> Unit) {
         ) {
             Text(
                 text = buildPrivacyPolicyText(),
-                color = DesignSystem.Colors.minimalLabel,
+                color = DesignSystem.Colors.textPrimary(),
                 fontSize = 14.sp,
                 lineHeight = 22.sp
             )
@@ -101,10 +101,10 @@ fun ThirdPartySDKScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("第三方SDK清单", color = DesignSystem.Colors.minimalLabel, fontWeight = FontWeight.Bold) },
+                title = { Text("第三方SDK清单", color = DesignSystem.Colors.textPrimary(), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = DesignSystem.Colors.minimalLabel)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = DesignSystem.Colors.textPrimary())
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DesignSystem.Colors.gray1())
@@ -121,7 +121,7 @@ fun ThirdPartySDKScreen(onBack: () -> Unit) {
         ) {
             Text(
                 text = buildSDKListText(),
-                color = DesignSystem.Colors.minimalLabel,
+                color = DesignSystem.Colors.textPrimary(),
                 fontSize = 14.sp,
                 lineHeight = 22.sp
             )
@@ -139,10 +139,10 @@ fun PersonalInfoScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("个人信息收集清单", color = DesignSystem.Colors.minimalLabel, fontWeight = FontWeight.Bold) },
+                title = { Text("个人信息收集清单", color = DesignSystem.Colors.textPrimary(), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = DesignSystem.Colors.minimalLabel)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = DesignSystem.Colors.textPrimary())
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DesignSystem.Colors.gray1())
@@ -159,7 +159,7 @@ fun PersonalInfoScreen(onBack: () -> Unit) {
         ) {
             Text(
                 text = buildPersonalInfoText(),
-                color = DesignSystem.Colors.minimalLabel,
+                color = DesignSystem.Colors.textPrimary(),
                 fontSize = 14.sp,
                 lineHeight = 22.sp
             )

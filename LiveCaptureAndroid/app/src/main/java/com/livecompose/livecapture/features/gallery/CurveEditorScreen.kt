@@ -409,7 +409,7 @@ private fun CurveEditorCanvas(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(DesignSystem.Colors.gray1())
+            .background(DesignSystem.Colors.minimalElevated)
     ) {
         Canvas(
             modifier = Modifier

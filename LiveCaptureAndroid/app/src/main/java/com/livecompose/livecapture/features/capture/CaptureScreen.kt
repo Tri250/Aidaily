@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.livecompose.livecapture.BuildConfig
 import com.livecompose.livecapture.core.camera.*
 import com.livecompose.livecapture.core.camera.RawCaptureManager
 import com.livecompose.livecapture.core.camera.DngCaptureManager
@@ -73,6 +74,7 @@ import com.livecompose.livecapture.core.performance.MemoryUsageView
 import com.livecompose.livecapture.core.processing.QuickShotManager
 import com.livecompose.livecapture.core.processing.MultipleExposure
 import com.livecompose.livecapture.core.portrait.PortraitViewModel
+import com.livecompose.livecapture.core.portrait.BeautySettings
 import com.livecompose.livecapture.core.portrait.BeautyPreset as PortraitBeautyPreset
 import com.livecompose.livecapture.core.video.VideoViewModel
 import com.livecompose.livecapture.core.video.VideoEditor
@@ -1689,6 +1691,40 @@ fun CaptureScreen(
             )
         }
 
+        // 美颜完整调节面板（由快调条"展开全部"触发）
+        if (isBeautyPanelVisible) {
+            val panelSettings = BeautySettings(
+                skinSmoothing = beautyParams.smoothing,
+                skinTone = (beautyParams.whitening - 0.5f) * 2f,
+                blemishRemoval = 0f,
+                eyeBrightening = beautyParams.enlargeEye,
+                teethWhitening = 0f,
+                faceSlimming = beautyParams.slimFace,
+                ruddy = 0f,
+                currentPreset = when (beautyPreset) {
+                    BeautyPreset.NATURAL -> PortraitBeautyPreset.NATURAL
+                    BeautyPreset.FAIR -> PortraitBeautyPreset.DELICATE
+                    BeautyPreset.VIBRANT -> PortraitBeautyPreset.GODDESS
+                    BeautyPreset.PREMIUM -> PortraitBeautyPreset.GODDESS
+                    BeautyPreset.CUSTOM -> PortraitBeautyPreset.CUSTOM
+                },
+                isBeautyEnabled = isBeautyEnabled
+            )
+            BeautyPanelScreen(
+                settings = panelSettings,
+                onSettingsChange = { newSettings ->
+                    beautyParams = BeautyQuickParams(
+                        smoothing = newSettings.skinSmoothing,
+                        whitening = (newSettings.skinTone + 1f) / 2f,
+                        slimFace = newSettings.faceSlimming,
+                        enlargeEye = newSettings.eyeBrightening
+                    )
+                    beautyPreset = BeautyPreset.CUSTOM
+                },
+                onClose = { isBeautyPanelVisible = false }
+            )
+        }
+
         // AI滤镜推荐底部弹窗
         if (showFilterRecommendationSheet) {
             FilterRecommendationSheet(
@@ -3301,7 +3337,7 @@ private fun SettingsBottomSheet2026(
 
             SettingsSectionHeader("关于", Icons.Default.Info)
             SettingsCard {
-                SettingsRow("版本信息", "秒简相机 v1.2.1", Icons.Default.Info)
+                SettingsRow("版本信息", "秒简相机 v${BuildConfig.VERSION_NAME}", Icons.Default.Info)
                 SettingsDivider()
                 SettingsClickRow("ICP备案号", "待备案", Icons.Default.VerifiedUser) {
                     val intent = android.content.Intent(context, com.livecompose.livecapture.features.compliance.ComplianceHostActivity::class.java).apply {

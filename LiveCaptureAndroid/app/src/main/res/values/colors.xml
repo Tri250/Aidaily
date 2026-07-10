@@ -13,14 +13,14 @@
     <color name="secondary">#FF00BFA5</color>
     <color name="accent">#FF00E5FF</color>
 
-    <!-- 语义色 - 低饱和克制 -->
-    <color name="success">#FF00E676</color>
-    <color name="success_bg">#1F00E676</color>
-    <color name="warning">#FFFFB300</color>
-    <color name="warning_bg">#1FFFB300</color>
-    <color name="error">#FFFF5252</color>
-    <color name="error_bg">#1FFF5252</color>
-    <color name="info">#FF00E5FF</color>
+    <!-- 语义色 - 与 DesignSystem.Colors 对齐（iOS 语义色板） -->
+    <color name="success">#FF34C759</color>
+    <color name="success_bg">#1F34C759</color>
+    <color name="warning">#FFFFCC00</color>
+    <color name="warning_bg">#1FFFCC00</color>
+    <color name="error">#FFFF3B30</color>
+    <color name="error_bg">#1FFF3B30</color>
+    <color name="info">#FF5AC8FA</color>
 
     <!-- 中性色阶（浅色模式）- 对标 Flyme 灰度系统 -->
     <color name="gray0">#FFF8F8F7</color>

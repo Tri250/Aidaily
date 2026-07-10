@@ -204,7 +204,7 @@ fun PhotoAdjustScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.gray1()),
+                colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.minimalElevated),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -297,7 +297,7 @@ fun PhotoAdjustScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.gray1()),
+                colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.minimalElevated),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {

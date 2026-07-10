@@ -213,7 +213,7 @@ fun PhotoDetailScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = DesignSystem.Colors.gray1()
+                        containerColor = DesignSystem.Colors.minimalElevated
                     ),
                     shape = RoundedCornerShape(DesignSystem.CornerRadius.medium)
                 ) {
@@ -266,7 +266,7 @@ fun PhotoDetailScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = DesignSystem.Colors.gray1()
+                            containerColor = DesignSystem.Colors.minimalElevated
                         ),
                         shape = RoundedCornerShape(DesignSystem.CornerRadius.medium)
                     ) {
@@ -289,7 +289,7 @@ fun PhotoDetailScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = DesignSystem.Colors.gray1()
+                            containerColor = DesignSystem.Colors.minimalElevated
                         ),
                         shape = RoundedCornerShape(DesignSystem.CornerRadius.medium)
                     ) {
@@ -327,7 +327,7 @@ fun PhotoDetailScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = DesignSystem.Colors.gray1()
+                        containerColor = DesignSystem.Colors.minimalElevated
                     ),
                     shape = RoundedCornerShape(DesignSystem.CornerRadius.medium)
                 ) {
@@ -416,7 +416,7 @@ fun PhotoDetailScreen(
                     Text("取消", color = DesignSystem.Colors.minimalSecondaryLabel)
                 }
             },
-            containerColor = DesignSystem.Colors.gray2(),
+            containerColor = DesignSystem.Colors.minimalElevated,
             titleContentColor = DesignSystem.Colors.minimalLabel
         )
     }
@@ -571,7 +571,7 @@ private fun AIQualityAssessmentCard(bitmap: Bitmap, context: android.content.Con
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.gray1()),
+        colors = CardDefaults.cardColors(containerColor = DesignSystem.Colors.minimalElevated),
         shape = RoundedCornerShape(DesignSystem.CornerRadius.medium)
     ) {
         Column(modifier = Modifier.padding(DesignSystem.Spacing.small)) {

@@ -50,10 +50,10 @@ import kotlinx.coroutines.launch
 import kotlin.math.PI
 
 /**
- * 统一设计系统 - 国潮质感风格（面向国内旗舰手机摄影体验）
- * 设计语言：温润光影 + 微拟物 + 自信动效
+ * 统一设计系统 - 秒简青绿极简风格（面向国内旗舰手机摄影体验）
+ * 设计语言：纯黑沉浸 + 精确白色层级 + 微光点缀 + 自信动效
  * 适配品牌：华为/小米/OPPO/vivo/荣耀
- * 色彩基调：霁青主色 + 暮山紫辅色 + 暖金点缀
+ * 色彩基调：秒简青绿主色 (#00E676) + teal 辅色 + cyan 点缀 + 暖金高光
  * 动效体系：五层动效（入场/转场/反馈/状态/叙事）
  *
  * 同步映射说明：
@@ -456,7 +456,7 @@ object DesignSystem {
         val widthHeavy: Dp = 2.dp
     }
 
-    // MARK: - Animation（国潮质感动效体系 - 五层动效架构）
+    // MARK: - Animation（秒简青绿动效体系 - 五层动效架构）
     // 入场 → 转场 → 反馈 → 状态 → 叙事，由外而内构建沉浸式拍摄体验
     // 对标 iOS Animation：spring(response, dampingFraction) 精确换算为 spring(dampingRatio, stiffness)
     //   dampingRatio = dampingFraction（两者均为 0~1，1 = 无振荡）
@@ -563,19 +563,25 @@ object DesignSystem {
 /**
  * 毛玻璃效果（Glassmorphism）- 对标 iOS GlassmorphismModifier
  * iOS 使用 .ultraThinMaterial + 白色叠加 + 细描边
- * Android 12+ 可用 RenderEffect 实现真实模糊，这里采用半透明白色叠加 + 描边还原视觉
+ * Android 12+ 可用 RenderEffect 实现真实模糊，这里采用半透明叠加 + 描边还原视觉
+ * 主题感知：深色模式用白色叠加（亮线），浅色模式用黑色叠加（暗线），确保两种模式下均可见
  */
+@Composable
 fun Modifier.glassmorphism(
     cornerRadius: Dp = DesignSystem.CornerRadius.medium,
     opacity: Float = 0.08f
-): Modifier = this
-    .clip(RoundedCornerShape(cornerRadius))
-    .background(Color.White.copy(alpha = opacity), RoundedCornerShape(cornerRadius))
-    .border(
-        width = DesignSystem.Stroke.widthThin,
-        color = Color.White.copy(alpha = 0.10f),
-        shape = RoundedCornerShape(cornerRadius)
-    )
+): Modifier {
+    val isDark = isSystemInDarkTheme()
+    val baseColor = if (isDark) Color.White else Color.Black
+    return this
+        .clip(RoundedCornerShape(cornerRadius))
+        .background(baseColor.copy(alpha = opacity), RoundedCornerShape(cornerRadius))
+        .border(
+            width = DesignSystem.Stroke.widthThin,
+            color = baseColor.copy(alpha = if (isDark) 0.10f else 0.06f),
+            shape = RoundedCornerShape(cornerRadius)
+        )
+}
 
 /**
  * 液态玻璃效果（Liquid Glass）- 对标 iOS 2026 液态玻璃设计语言

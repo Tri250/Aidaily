@@ -304,7 +304,7 @@ private fun BeforeAfterImageSection(
             .height(320.dp)
             .padding(horizontal = DesignSystem.Spacing.small)
             .clip(RoundedCornerShape(DesignSystem.CornerRadius.large))
-            .background(DesignSystem.Colors.gray2()),
+            .background(DesignSystem.Colors.minimalElevated),
         contentAlignment = Alignment.Center
     ) {
         val displayBitmap = editedImage ?: sourceImage

@@ -119,7 +119,7 @@ fun CropEditScreen(
         },
         bottomBar = {
             Column(
-                modifier = Modifier.fillMaxWidth().background(DesignSystem.Colors.gray2()).padding(vertical = 12.dp)
+                modifier = Modifier.fillMaxWidth().background(DesignSystem.Colors.minimalElevated).padding(vertical = 12.dp)
             ) {
                 // 比例选择
                 Row(

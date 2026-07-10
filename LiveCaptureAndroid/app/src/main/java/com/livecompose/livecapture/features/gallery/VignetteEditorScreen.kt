@@ -310,7 +310,7 @@ private fun VignettePreviewCanvas(
     roundness: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier.background(DesignSystem.Colors.gray1())) {
+    Box(modifier = modifier.background(DesignSystem.Colors.minimalElevated)) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height

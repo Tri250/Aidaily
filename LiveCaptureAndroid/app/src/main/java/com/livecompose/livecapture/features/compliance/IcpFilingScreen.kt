@@ -49,10 +49,10 @@ fun IcpFilingScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("ICP 备案", color = DesignSystem.Colors.minimalLabel, fontWeight = FontWeight.Bold) },
+                title = { Text("ICP 备案", color = DesignSystem.Colors.textPrimary(), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = DesignSystem.Colors.minimalLabel)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = DesignSystem.Colors.textPrimary())
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DesignSystem.Colors.gray1())
@@ -103,7 +103,7 @@ private fun HeaderSection(isFiled: Boolean) {
             Spacer(modifier = Modifier.width(10.dp))
             Text(
                 "ICP 备案信息",
-                color = DesignSystem.Colors.minimalLabel,
+                color = DesignSystem.Colors.textPrimary(),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -112,7 +112,7 @@ private fun HeaderSection(isFiled: Boolean) {
             "根据《中华人民共和国电信条例》和《互联网信息服务管理办法》规定，" +
                 if (isFiled) "本应用已完成 ICP 备案。"
                 else "本应用尚未完成 ICP 备案，请前往工信部备案系统完成备案。",
-            color = DesignSystem.Colors.minimalTertiaryLabel,
+            color = DesignSystem.Colors.textTertiary(),
             fontSize = 15.sp,
             lineHeight = 22.sp
         )
@@ -134,14 +134,14 @@ private fun FilingInfoCard(info: IcpFilingInfo) {
             title = "主办单位",
             value = info.companyName.ifBlank { "待备案" }
         )
-        HorizontalDivider(color = DesignSystem.Colors.minimalOverlay, modifier = Modifier.padding(start = 44.dp))
+        HorizontalDivider(color = DesignSystem.Colors.gray3(), modifier = Modifier.padding(start = 44.dp))
         InfoRow(
             icon = Icons.Default.Badge,
             title = "ICP 备案号",
             value = info.icpNumber.ifBlank { "待备案" }
         )
         if (!info.networkSecurityNumber.isNullOrBlank()) {
-            HorizontalDivider(color = DesignSystem.Colors.minimalOverlay, modifier = Modifier.padding(start = 44.dp))
+            HorizontalDivider(color = DesignSystem.Colors.gray3(), modifier = Modifier.padding(start = 44.dp))
             InfoRow(
                 icon = Icons.Default.Lock,
                 title = "网安备案号",
@@ -149,7 +149,7 @@ private fun FilingInfoCard(info: IcpFilingInfo) {
             )
         }
         if (info.auditDate.isNotBlank()) {
-            HorizontalDivider(color = DesignSystem.Colors.minimalOverlay, modifier = Modifier.padding(start = 44.dp))
+            HorizontalDivider(color = DesignSystem.Colors.gray3(), modifier = Modifier.padding(start = 44.dp))
             InfoRow(
                 icon = Icons.Default.Public,
                 title = "审核日期",
@@ -180,14 +180,14 @@ private fun InfoRow(
         Spacer(modifier = Modifier.width(10.dp))
         Text(
             title,
-            color = DesignSystem.Colors.minimalLabel,
+            color = DesignSystem.Colors.textPrimary(),
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium
         )
         Spacer(modifier = Modifier.weight(1f))
         Text(
             value,
-            color = DesignSystem.Colors.minimalTertiaryLabel,
+            color = DesignSystem.Colors.textTertiary(),
             fontSize = 15.sp
         )
     }
@@ -249,14 +249,14 @@ private fun ExplanationSection() {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             "什么是 ICP 备案？",
-            color = DesignSystem.Colors.minimalLabel,
+            color = DesignSystem.Colors.textPrimary(),
             fontSize = 17.sp,
             fontWeight = FontWeight.SemiBold
         )
         Text(
             "ICP 备案（Internet Content Provider 备案）是中国大陆境内提供互联网信息服务的网站和应用的法定要求。" +
                 "所有在中国大陆运营的网站和应用都必须完成 ICP 备案。",
-            color = DesignSystem.Colors.minimalTertiaryLabel,
+            color = DesignSystem.Colors.textTertiary(),
             fontSize = 15.sp,
             lineHeight = 22.sp
         )

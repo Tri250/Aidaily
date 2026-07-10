@@ -83,7 +83,7 @@ fun PrivacyAgreementDialog(
         title = {
             Text(
                 text = "秒简相机 隐私保护指引",
-                color = DesignSystem.Colors.minimalLabel,
+                color = DesignSystem.Colors.textPrimary(),
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
                 textAlign = TextAlign.Center,
@@ -112,7 +112,7 @@ fun PrivacyAgreementDialog(
                         }
                         append("。")
                     },
-                    color = DesignSystem.Colors.minimalLabel,
+                    color = DesignSystem.Colors.textPrimary(),
                     fontSize = 14.sp,
                     lineHeight = 22.sp
                 )
@@ -122,7 +122,7 @@ fun PrivacyAgreementDialog(
                 // 权限说明
                 Text(
                     text = "我们将会使用以下权限：",
-                    color = DesignSystem.Colors.minimalLabel,
+                    color = DesignSystem.Colors.textPrimary(),
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp
                 )
@@ -139,7 +139,7 @@ fun PrivacyAgreementDialog(
                 permissions.forEach { perm ->
                     Text(
                         text = perm,
-                        color = DesignSystem.Colors.minimalSecondaryLabel,
+                        color = DesignSystem.Colors.textSecondary(),
                         fontSize = 13.sp,
                         lineHeight = 20.sp,
                         modifier = Modifier.padding(start = 8.dp, top = 2.dp, bottom = 2.dp)
@@ -150,7 +150,7 @@ fun PrivacyAgreementDialog(
 
                 Text(
                     text = "我们承诺：仅在您授权后使用上述权限；您的照片数据仅存储在本地设备，不会上传至任何服务器；不会收集、分享或出售您的个人信息。",
-                    color = DesignSystem.Colors.minimalSecondaryLabel,
+                    color = DesignSystem.Colors.textSecondary(),
                     fontSize = 12.sp,
                     lineHeight = 18.sp
                 )
@@ -192,7 +192,7 @@ fun PrivacyAgreementDialog(
                 ) {
                     Text(
                         text = "同意并继续",
-                        color = DesignSystem.Colors.minimalLabel,
+                        color = DesignSystem.Colors.textPrimary(),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -203,7 +203,7 @@ fun PrivacyAgreementDialog(
                 ) {
                     Text(
                         text = "不同意，退出应用",
-                        color = DesignSystem.Colors.minimalSecondaryLabel,
+                        color = DesignSystem.Colors.textSecondary(),
                         fontSize = 13.sp
                     )
                 }
@@ -229,7 +229,7 @@ private fun FullPrivacyPolicyDialog(onBack: () -> Unit) {
             ) {
                 Text(
                     text = "秒简相机隐私政策",
-                    color = DesignSystem.Colors.minimalLabel,
+                    color = DesignSystem.Colors.textPrimary(),
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
@@ -314,7 +314,7 @@ private fun FullPrivacyPolicyDialog(onBack: () -> Unit) {
 
                 Text(
                     text = policyText,
-                    color = DesignSystem.Colors.minimalLabel,
+                    color = DesignSystem.Colors.textPrimary(),
                     fontSize = 13.sp,
                     lineHeight = 20.sp
                 )
