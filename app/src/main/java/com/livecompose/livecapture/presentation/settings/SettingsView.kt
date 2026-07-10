@@ -13,8 +13,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.livecompose.livecapture.core.design.TitleTextStyle
 
 enum class DetectionMode(val label: String, val key: String) {
-    FAST("快速 (MobileNetV3)", "FAST"),
-    PRO("专业 (ResNet50)", "PRO")
+    FAST("快速 (节电模式 ~5fps)", "FAST"),
+    PRO("专业 (全帧率连续检测)", "PRO")
 }
 
 @Composable
@@ -40,7 +40,7 @@ fun SettingsView(
 
         // Detection Mode
         SettingsSection(title = "检测模式") {
-            DetectionMode.values().forEach { mode ->
+            DetectionMode.entries.forEach { mode ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

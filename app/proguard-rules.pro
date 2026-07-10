@@ -7,8 +7,8 @@
 
 # TensorFlow Lite
 -keep class org.tensorflow.lite.** { *; }
--keep class org.tensorflow.lite.gpu.** { *; }
 -keep class org.tensorflow.lite.nnapi.** { *; }
 
-# ML Kit
--keep class com.google.mlkit.** { *; }
+# Hilt
+-keep class dagger.hilt.** { *; }
+-keep class javax.inject.** { *; }

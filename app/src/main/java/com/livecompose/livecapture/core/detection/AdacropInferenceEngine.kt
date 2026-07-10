@@ -16,6 +16,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.abs
@@ -46,35 +47,64 @@ class AdacropInferenceEngine @Inject constructor(
     }
 
     private var interpreter: Interpreter? = null
+    private var nnApiDelegate: NnApiDelegate? = null
     private var isDualOutput = false
     private var inputDataType: Int = 0 // 0 = float32, 1 = uint8
 
+    // #23: 模型加载状态跟踪，防止重复加载
+    private val isLoadStarted = AtomicBoolean(false)
+
     private val inputBuffer: ByteBuffer
+    // #25: 复用 IntArray，避免每帧分配
+    private val pixelBuffer: IntArray = IntArray(INPUT_SIZE * INPUT_SIZE)
 
     private val _isReady = MutableStateFlow(false)
     val isReady: StateFlow<Boolean> = _isReady
+
+    // #55: 模型加载中状态
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
 
     private val _inferenceTime = MutableStateFlow(0L)
     val inferenceTime: StateFlow<Long> = _inferenceTime
 
     init {
+        // #23: init 仅分配 ByteBuffer，不在主线程加载模型
         val numPixels = INPUT_SIZE * INPUT_SIZE * 3
         inputBuffer = ByteBuffer.allocateDirect(numPixels * BYTES_PER_CHANNEL)
         inputBuffer.order(ByteOrder.nativeOrder())
-        loadModel()
+    }
+
+    /**
+     * #23: 异步加载模型，必须在后台线程调用。
+     * 线程安全：使用 AtomicBoolean 防止重复加载。
+     */
+    suspend fun loadModelAsync() {
+        if (!isLoadStarted.compareAndSet(false, true)) {
+            Log.d(TAG, "Model load already started, skipping")
+            return
+        }
+        _isLoading.value = true
+        withContext(Dispatchers.IO) {
+            loadModel()
+        }
+        _isLoading.value = false
     }
 
     private fun loadModel() {
         try {
             val modelBuffer = loadModelFile()
-            val options = Interpreter.Options().apply {
-                try {
-                    addDelegate(NnApiDelegate())
-                } catch (e: Exception) {
-                    Log.w(TAG, "NNAPI not available, falling back to CPU")
-                }
-                setNumThreads(4)
+            val options = Interpreter.Options()
+            // #29: 跟踪 NnApiDelegate 以便后续 close
+            try {
+                val delegate = NnApiDelegate()
+                nnApiDelegate = delegate
+                options.addDelegate(delegate)
+            } catch (e: Exception) {
+                Log.w(TAG, "NNAPI not available, falling back to CPU")
             }
+            options.setNumThreads(4)
+
             interpreter = Interpreter(modelBuffer, options)
 
             val inputDetails = interpreter?.getInputDetails()
@@ -151,7 +181,6 @@ class AdacropInferenceEngine @Inject constructor(
             val action = argMax(actionProbs)
             val confidence = actionProbs.maxOrNull() ?: 0.5f
 
-            // 激活美学评分计算
             val ruleOfThirdsScore = calculateRuleOfThirdsScore(bbox)
             val safetyMarginScore = calculateSafetyMarginScore(bbox)
             val faceCoverage = estimateFaceCoverage(bbox, confidence)
@@ -171,10 +200,6 @@ class AdacropInferenceEngine @Inject constructor(
         }
     }
 
-    /**
-     * 计算三分法构图得分: bbox 中心与最近三分线交点的距离
-     * 距离越近得分越高
-     */
     private fun calculateRuleOfThirdsScore(bbox: FloatArray): Float {
         val cx = bbox[0]
         val cy = bbox[1]
@@ -183,14 +208,9 @@ class AdacropInferenceEngine @Inject constructor(
             val dist = hypot(cx - px, cy - py)
             minDistance = min(minDistance, dist)
         }
-        // 距离 0 → 得分 1.0, 距离 >= 0.5 → 得分 0
         return (1f - (minDistance / 0.5f)).coerceIn(0f, 1f)
     }
 
-    /**
-     * 计算边缘安全区得分: bbox 是否触及画面边缘
-     * 离边缘越远得分越高
-     */
     private fun calculateSafetyMarginScore(bbox: FloatArray): Float {
         val cx = bbox[0]
         val cy = bbox[1]
@@ -207,17 +227,11 @@ class AdacropInferenceEngine @Inject constructor(
         val bottomMargin = 1f - bottom
 
         val minMargin = min(min(leftMargin, rightMargin), min(topMargin, bottomMargin))
-        // minMargin >= SAFETY_MARGIN → 得分 1.0, minMargin <= 0 → 得分 0
         return (minMargin / SAFETY_MARGIN).coerceIn(0f, 1f)
     }
 
-    /**
-     * 估算人脸覆盖率: 基于 bbox 面积与置信度
-     * 无独立人脸检测模型时，用 bbox 面积和置信度估算
-     */
     private fun estimateFaceCoverage(bbox: FloatArray, confidence: Float): Float {
         val bboxArea = bbox[2] * bbox[3]
-        // 理想人脸覆盖范围 0.05~0.25，过大或过小都降低得分
         val idealCoverage = 0.15f
         val deviation = abs(bboxArea - idealCoverage) / idealCoverage
         val areaScore = max(0f, 1f - deviation)
@@ -226,23 +240,22 @@ class AdacropInferenceEngine @Inject constructor(
 
     /**
      * NHWC 格式预处理: [1, 224, 224, 3]
-     * 根据 inputDataType 选择 float32 或 uint8 写入
+     * #25: 复用 pixelBuffer 避免每帧分配 IntArray
      */
     private fun preprocess(bitmap: Bitmap) {
         inputBuffer.rewind()
-        val pixels = IntArray(INPUT_SIZE * INPUT_SIZE)
-        bitmap.getPixels(pixels, 0, INPUT_SIZE, 0, 0, INPUT_SIZE, INPUT_SIZE)
+        bitmap.getPixels(pixelBuffer, 0, INPUT_SIZE, 0, 0, INPUT_SIZE, INPUT_SIZE)
 
         if (inputDataType == 0) {
             // float32: 归一化到 [0, 1]
-            for (pixel in pixels) {
+            for (pixel in pixelBuffer) {
                 inputBuffer.putFloat((pixel shr 16 and 0xFF) / 255.0f)
                 inputBuffer.putFloat((pixel shr 8 and 0xFF) / 255.0f)
                 inputBuffer.putFloat((pixel and 0xFF) / 255.0f)
             }
         } else {
             // uint8: 原始像素值 0-255
-            for (pixel in pixels) {
+            for (pixel in pixelBuffer) {
                 inputBuffer.put((pixel shr 16 and 0xFF).toByte())
                 inputBuffer.put((pixel shr 8 and 0xFF).toByte())
                 inputBuffer.put((pixel and 0xFF).toByte())
@@ -250,6 +263,9 @@ class AdacropInferenceEngine @Inject constructor(
         }
     }
 
+    /**
+     * #20: 裁切并缩放，增加零宽/零高安全检查
+     */
     private fun cropAndResize(bitmap: Bitmap, bbox: FloatArray): Bitmap {
         val cx = bbox[0]
         val cy = bbox[1]
@@ -261,7 +277,16 @@ class AdacropInferenceEngine @Inject constructor(
         val right = ((cx + w / 2) * bitmap.width).toInt().coerceIn(left + 1, bitmap.width)
         val bottom = ((cy + h / 2) * bitmap.height).toInt().coerceIn(top + 1, bitmap.height)
 
-        val cropped = Bitmap.createBitmap(bitmap, left, top, right - left, bottom - top)
+        val cropWidth = right - left
+        val cropHeight = bottom - top
+
+        // #20: 防止零宽/零高导致 createBitmap 崩溃
+        if (cropWidth <= 0 || cropHeight <= 0) {
+            Log.w(TAG, "cropAndResize: invalid crop size ${cropWidth}x${cropHeight}, using full bitmap")
+            return Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true)
+        }
+
+        val cropped = Bitmap.createBitmap(bitmap, left, top, cropWidth, cropHeight)
         return Bitmap.createScaledBitmap(cropped, INPUT_SIZE, INPUT_SIZE, true)
     }
 
@@ -281,6 +306,10 @@ class AdacropInferenceEngine @Inject constructor(
     fun close() {
         interpreter?.close()
         interpreter = null
+        // #29: 关闭 NnApiDelegate 释放 NNAPI 资源
+        nnApiDelegate?.close()
+        nnApiDelegate = null
         _isReady.value = false
+        isLoadStarted.set(false)
     }
 }

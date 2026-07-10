@@ -29,8 +29,13 @@ class MotionStabilityMonitor @Inject constructor(
     }
 
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    private val gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
-    private val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+    // #16: 传感器可能为 null（低端设备无陀螺仪/加速度计）
+    private val gyroscope: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
+    private val accelerometer: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+
+    // #16: 传感器可用性状态
+    private val _isAvailable = MutableStateFlow(gyroscope != null && accelerometer != null)
+    val isAvailable: StateFlow<Boolean> = _isAvailable
 
     private val _isStable = MutableStateFlow(false)
     val isStable: StateFlow<Boolean> = _isStable
@@ -57,8 +62,16 @@ class MotionStabilityMonitor @Inject constructor(
     fun startMonitoring() {
         if (isMonitoring) return
         isMonitoring = true
-        sensorManager.registerListener(this, gyroscope, SAMPLING_PERIOD_US)
-        sensorManager.registerListener(this, accelerometer, SAMPLING_PERIOD_US)
+
+        // #16: 传感器不可用时降级为始终稳定，不阻塞拍摄流程
+        if (!_isAvailable.value) {
+            Log.w(TAG, "Sensors not available, assuming stable for degraded mode")
+            _isStable.value = true
+            return
+        }
+
+        gyroscope?.let { sensorManager.registerListener(this, it, SAMPLING_PERIOD_US) }
+        accelerometer?.let { sensorManager.registerListener(this, it, SAMPLING_PERIOD_US) }
         Log.d(TAG, "Motion monitoring started")
     }
 

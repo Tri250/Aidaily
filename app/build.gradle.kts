@@ -7,12 +7,12 @@ plugins {
 
 android {
     namespace = "com.livecompose.livecapture"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.livecompose.livecapture"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
 
@@ -42,7 +42,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.10"
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
     packaging {
         resources {
@@ -89,12 +89,8 @@ dependencies {
 
     // TensorFlow Lite
     implementation("org.tensorflow:tensorflow-lite:2.16.1")
-    implementation("org.tensorflow:tensorflow-lite-gpu:2.16.1")
     implementation("org.tensorflow:tensorflow-lite-nnapi:2.16.1")
     implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
-
-    // ML Kit Face Detection
-    implementation("com.google.mlkit:face-detection:16.1.6")
 
     // Hilt DI
     implementation("com.google.dagger:hilt-android:2.51")

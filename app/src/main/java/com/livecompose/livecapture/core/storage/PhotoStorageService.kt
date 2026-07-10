@@ -18,9 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.util.UUID
 import javax.inject.Inject
@@ -60,7 +58,9 @@ class PhotoStorageService @Inject constructor(
         exifData: ExifData = ExifData(),
         aestheticScore: Float? = null
     ): PhotoRecord = withContext(Dispatchers.IO) {
+        // #14: decodeByteArray 可能返回 null，必须检查
         val bitmap = imageProxyToBitmap(imageProxy)
+            ?: throw IllegalStateException("Failed to decode JPEG from ImageProxy")
 
         // 3:4 裁切
         val targetAspect = 3f / 4f
@@ -68,61 +68,66 @@ class PhotoStorageService @Inject constructor(
 
         // 旋转校正
         val rotatedBitmap = rotateBitmap(croppedBitmap, imageProxy.imageInfo.rotationDegrees.toFloat())
+        // #13: degrees==0 时 rotatedBitmap === croppedBitmap，需追踪所有权避免双重 recycle
+        val rotatedIsNew = rotatedBitmap !== croppedBitmap
 
         val fileName = "${UUID.randomUUID()}.jpg"
 
-        // 保存主图到 MediaStore (API 29+) 或文件系统
-        val uri = saveImageToStorage(rotatedBitmap, fileName)
+        // 一次性压缩为 JPEG 字节，写入临时文件，再写 EXIF（避免 #31 重复压缩）
+        val tempFile = File(context.cacheDir, "capture_${System.currentTimeMillis()}.jpg")
+        try {
+            FileOutputStream(tempFile).use { out ->
+                rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+            }
+            writeExif(tempFile, exifData)
 
-        // 保存 JPEG 字节到临时文件用于写 EXIF (MediaStore 路径)
-        if (uri != null) {
-            writeExifToUri(uri, rotatedBitmap, exifData)
-        } else {
-            val file = File(storageDir, fileName)
-            writeExif(file, exifData)
+            // 保存主图到 MediaStore (API 29+) 或文件系统
+            val uri = saveJpegToStorage(tempFile, fileName)
+
+            // 生成缩略图
+            val thumbBitmap = ThumbnailUtils.extractThumbnail(rotatedBitmap, MAX_THUMB_SIZE, MAX_THUMB_SIZE)
+            val thumbFile = File(thumbsDir, "thumb_$fileName")
+            FileOutputStream(thumbFile).use { out ->
+                thumbBitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
+            }
+            thumbBitmap.recycle()
+
+            val filePath = if (uri != null) uri.toString() else File(storageDir, fileName).absolutePath
+
+            val record = PhotoRecord(
+                id = UUID.randomUUID().toString(),
+                filePath = filePath,
+                thumbPath = thumbFile.absolutePath,
+                width = rotatedBitmap.width,
+                height = rotatedBitmap.height,
+                timestamp = System.currentTimeMillis(),
+                iso = exifData.iso,
+                shutterSpeed = exifData.shutterSpeed,
+                aperture = exifData.aperture,
+                focalLength = exifData.focalLength,
+                cropRegion = cropRegion,
+                aestheticScore = aestheticScore
+            )
+
+            addRecordToIndex(record)
+
+            // #13: 安全回收，避免双重 recycle
+            if (rotatedIsNew) rotatedBitmap.recycle()
+            croppedBitmap.recycle()
+            bitmap.recycle()
+
+            record
+        } finally {
+            tempFile.delete()
         }
-
-        // 生成缩略图
-        val thumbBitmap = ThumbnailUtils.extractThumbnail(rotatedBitmap, MAX_THUMB_SIZE, MAX_THUMB_SIZE)
-        val thumbFile = File(thumbsDir, "thumb_$fileName")
-        FileOutputStream(thumbFile).use { out ->
-            thumbBitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
-        }
-
-        val filePath = if (uri != null) uri.toString() else File(storageDir, fileName).absolutePath
-
-        val record = PhotoRecord(
-            id = UUID.randomUUID().toString(),
-            filePath = filePath,
-            thumbPath = thumbFile.absolutePath,
-            width = rotatedBitmap.width,
-            height = rotatedBitmap.height,
-            timestamp = System.currentTimeMillis(),
-            iso = exifData.iso,
-            shutterSpeed = exifData.shutterSpeed,
-            aperture = exifData.aperture,
-            focalLength = exifData.focalLength,
-            cropRegion = cropRegion,
-            aestheticScore = aestheticScore
-        )
-
-        addRecordToIndex(record)
-
-        // 回收
-        bitmap.recycle()
-        croppedBitmap.recycle()
-        rotatedBitmap.recycle()
-        thumbBitmap.recycle()
-
-        record
     }
 
-    private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap {
+    private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {
         val buffer = imageProxy.planes[0].buffer
         val bytes = ByteArray(buffer.remaining())
         buffer.get(bytes)
 
-        // ImageCapture 默认输出 JPEG 格式
+        // ImageCapture 默认输出 JPEG 格式; decodeByteArray 可能返回 null
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
     }
 
@@ -148,12 +153,18 @@ class PhotoStorageService @Inject constructor(
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
-    private fun saveImageToStorage(bitmap: Bitmap, fileName: String): Uri? {
+    /**
+     * 将已压缩（含 EXIF）的 JPEG 文件写入 MediaStore (API 29+, 使用 IS_PENDING) 或文件系统
+     * #42: 使用 IS_PENDING 标记，确保写入完成前对其他 App 不可见
+     */
+    private fun saveJpegToStorage(jpegFile: File, fileName: String): Uri? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val contentValues = ContentValues().apply {
                 put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
                 put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
                 put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/LiveCapture")
+                // #42: 写入期间标记为 PENDING
+                put(MediaStore.Images.Media.IS_PENDING, 1)
             }
             val uri = context.contentResolver.insert(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
@@ -161,54 +172,21 @@ class PhotoStorageService @Inject constructor(
             )
             uri?.let {
                 context.contentResolver.openOutputStream(it)?.use { out ->
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                    jpegFile.inputStream().use { input -> input.copyTo(out) }
                 }
+                // 写入完成，清除 PENDING 标记
+                val updateValues = ContentValues().apply {
+                    put(MediaStore.Images.Media.IS_PENDING, 0)
+                }
+                context.contentResolver.update(it, updateValues, null, null)
             }
             uri
         } else {
             val file = File(storageDir, fileName)
-            FileOutputStream(file).use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+            jpegFile.inputStream().use { input ->
+                FileOutputStream(file).use { out -> input.copyTo(out) }
             }
             null
-        }
-    }
-
-    /**
-     * 通过 MediaStore Uri 写入 EXIF 数据
-     */
-    private fun writeExifToUri(uri: Uri, bitmap: Bitmap, exifData: ExifData) {
-        try {
-            // 先将 bitmap 压缩为 JPEG 字节流
-            val outputStream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)
-            val jpegBytes = outputStream.toByteArray()
-
-            // 写入临时文件，用 ExifInterface 修改
-            val tempFile = File(context.cacheDir, "temp_exif_${System.currentTimeMillis()}.jpg")
-            FileOutputStream(tempFile).use { it.write(jpegBytes) }
-
-            val exif = ExifInterface(tempFile.absolutePath)
-            exifData.iso?.let { exif.setAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY, it) }
-            exifData.aperture?.let { exif.setAttribute(ExifInterface.TAG_F_NUMBER, it) }
-            exifData.focalLength?.let { exif.setAttribute(ExifInterface.TAG_FOCAL_LENGTH, it) }
-            exifData.shutterSpeed?.let {
-                exif.setAttribute(ExifInterface.TAG_EXPOSURE_TIME, it)
-            }
-            exif.setAttribute(ExifInterface.TAG_MAKE, exifData.make)
-            exif.setAttribute(ExifInterface.TAG_MODEL, exifData.model)
-            exif.saveAttributes()
-
-            // 将带 EXIF 的文件写回 MediaStore Uri
-            context.contentResolver.openOutputStream(uri)?.use { out ->
-                FileInputStream(tempFile).use { input ->
-                    input.copyTo(out)
-                }
-            }
-
-            tempFile.delete()
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to write EXIF to Uri", e)
         }
     }
 

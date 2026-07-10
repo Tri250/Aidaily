@@ -10,13 +10,9 @@
     <!-- Sensor permissions -->
     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
 
-    <!-- Storage permissions -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- Storage permissions (only needed for API < 29) -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
-
-    <!-- Internet (optional, for model download/update) -->
-    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name=".LiveCaptureApp"
@@ -28,14 +24,14 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.LiveCapture"
-        tools:targetApi="34">
+        tools:targetApi="35">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.LiveCapture"
-            android:configChanges="orientation|screenSize|smallestScreenSize"
-            android:screenOrientation="portrait">
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden"
+            android:screenOrientation="fullSensor">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

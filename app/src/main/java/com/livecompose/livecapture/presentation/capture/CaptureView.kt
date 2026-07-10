@@ -1,9 +1,11 @@
 package com.livecompose.livecapture.presentation.capture
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.PointF
 import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.view.PreviewView
@@ -20,10 +22,12 @@ import androidx.compose.material.icons.filled.Exposure
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -32,11 +36,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.livecompose.livecapture.core.design.*
@@ -64,13 +71,17 @@ fun CaptureView(
     val currentScore by viewModel.currentScore.collectAsState()
     val lastSavedPhotoPath by viewModel.lastSavedPhotoPath.collectAsState()
     val exposureCompensation by viewModel.exposureCompensation.collectAsState()
+    val isCameraStarting by viewModel.isCameraStarting.collectAsState()
+    val cameraError by viewModel.cameraError.collectAsState()
 
+    // #7: 权限状态管理
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
                     PackageManager.PERMISSION_GRANTED
         )
     }
+    var hasBeenDenied by remember { mutableStateOf(false) }
 
     var showExposureSlider by remember { mutableStateOf(false) }
 
@@ -78,13 +89,43 @@ fun CaptureView(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         hasCameraPermission = granted
+        if (!granted) {
+            hasBeenDenied = true
+        }
     }
 
-    LaunchedEffect(hasCameraPermission) {
-        if (hasCameraPermission) {
+    // #8: 判断是否需要显示 Rationale
+    val activity = context as? android.app.Activity
+    val shouldShowRationale = remember(hasBeenDenied) {
+        activity?.shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) ?: false
+    }
+
+    // #32: 生命周期绑定 — onPause 停止相机，onResume 重启相机
+    var isResumed by remember { mutableStateOf(true) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    isResumed = false
+                    viewModel.stopCamera()
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    isResumed = true
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.stopCamera()
+        }
+    }
+
+    // 权限已授予且页面可见时启动相机
+    LaunchedEffect(hasCameraPermission, isResumed) {
+        if (hasCameraPermission && isResumed) {
             viewModel.startCamera(lifecycleOwner, previewView)
-        } else {
-            permissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
@@ -96,78 +137,250 @@ fun CaptureView(
         )
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            viewModel.stopCamera()
-        }
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
-        // Camera Preview — 激活: 点击对焦
-        AndroidView(
-            factory = { previewView },
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    androidx.compose.foundation.gestures.detectTapGestures(
-                        onTap = { offset ->
-                            viewModel.focusAndMeter(
-                                x = offset.x,
-                                y = offset.y,
-                                previewWidth = size.width.toFloat(),
-                                previewHeight = size.height.toFloat()
+        when {
+            // #7: 权限被拒绝 — 显示权限请求 UI
+            !hasCameraPermission -> {
+                PermissionDeniedContent(
+                    hasBeenDenied = hasBeenDenied,
+                    shouldShowRationale = shouldShowRationale,
+                    onRequestPermission = {
+                        permissionLauncher.launch(Manifest.permission.CAMERA)
+                    },
+                    onOpenSettings = {
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.fromParts("package", context.packageName, null)
+                        }
+                        context.startActivity(intent)
+                    }
+                )
+            }
+
+            // #56/#17: ERROR 状态 — 显示错误重试 UI
+            stage == CaptureViewModel.PipelineStage.ERROR || cameraError != null -> {
+                CameraErrorContent(
+                    errorMessage = cameraError ?: "拍摄流程发生错误",
+                    onRetry = {
+                        viewModel.retry()
+                        // 重新启动相机
+                        if (hasCameraPermission && isResumed) {
+                            viewModel.startCamera(lifecycleOwner, previewView)
+                        }
+                    }
+                )
+            }
+
+            else -> {
+                // Camera Preview — 点击对焦
+                AndroidView(
+                    factory = { previewView },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            androidx.compose.foundation.gestures.detectTapGestures(
+                                onTap = { offset ->
+                                    viewModel.focusAndMeter(
+                                        x = offset.x,
+                                        y = offset.y,
+                                        previewWidth = size.width.toFloat(),
+                                        previewHeight = size.height.toFloat()
+                                    )
+                                }
                             )
                         }
+                )
+
+                // Composition Grid Overlay
+                CompositionGridOverlay()
+
+                // Tracking Dot
+                trackPoint?.let { point ->
+                    TrackingDot(
+                        position = point,
+                        isAligned = isAligned,
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
+
+                // #54: 刘海屏适配 — 使用 WindowInsets 替代硬编码 padding
+                TopControlBar(
+                    guidanceText = guidanceText,
+                    isAligned = isAligned,
+                    isModelReady = isModelReady,
+                    inferenceTime = inferenceTime,
+                    currentScore = currentScore,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .windowInsetsPadding(WindowInsets.statusBars)
+                )
+
+                // Exposure Slider Panel
+                if (showExposureSlider) {
+                    ExposureSliderPanel(
+                        value = exposureCompensation,
+                        onValueChange = { viewModel.setExposureCompensation(it) },
+                        onDismiss = { showExposureSlider = false },
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    )
+                }
+
+                // #55: 加载状态指示
+                if (isCameraStarting || !isModelReady) {
+                    LoadingOverlay(
+                        text = if (isCameraStarting) "启动相机中..." else "加载 AI 模型中...",
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+
+                // Bottom Controls — #54: 刘海屏适配
+                BottomControls(
+                    zoomRatio = zoomRatio,
+                    isTorchEnabled = isTorchEnabled,
+                    stage = stage,
+                    lastSavedPhotoPath = lastSavedPhotoPath,
+                    onZoomChange = { viewModel.setZoom(it) },
+                    onSwitchCamera = { viewModel.switchCamera(lifecycleOwner, previewView) },
+                    onCapture = { viewModel.manualCapture() },
+                    onTorchToggle = { viewModel.toggleTorch() },
+                    onGalleryClick = { navController?.navigate(Screen.Home.route) },
+                    onExposureClick = { showExposureSlider = !showExposureSlider },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .windowInsetsPadding(WindowInsets.navigationBars)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * #7/#8: 权限被拒绝时的 UI
+ */
+@Composable
+private fun PermissionDeniedContent(
+    hasBeenDenied: Boolean,
+    shouldShowRationale: Boolean,
+    onRequestPermission: () -> Unit,
+    onOpenSettings: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "需要相机权限",
+            color = Color.White,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
         )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = if (shouldShowRationale || !hasBeenDenied) {
+                "构妙 LiveCapture 需要相机权限来实现实时构图辅助拍摄，请授权使用相机。"
+            } else {
+                "相机权限已被永久拒绝，请在设置中手动开启权限后返回。"
+            },
+            color = Color.White.copy(alpha = 0.7f),
+            fontSize = 14.sp,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        if (shouldShowRationale || !hasBeenDenied) {
+            Button(
+                onClick = onRequestPermission,
+                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+            ) {
+                Text("授予权限", color = Color.White)
+            }
+        } else {
+            Button(
+                onClick = onOpenSettings,
+                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+            ) {
+                Text("打开设置", color = Color.White)
+            }
+        }
+    }
+}
 
-        // Composition Grid Overlay
-        CompositionGridOverlay()
+/**
+ * #56/#17: 错误状态 UI
+ */
+@Composable
+private fun CameraErrorContent(
+    errorMessage: String,
+    onRetry: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "发生错误",
+            color = ErrorColor,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = errorMessage,
+            color = Color.White.copy(alpha = 0.7f),
+            fontSize = 14.sp,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = onRetry,
+            colors = ButtonDefaults.buttonColors(containerColor = Primary)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("重试", color = Color.White)
+        }
+    }
+}
 
-        // Tracking Dot
-        trackPoint?.let { point ->
-            TrackingDot(
-                position = point,
-                isAligned = isAligned,
-                modifier = Modifier.fillMaxSize()
+/**
+ * #55: 加载状态指示
+ */
+@Composable
+private fun LoadingOverlay(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = GuidanceBg.copy(alpha = 0.9f),
+        shape = RoundedCornerShape(CornerMedium),
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CircularProgressIndicator(
+                color = Primary,
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = text,
+                color = Color.White,
+                style = GuidanceTextStyle.copy(fontSize = 14.sp)
             )
         }
-
-        // Top Control Bar
-        TopControlBar(
-            guidanceText = guidanceText,
-            isAligned = isAligned,
-            isModelReady = isModelReady,
-            inferenceTime = inferenceTime,
-            currentScore = currentScore,
-            modifier = Modifier.align(Alignment.TopCenter)
-        )
-
-        // Exposure Slider Panel
-        if (showExposureSlider) {
-            ExposureSliderPanel(
-                value = exposureCompensation,
-                onValueChange = { viewModel.setExposureCompensation(it) },
-                onDismiss = { showExposureSlider = false },
-                modifier = Modifier.align(Alignment.CenterEnd)
-            )
-        }
-
-        // Bottom Controls
-        BottomControls(
-            zoomRatio = zoomRatio,
-            isTorchEnabled = isTorchEnabled,
-            stage = stage,
-            lastSavedPhotoPath = lastSavedPhotoPath,
-            onZoomChange = { viewModel.setZoom(it) },
-            onSwitchCamera = { viewModel.switchCamera(lifecycleOwner, previewView) },
-            onCapture = { viewModel.manualCapture() },
-            onTorchToggle = { viewModel.toggleTorch() },
-            onGalleryClick = { navController?.navigate(Screen.Home.route) },
-            onExposureClick = { showExposureSlider = !showExposureSlider },
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
 }
 
@@ -274,17 +487,16 @@ private fun TopControlBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = 48.dp, start = 16.dp, end = 16.dp),
+            .padding(top = 8.dp, start = 16.dp, end = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 激活: 模型未就绪时显示警告
         if (!isModelReady) {
             Surface(
                 color = ErrorColor.copy(alpha = 0.8f),
                 shape = RoundedCornerShape(CornerMedium)
             ) {
                 Text(
-                    text = "AI 模型未加载，使用默认构图",
+                    text = "AI 模型加载中，使用默认构图",
                     style = GuidanceTextStyle.copy(fontSize = 12.sp),
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                 )
@@ -314,7 +526,6 @@ private fun TopControlBar(
                             style = GuidanceTextStyle.copy(fontSize = 12.sp)
                         )
                     }
-                    // 激活: 显示美学评分
                     if (currentScore > 0f) {
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
@@ -395,7 +606,7 @@ private fun BottomControls(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = 32.dp, start = 24.dp, end = 24.dp),
+            .padding(bottom = 16.dp, start = 24.dp, end = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Zoom Slider
@@ -417,7 +628,6 @@ private fun BottomControls(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 激活: 上一张照片缩略图 / 图库入口
             if (lastSavedPhotoPath != null) {
                 LastPhotoThumbnail(
                     photoPath = lastSavedPhotoPath,
@@ -434,14 +644,12 @@ private fun BottomControls(
                 }
             }
 
-            // Capture button
             CaptureButton(
                 enabled = isCaptureEnabled,
                 stage = stage,
                 onClick = onCapture
             )
 
-            // Switch camera / torch / exposure controls
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 IconButton(onClick = onSwitchCamera) {
                     Icon(
@@ -460,7 +668,6 @@ private fun BottomControls(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    // 激活: 曝光补偿按钮
                     IconButton(onClick = onExposureClick, modifier = Modifier.size(28.dp)) {
                         Icon(
                             imageVector = Icons.Default.Exposure,

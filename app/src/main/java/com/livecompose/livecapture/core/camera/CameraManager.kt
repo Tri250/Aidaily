@@ -20,10 +20,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
+// #40: Camera2Interop 实验性 API 需要 @OptIn 注解
+@androidx.annotation.OptIn(androidx.camera.camera2.interop.ExperimentalCamera2Interop::class)
 @Singleton
 class CameraManager @Inject constructor(
     @ApplicationContext private val context: Context
@@ -31,6 +34,7 @@ class CameraManager @Inject constructor(
     companion object {
         private const val TAG = "CameraManager"
         private const val TARGET_FRAME_RATE = 60
+        private const val EXECUTOR_TIMEOUT_SECONDS = 5L
     }
 
     private var cameraProvider: ProcessCameraProvider? = null
@@ -51,6 +55,14 @@ class CameraManager @Inject constructor(
     private val _exposureCompensation = MutableStateFlow(0)
     val exposureCompensation: StateFlow<Int> = _exposureCompensation
 
+    // #17: 相机绑定错误状态
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
+
+    // #55: 相机就绪状态
+    private val _isCameraReady = MutableStateFlow(false)
+    val isCameraReady: StateFlow<Boolean> = _isCameraReady
+
     private val analysisExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private val captureExecutor: ExecutorService = Executors.newSingleThreadExecutor()
 
@@ -68,6 +80,8 @@ class CameraManager @Inject constructor(
         previewView: PreviewView,
         useFrontCamera: Boolean = false
     ) {
+        _errorMessage.value = null
+        _isCameraReady.value = false
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener({
             try {
@@ -75,6 +89,8 @@ class CameraManager @Inject constructor(
                 bindCameraUseCases(lifecycleOwner, previewView, useFrontCamera)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start camera", e)
+                // #17: 通知 UI 相机启动失败
+                _errorMessage.value = "相机启动失败: ${e.message}"
             }
         }, ContextCompat.getMainExecutor(context))
     }
@@ -84,7 +100,10 @@ class CameraManager @Inject constructor(
         previewView: PreviewView,
         useFrontCamera: Boolean
     ) {
-        val provider = cameraProvider ?: return
+        val provider = cameraProvider ?: run {
+            _errorMessage.value = "CameraProvider 未初始化"
+            return
+        }
         provider.unbindAll()
 
         val cameraSelector = if (useFrontCamera) {
@@ -103,7 +122,7 @@ class CameraManager @Inject constructor(
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
 
-        // 通过 Camera2Interop 尝试设置高帧率
+        // #40: 通过 Camera2Interop 尝试设置高帧率（已有 @OptIn 类注解）
         try {
             androidx.camera.camera2.interop.Camera2Interop.Extender(analysisBuilder).apply {
                 setCaptureRequestOption(
@@ -142,10 +161,15 @@ class CameraManager @Inject constructor(
             )
             cameraControl = camera?.cameraControl
             _isBackCamera.value = !useFrontCamera
+            _isCameraReady.value = true
+            _errorMessage.value = null
 
             Log.d(TAG, "Camera bound successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Use case binding failed", e)
+            // #17: 通知 UI 绑定失败
+            _errorMessage.value = "相机绑定失败: ${e.message}"
+            _isCameraReady.value = false
         }
     }
 
@@ -222,14 +246,30 @@ class CameraManager @Inject constructor(
             cameraProvider?.unbindAll()
             onFrameAnalyzed = null
             isProcessingFrame.set(false)
+            _isCameraReady.value = false
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping camera", e)
         }
     }
 
+    /**
+     * #34: shutdown 等待 Executor 终止完成，避免资源泄漏
+     * 注意：此方法仅在 App 销毁时调用，不在 ViewModel.onCleared 中调用
+     */
     fun shutdown() {
         stopCamera()
         analysisExecutor.shutdown()
         captureExecutor.shutdown()
+        try {
+            if (!analysisExecutor.awaitTermination(EXECUTOR_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                Log.w(TAG, "Analysis executor did not terminate in $EXECUTOR_TIMEOUT_SECONDS seconds")
+            }
+            if (!captureExecutor.awaitTermination(EXECUTOR_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                Log.w(TAG, "Capture executor did not terminate in $EXECUTOR_TIMEOUT_SECONDS seconds")
+            }
+        } catch (e: InterruptedException) {
+            Log.e(TAG, "Executor shutdown interrupted", e)
+            Thread.currentThread().interrupt()
+        }
     }
 }
