@@ -99,5 +99,6 @@ enum class AspectRatio(val displayName: String, val ratio: Float) {
     RATIO_3_4("3:4", 3f / 4f),
     RATIO_9_16("9:16", 9f / 16f),
     RATIO_1_1("1:1", 1f),
+    RATIO_XPAN("XPAN", 65f / 24f), // 哈苏 XPAN 65:24 宽幅
     RATIO_FULL("全屏", 0f) // 0 = 跟随屏幕
 }

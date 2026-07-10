@@ -435,14 +435,15 @@ class CameraManager(private val context: Context) {
     }
 
     /**
-     * 裁剪为 3:4 比例
+     * 裁剪为当前比例
      */
     private fun cropToThreeByFour(jpegData: ByteArray): ByteArray? {
         val bitmap = BitmapFactory.decodeByteArray(jpegData, 0, jpegData.size) ?: return null
         try {
             val width = bitmap.width
             val height = bitmap.height
-            val desiredAspect = 3.0f / 4.0f
+            val desiredAspect = _aspectRatio.value.ratio
+            if (desiredAspect <= 0f) return jpegData // 全屏不裁剪
             val currentAspect = width.toFloat() / height.toFloat()
 
             var cropWidth = width
@@ -450,10 +451,10 @@ class CameraManager(private val context: Context) {
             var startX = 0
             var startY = 0
 
-            if (currentAspect > desiredAspect) {
+            if (currentAspect > desiredAspect + 0.01f) {
                 cropWidth = (height * desiredAspect).toInt()
                 startX = (width - cropWidth) / 2
-            } else if (currentAspect < desiredAspect) {
+            } else if (currentAspect < desiredAspect - 0.01f) {
                 cropHeight = (width / desiredAspect).toInt()
                 startY = (height - cropHeight) / 2
             }

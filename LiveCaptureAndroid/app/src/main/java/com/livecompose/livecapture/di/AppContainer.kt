@@ -20,7 +20,10 @@ import com.livecompose.livecapture.core.logger.AppLogger
 import com.livecompose.livecapture.core.onboarding.FeatureTipManager
 import com.livecompose.livecapture.core.lut.AiColorMatcher
 import com.livecompose.livecapture.core.lut.LutImporter
+import com.livecompose.livecapture.core.lut.PresetManager
 import com.livecompose.livecapture.core.motion.MotionStabilityMonitor
+import com.livecompose.livecapture.core.shutter.HasselbladShutterSound
+import com.livecompose.livecapture.core.watermark.HasselbladWatermarkService
 import com.livecompose.livecapture.core.performance.MemoryMonitor
 import com.livecompose.livecapture.core.storage.PhotoSearchEngine
 import com.livecompose.livecapture.core.storage.PhotoStorageService
@@ -177,6 +180,21 @@ class AppContainer(context: Context) {
     /** 青少年模式管理器 */
     val youthModeManager by lazy {
         YouthModeManager(applicationContext)
+    }
+
+    /** 大师预设管理器 */
+    val presetManager by lazy {
+        PresetManager(applicationContext.cacheDir)
+    }
+
+    /** 哈苏快门音效 */
+    val hasselbladShutterSound by lazy {
+        HasselbladShutterSound(applicationContext).also { it.initialize() }
+    }
+
+    /** 哈苏风格水印服务 */
+    val hasselbladWatermarkService by lazy {
+        HasselbladWatermarkService()
     }
 
     /** 全局错误处理器 */

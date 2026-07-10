@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import com.livecompose.livecapture.core.lut.ScenePresetMapper
+import com.livecompose.livecapture.core.lut.MasterPreset
 
 /**
  * 场景智能引擎
@@ -115,6 +117,9 @@ class SceneIntelligenceEngine(context: Context) : ViewModel() {
             val params = computeAdaptiveParams(scene, light, subject)
             _adaptiveParams.value = params
             _isReady.value = true
+
+            // 更新预设推荐
+            updatePresetRecommendations()
         } catch (e: Exception) {
             AppLogger.e(TAG, "帧分析失败", e)
         }
@@ -348,6 +353,27 @@ class SceneIntelligenceEngine(context: Context) : ViewModel() {
         _isReady.value = false
         lastAnalysisTime = 0L
     }
+
+    // MARK: - 预设推荐
+
+    private val _recommendedPresets = MutableStateFlow<List<String>>(emptyList())
+    /** 基于当前场景推荐的预设名称列表 */
+    val recommendedPresets: StateFlow<List<String>> = _recommendedPresets.asStateFlow()
+
+    /**
+     * 更新场景对应的预设推荐
+     * 在场景识别完成后自动调用
+     */
+    fun updatePresetRecommendations() {
+        val sceneName = _currentScene.value.name.lowercase()
+        val recommendations = ScenePresetMapper.recommend(sceneName, topN = 3)
+        _recommendedPresets.value = recommendations
+    }
+
+    /**
+     * 获取当前场景名称（中文）
+     */
+    fun getCurrentSceneName(): String = _currentScene.value.chineseName
 
     // MARK: - 生命周期
 

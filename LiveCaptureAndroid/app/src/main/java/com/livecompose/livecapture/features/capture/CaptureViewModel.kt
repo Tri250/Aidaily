@@ -19,8 +19,12 @@ import com.livecompose.livecapture.core.intelligence.PoseGender
 import com.livecompose.livecapture.core.intelligence.AgeGroup
 import com.livecompose.livecapture.core.intelligence.PoseCategory
 import com.livecompose.livecapture.core.logger.AppLogger
+import com.livecompose.livecapture.core.lut.MasterPreset
+import com.livecompose.livecapture.core.lut.PresetManager
 import com.livecompose.livecapture.core.motion.MotionStabilityMonitor
+import com.livecompose.livecapture.core.shutter.HasselbladShutterSound
 import com.livecompose.livecapture.core.storage.PhotoStorageService
+import com.livecompose.livecapture.core.watermark.HasselbladWatermarkService
 import com.livecompose.livecapture.di.AppContainer
 import com.livecompose.livecapture.utilities.HapticManager
 import kotlinx.coroutines.delay
@@ -127,6 +131,126 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    // 大师预设管理
+    private val presetManager: PresetManager = appContainer.presetManager
+    private val _allPresets = MutableStateFlow<List<MasterPreset>>(emptyList())
+    val allPresets: StateFlow<List<MasterPreset>> = _allPresets.asStateFlow()
+
+    private val _recommendedPresets = MutableStateFlow<List<MasterPreset>>(emptyList())
+    val recommendedPresets: StateFlow<List<MasterPreset>> = _recommendedPresets.asStateFlow()
+
+    private val _selectedPreset = MutableStateFlow<MasterPreset?>(null)
+    val selectedPreset: StateFlow<MasterPreset?> = _selectedPreset.asStateFlow()
+
+    private val _presetIntensity = MutableStateFlow(1.0f)
+    val presetIntensity: StateFlow<Float> = _presetIntensity.asStateFlow()
+
+    private val _presetAppliedBitmap = MutableStateFlow<android.graphics.Bitmap?>(null)
+    val presetAppliedBitmap: StateFlow<android.graphics.Bitmap?> = _presetAppliedBitmap.asStateFlow()
+
+    // 哈苏水印状态
+    private val _hasselbladWatermarkEnabled = MutableStateFlow(false)
+    val hasselbladWatermarkEnabled: StateFlow<Boolean> = _hasselbladWatermarkEnabled.asStateFlow()
+
+    private val watermarkService: HasselbladWatermarkService = appContainer.hasselbladWatermarkService
+
+    // 哈苏快门音状态
+    private val _hasselbladShutterEnabled = MutableStateFlow(true)
+    val hasselbladShutterEnabled: StateFlow<Boolean> = _hasselbladShutterEnabled.asStateFlow()
+
+    private val shutterSound: HasselbladShutterSound = appContainer.hasselbladShutterSound
+
+    // XPAN 65:24 宽幅模式
+    private val _xpanModeEnabled = MutableStateFlow(false)
+    val xpanModeEnabled: StateFlow<Boolean> = _xpanModeEnabled.asStateFlow()
+
+    fun selectPreset(preset: MasterPreset) {
+        _selectedPreset.value = preset
+        presetManager.currentPreset = preset
+        presetManager.presetIntensity = _presetIntensity.value
+        HapticManager.light()
+    }
+
+    fun clearPreset() {
+        _selectedPreset.value = null
+        presetManager.clearCurrentPreset()
+        _presetAppliedBitmap.value = null
+        HapticManager.light()
+    }
+
+    fun setPresetIntensity(intensity: Float) {
+        _presetIntensity.value = intensity
+        presetManager.presetIntensity = intensity
+    }
+
+    fun toggleHasselbladWatermark() {
+        _hasselbladWatermarkEnabled.value = !_hasselbladWatermarkEnabled.value
+        HapticManager.light()
+    }
+
+    fun toggleHasselbladShutter() {
+        _hasselbladShutterEnabled.value = !_hasselbladShutterEnabled.value
+        HapticManager.light()
+    }
+
+    fun toggleXpanMode() {
+        _xpanModeEnabled.value = !_xpanModeEnabled.value
+        if (_xpanModeEnabled.value) {
+            camera.setAspectRatio(com.livecompose.livecapture.core.camera.AspectRatio.RATIO_XPAN)
+            HapticManager.success()
+        } else {
+            camera.setAspectRatio(com.livecompose.livecapture.core.camera.AspectRatio.RATIO_3_4)
+            HapticManager.light()
+        }
+    }
+
+    fun playShutterSound() {
+        if (_hasselbladShutterEnabled.value) {
+            shutterSound.play()
+        }
+    }
+
+    suspend fun applyPresetToBitmap(bitmap: android.graphics.Bitmap): android.graphics.Bitmap {
+        val preset = _selectedPreset.value ?: return bitmap
+        return try {
+            val result = presetManager.applyPreset(preset, bitmap, _presetIntensity.value)
+            _presetAppliedBitmap.value = result
+            result
+        } catch (e: Exception) {
+            AppLogger.w("CaptureViewModel", "预设应用失败: ${e.message}")
+            bitmap
+        }
+    }
+
+    suspend fun applyWatermarkToBitmap(bitmap: android.graphics.Bitmap): android.graphics.Bitmap {
+        if (!_hasselbladWatermarkEnabled.value) return bitmap
+        return try {
+            val config = HasselbladWatermarkService.WatermarkConfig(
+                dateTime = java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.getDefault())
+                    .format(java.util.Date()),
+                focalLength = camera.zoomState.value.focalLength.toString() + "mm"
+            )
+            watermarkService.applyWatermark(bitmap, config)
+        } catch (e: Exception) {
+            AppLogger.w("CaptureViewModel", "水印应用失败: ${e.message}")
+            bitmap
+        }
+    }
+
+    fun updatePresetRecommendations() {
+        viewModelScope.launch {
+            try {
+                val sceneName = _aiSceneName.value
+                if (sceneName.isNotEmpty()) {
+                    val recommended = presetManager.recommendForScene(sceneName)
+                    _recommendedPresets.value = recommended
+                }
+            } catch (e: Exception) {
+                AppLogger.w("CaptureViewModel", "预设推荐更新失败: ${e.message}")
+            }
+        }
+    }
+
     private val _photoCaptureResult = MutableStateFlow<PhotoCaptureResult?>(null)
     val photoCaptureResult: StateFlow<PhotoCaptureResult?> = _photoCaptureResult.asStateFlow()
 
@@ -188,6 +312,20 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
         bindCamera()
         bindAISceneEngine()
         refreshUserGuidance()
+        initializePresetManager()
+    }
+
+    private fun initializePresetManager() {
+        viewModelScope.launch {
+            try {
+                presetManager.initialize()
+                _allPresets.value = presetManager.getAllMasterPresets()
+                updatePresetRecommendations()
+                AppLogger.i("CaptureViewModel", "大师预设加载完成: ${_allPresets.value.size} 个预设")
+            } catch (e: Exception) {
+                AppLogger.w("CaptureViewModel", "大师预设加载失败: ${e.message}")
+            }
+        }
     }
 
     fun onAppear() {
@@ -214,6 +352,7 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
     fun capturePhoto() {
         viewModelScope.launch {
             try {
+                playShutterSound()
                 camera.capturePhoto()
                 // 成功结果通过 setupCallbacks 中的 onPhotoDataReady 回调发出
             } catch (e: Exception) {
@@ -426,9 +565,44 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
             }
         }
         camera.onPhotoDataReady = { data ->
-            storage.savePhoto(data, detectionMode.displayName)
-            _reviewPhotoData.value = data // [v1.1.7] 设置预览数据，触发即时预览
-            _photoCaptureResult.value = PhotoCaptureResult.Success
+            viewModelScope.launch {
+                try {
+                    // 1. 解码照片
+                    val options = BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.ARGB_8888 }
+                    val photoBitmap = BitmapFactory.decodeByteArray(data, 0, data.size, options)
+
+                    if (photoBitmap != null) {
+                        // 2. 应用大师预设
+                        var processedBitmap = applyPresetToBitmap(photoBitmap)
+
+                        // 3. 应用哈苏水印
+                        processedBitmap = applyWatermarkToBitmap(processedBitmap)
+
+                        // 4. 编码为 JPEG
+                        if (processedBitmap !== photoBitmap) {
+                            val outputStream = ByteArrayOutputStream()
+                            processedBitmap.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)
+                            val processedData = outputStream.toByteArray()
+                            storage.savePhoto(processedData, detectionMode.displayName)
+                            _reviewPhotoData.value = processedData
+                            processedBitmap.recycle()
+                        } else {
+                            storage.savePhoto(data, detectionMode.displayName)
+                            _reviewPhotoData.value = data
+                        }
+                        photoBitmap.recycle()
+                    } else {
+                        storage.savePhoto(data, detectionMode.displayName)
+                        _reviewPhotoData.value = data
+                    }
+                    _photoCaptureResult.value = PhotoCaptureResult.Success
+                } catch (e: Exception) {
+                    AppLogger.w("CaptureViewModel", "照片后处理失败: ${e.message}")
+                    storage.savePhoto(data, detectionMode.displayName)
+                    _reviewPhotoData.value = data
+                    _photoCaptureResult.value = PhotoCaptureResult.Success
+                }
+            }
         }
     }
 
