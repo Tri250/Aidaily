@@ -23,7 +23,7 @@ struct LiveComposeView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 40)
             }
-            .background(Color(uiColor: .systemBackground))
+            .background(DesignSystem.Colors.backgroundPrimary)
             .navigationBarHidden(true)
         }
     }

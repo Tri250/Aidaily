@@ -12,327 +12,139 @@ import Photos
 
 struct PhotoBrowserView: View {
     let records: [PhotoRecord]
-    @State var currentIndex: Int
+    let initialIndex: Int
     let photoProvider: (UUID) -> UIImage?
 
-    @State private var scale: CGFloat = 1.0
-    @State private var lastScale: CGFloat = 1.0
-    @State private var offset: CGSize = .zero
-    @State private var showEXIF = false
-    @State private var showDeleteConfirm = false
-    @State private var dragOffset: CGSize = .zero
-    @State private var isDragging = false
-
-    // 导出
+    @Environment(\.dismiss) private var dismiss
+    @State private var currentIndex: Int
     @State private var showExportSheet = false
+    @State private var showShareSheet = false
     @State private var cardImage: UIImage?
     @State private var isGenerating = false
     @State private var saveSuccess = false
-    @State private var loadedPhotos: [UUID: UIImage] = [:]
+    @State private var loadedPhotos: [UUID: UIImage] = []
 
-    @Environment(\.dismiss) private var dismiss
+    init(records: [PhotoRecord], initialIndex: Int, photoProvider: @escaping (UUID) -> UIImage?) {
+        self.records = records
+        self.initialIndex = initialIndex
+        self.photoProvider = photoProvider
+        self._currentIndex = State(initialValue: initialIndex)
+    }
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            DesignSystem.Colors.backgroundPrimary.ignoresSafeArea()
 
-            // 照片滑动
-            TabView(selection: $currentIndex) {
-                ForEach(Array(records.enumerated()), id: \.element.id) { index, record in
-                    Group {
-                        if let image = loadedPhotos[record.id] ?? photoProvider(record.id) {
-                            GeometryReader { geo in
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .scaleEffect(scale)
-                                    .offset(offset)
-                                    .gesture(
-                                        SimultaneousGesture(
-                                            TapGesture(count: 2).onEnded {
-                                                withAnimation(DesignSystem.Animation.bouncy) {
-                                                    if scale > 1.0 {
-                                                        scale = 1.0
-                                                        offset = .zero
-                                                    } else {
-                                                        scale = 3.0
-                                                    }
-                                                }
-                                            },
-                                            MagnificationGesture()
-                                                .onChanged { value in
-                                                    scale = max(1.0, min(5.0, lastScale * value))
-                                                }
-                                                .onEnded { _ in
-                                                    lastScale = scale
-                                                    if scale <= 1.0 {
-                                                        withAnimation(DesignSystem.Animation.bouncy) {
-                                                            scale = 1.0
-                                                            offset = .zero
-                                                        }
-                                                    }
-                                                }
-                                        )
-                                    )
-                                    .gesture(
-                                        DragGesture()
-                                            .onChanged { value in
-                                                if scale <= 1.0 {
-                                                    dragOffset = value.translation
-                                                    isDragging = true
-                                                } else {
-                                                    offset = CGSize(
-                                                        width: offset.width + value.translation.width,
-                                                        height: offset.height + value.translation.height
-                                                    )
-                                                }
-                                            }
-                                            .onEnded { value in
-                                                if scale <= 1.0 {
-                                                    if abs(value.translation.height) > 120 {
-                                                        dismiss()
-                                                    } else {
-                                                        withAnimation(DesignSystem.Animation.bouncy) {
-                                                            dragOffset = .zero
-                                                        }
-                                                    }
-                                                    isDragging = false
-                                                }
-                                            }
-                                    )
-                                    .offset(dragOffset)
-                                    .opacity(scale <= 1.0 ? 1.0 - abs(dragOffset.height) / 300 : 1.0)
-                            }
-                            .tag(index)
-                            .onAppear {
-                                if loadedPhotos[record.id] == nil {
-                                    loadedPhotos[record.id] = image
-                                }
-                            }
-                        } else {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                .scaleEffect(1.5)
-                                .tag(index)
-                                .onAppear {
-                                    if let img = photoProvider(record.id) {
-                                        loadedPhotos[record.id] = img
-                                    }
-                                }
-                        }
-                    }
-                }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .ignoresSafeArea()
-
-            // 顶部栏
-            VStack {
+            VStack(spacing: 0) {
+                // 顶部栏
                 HStack {
                     Button {
                         dismiss()
                     } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(10)
-                            .background(Circle().fill(Color.black.opacity(0.4)))
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("返回")
+                                .font(DesignSystem.Typography.subheadline)
+                        }
+                        .foregroundColor(DesignSystem.Colors.textPrimary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(DesignSystem.Colors.backgroundSecondary))
                     }
-                    .accessibilityLabel("关闭")
 
                     Spacer()
 
                     Text("\(currentIndex + 1) / \(records.count)")
-                        .font(DesignSystem.Typography.monoCaption)
-                        .foregroundColor(.white)
+                        .font(DesignSystem.Typography.subheadline)
+                        .foregroundColor(DesignSystem.Colors.textTertiary)
 
                     Spacer()
 
-                    // 导出按钮
-                    Button {
-                        generateExportCard()
-                    } label: {
-                        if isGenerating {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        } else {
-                            Image(systemName: "square.and.arrow.down")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(.white)
-                                .padding(10)
-                                .background(Circle().fill(Color.black.opacity(0.4)))
+                    HStack(spacing: 8) {
+                        // Share button
+                        Button {
+                            showShareSheet = true
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(DesignSystem.Colors.textPrimary)
+                                .padding(12)
+                                .background(Circle().fill(DesignSystem.Colors.backgroundSecondary))
                         }
-                    }
-                    .disabled(isGenerating)
-                    .accessibilityLabel("导出分享卡片")
 
-                    Button {
-                        HapticManager.shared.light()
-                        withAnimation(DesignSystem.Animation.smooth) {
-                            showEXIF.toggle()
+                        // Export button
+                        Button {
+                            generateExportCard()
+                        } label: {
+                            if isGenerating {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: DesignSystem.Colors.textPrimary))
+                            } else {
+                                Image(systemName: "square.and.arrow.down")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(DesignSystem.Colors.textPrimary)
+                                    .padding(12)
+                                    .background(Circle().fill(DesignSystem.Colors.backgroundSecondary))
+                            }
                         }
-                    } label: {
-                        Image(systemName: "info.circle")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(10)
-                            .background(Circle().fill(Color.black.opacity(0.4)))
+                        .disabled(isGenerating)
                     }
-                    .accessibilityLabel("查看照片信息")
-
-                    Button {
-                        HapticManager.shared.medium()
-                        showDeleteConfirm = true
-                    } label: {
-                        Image(systemName: "trash")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(DesignSystem.Colors.error)
-                            .padding(10)
-                            .background(Circle().fill(Color.black.opacity(0.4)))
-                    }
-                    .accessibilityLabel("删除照片")
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .opacity(scale <= 1.0 ? 1 : 0)
+                .padding(.top, 8)
 
-                Spacer()
+                // 照片浏览器
+                TabView(selection: $currentIndex) {
+                    ForEach(Array(records.enumerated()), id: \.element.id) { index, record in
+                        Group {
+                            if let photo = loadedPhotos[record.id] {
+                                Image(uiImage: photo)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .tag(index)
+                                    .contextMenu {
+                                        Button {
+                                            showShareSheet = true
+                                        } label: {
+                                            Label("分享", systemImage: "square.and.arrow.up")
+                                        }
 
-                // EXIF 面板
-                if showEXIF, let record = records[safe: currentIndex] {
-                    exifPanel(record: record)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                                        Button {
+                                            generateExportCard()
+                                        } label: {
+                                            Label("导出卡片", systemImage: "square.and.arrow.down")
+                                        }
+                                    }
+                            } else {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: DesignSystem.Colors.textPrimary))
+                                    .scaleEffect(1.5)
+                                    .tag(index)
+                                    .onAppear {
+                                        loadPhoto(for: record)
+                                    }
+                            }
+                        }
+                    }
                 }
-            }
+                .tabViewStyle(.page(indexDisplayMode: .never))
 
-            // 底部操作栏
-            VStack {
-                Spacer()
-                if scale <= 1.0 {
-                    // 元数据标签
-                    if let record = records[safe: currentIndex] {
-                        metadataSection(record)
-                            .padding(.bottom, 8)
-                    }
-
-                    HStack(spacing: 40) {
-                        Button {
-                            if let image = loadedPhotos[records[currentIndex].id] ?? photoProvider(records[currentIndex].id) {
-                                let activityVC = UIActivityViewController(activityItems: [image], applicationActivities: nil)
-                                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                                   let rootVC = windowScene.windows.first?.rootViewController {
-                                    rootVC.present(activityVC, animated: true)
-                                }
-                            }
-                        } label: {
-                            VStack(spacing: 4) {
-                                Image(systemName: "square.and.arrow.up")
-                                    .font(.title3)
-                                Text("分享")
-                                    .font(.system(size: 10))
-                            }
-                            .foregroundColor(.white)
-                        }
-                        .accessibilityLabel("分享照片")
-
-                        Button {
-                            // 编辑
-                        } label: {
-                            VStack(spacing: 4) {
-                                Image(systemName: "paintpalette")
-                                    .font(.title3)
-                                Text("编辑")
-                                    .font(.system(size: 10))
-                            }
-                            .foregroundColor(.white)
-                        }
-                        .accessibilityLabel("编辑照片")
-
-                        Button {
-                            // 收藏
-                        } label: {
-                            VStack(spacing: 4) {
-                                Image(systemName: "heart")
-                                    .font(.title3)
-                                Text("收藏")
-                                    .font(.system(size: 10))
-                            }
-                            .foregroundColor(.white)
-                        }
-                        .accessibilityLabel("收藏照片")
-                    }
-                    .padding(.bottom, 30)
+                // 底部信息
+                if let record = records[safe: currentIndex] {
+                    metadataSection(record)
+                        .padding(.bottom, 16)
                 }
             }
         }
-        .alert("删除照片", isPresented: $showDeleteConfirm) {
-            Button("删除", role: .destructive) {
-                PhotoStorageService.shared.deleteRecord(records[currentIndex].id)
-                dismiss()
-            }
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text("此照片将被移至最近删除")
-        }
+        .navigationBarHidden(true)
         .sheet(isPresented: $showExportSheet) {
             exportPreviewView
         }
-        .statusBar(hidden: true)
-    }
-
-    // MARK: - EXIF 面板
-
-    private func exifPanel(record: PhotoRecord) -> some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 24) {
-                exifItem(label: "ISO", value: record.iso.map { "\(Int($0))" } ?? "--")
-                exifItem(label: "快门", value: record.shutterSpeed.map { formatShutterSpeed($0) } ?? "--")
-                exifItem(label: "光圈", value: record.aperture.map { "f/\(String(format: "%.1f", $0))" } ?? "--")
-                exifItem(label: "尺寸", value: "\(record.imageWidth ?? 0)×\(record.imageHeight ?? 0)")
-                exifItem(label: "检测", value: record.detectionMethod ?? "--")
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(.ultraThinMaterial)
-            )
-            .padding(.horizontal, 12)
-            .padding(.bottom, 20)
-        }
-    }
-
-    private func exifItem(label: String, value: String) -> some View {
-        VStack(spacing: 2) {
-            Text(label)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundColor(.white.opacity(0.5))
-            Text(value)
-                .font(DesignSystem.Typography.monoCaption)
-                .foregroundColor(.white)
-        }
-    }
-
-    // MARK: - Metadata Section
-
-    private func metadataSection(_ record: PhotoRecord) -> some View {
-        VStack(spacing: 6) {
-            Text(formattedDate(record.creationDate))
-                .font(DesignSystem.Typography.subheadline)
-                .foregroundColor(DesignSystem.Colors.textTertiary)
-
-            HStack(spacing: 16) {
-                MetadataBadge(label: record.detectionMethod ?? "未知引擎")
-
-                if let iso = record.iso {
-                    MetadataBadge(label: "ISO \(Int(iso))")
-                }
-                if let shutter = record.shutterSpeed {
-                    MetadataBadge(label: shutterDisplay(shutter))
-                }
-                if let aperture = record.aperture {
-                    MetadataBadge(label: "f/\(String(format: "%.1f", aperture))")
-                }
+        .sheet(isPresented: $showShareSheet) {
+            if let currentRecord = records[safe: currentIndex],
+               let currentPhoto = loadedPhotos[currentRecord.id] {
+                ShareCardView(photo: currentPhoto, record: currentRecord)
             }
         }
     }
@@ -349,6 +161,7 @@ struct PhotoBrowserView: View {
                             .aspectRatio(contentMode: .fit)
                             .padding(16)
 
+                        // 操作按钮
                         VStack(spacing: 12) {
                             Button {
                                 saveToPhotos(cardImage)
@@ -381,7 +194,7 @@ struct PhotoBrowserView: View {
                     Spacer()
                 }
             }
-            .background(Color(uiColor: .systemBackground))
+            .background(DesignSystem.Colors.backgroundPrimary)
             .navigationTitle("导出预览")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -395,7 +208,49 @@ struct PhotoBrowserView: View {
         }
     }
 
+    // MARK: - Metadata Section
+
+    private func metadataSection(_ record: PhotoRecord) -> some View {
+        VStack(spacing: 6) {
+            Text(formattedDate(record.creationDate))
+                .font(DesignSystem.Typography.subheadline)
+                .foregroundColor(DesignSystem.Colors.textTertiary)
+
+            HStack(spacing: 16) {
+                MetadataBadge(label: record.detectionMethod ?? "未知引擎")
+
+                if let iso = record.iso {
+                    MetadataBadge(label: "ISO \(Int(iso))")
+                }
+
+                if let shutter = record.shutterSpeed {
+                    MetadataBadge(label: shutterDisplay(shutter))
+                }
+
+                if let aperture = record.aperture {
+                    MetadataBadge(label: "f/\(String(format: "%.1f", aperture))")
+                }
+            }
+
+            if let w = record.imageWidth, let h = record.imageHeight {
+                Text("\(w) × \(h)")
+                    .font(DesignSystem.Typography.caption2)
+                    .foregroundColor(DesignSystem.Colors.textTertiary.opacity(0.5))
+            }
+        }
+    }
+
     // MARK: - Helpers
+
+    private func loadPhoto(for record: PhotoRecord) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            if let photo = photoProvider(record.id) {
+                DispatchQueue.main.async {
+                    loadedPhotos[record.id] = photo
+                }
+            }
+        }
+    }
 
     private func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
@@ -409,14 +264,6 @@ struct PhotoBrowserView: View {
         else { return "1/\(Int(1.0 / speed))s" }
     }
 
-    private func formatShutterSpeed(_ speed: Double) -> String {
-        if speed >= 1.0 {
-            return "\(Int(speed))\""
-        } else {
-            return "1/\(Int(1.0 / speed))"
-        }
-    }
-
     // MARK: - Export
 
     private func generateExportCard() {
@@ -424,23 +271,39 @@ struct PhotoBrowserView: View {
         isGenerating = true
         showExportSheet = true
 
-        let image = loadedPhotos[record.id] ?? photoProvider(record.id)
-        if let photo = image {
-            DispatchQueue.global(qos: .userInitiated).async {
-                let card = ShareCardGenerator.generate(
-                    photo: photo,
-                    date: record.creationDate,
-                    detectionMethod: record.detectionMethod,
-                    iso: record.iso,
-                    shutterSpeed: record.shutterSpeed,
-                    aperture: record.aperture,
-                    imageWidth: record.imageWidth,
-                    imageHeight: record.imageHeight
-                )
-                DispatchQueue.main.async {
-                    self.isGenerating = false
-                    self.cardImage = card
+        let loadAndGenerate = {
+            if let photo = loadedPhotos[record.id] {
+                generateCard(from: photo, record: record)
+            } else {
+                // 尚未加载，先加载
+                DispatchQueue.global(qos: .userInitiated).async {
+                    if let photo = photoProvider(record.id) {
+                        DispatchQueue.main.async {
+                            loadedPhotos[record.id] = photo
+                            generateCard(from: photo, record: record)
+                        }
+                    }
                 }
+            }
+        }
+        loadAndGenerate()
+    }
+
+    private func generateCard(from photo: UIImage, record: PhotoRecord) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let card = ShareCardGenerator.generate(
+                photo: photo,
+                date: record.creationDate,
+                detectionMethod: record.detectionMethod,
+                iso: record.iso,
+                shutterSpeed: record.shutterSpeed,
+                aperture: record.aperture,
+                imageWidth: record.imageWidth,
+                imageHeight: record.imageHeight
+            )
+            DispatchQueue.main.async {
+                self.isGenerating = false
+                self.cardImage = card
             }
         }
     }

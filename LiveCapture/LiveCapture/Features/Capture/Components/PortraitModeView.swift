@@ -33,6 +33,13 @@ struct PortraitModeView: View {
 
                 Spacer()
 
+                // 人像模式开关
+                Toggle("", isOn: $viewModel.isPortraitModeEnabled)
+                    .labelsHidden()
+                    .toggleStyle(SwitchToggleStyle(tint: DesignSystem.Colors.primary))
+                    .accessibilityLabel("人像模式开关")
+                    .accessibilityHint("双击开启或关闭人像模式")
+
                 // 关闭按钮
                 Button {
                     HapticManager.shared.light()

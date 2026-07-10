@@ -154,6 +154,8 @@ extension CameraManager {
         case photoDataMissing
         case saveFailed
         case notAuthorized
+        case permissionDenied
+        case permissionRestricted
     }
 }
 

@@ -109,7 +109,7 @@ extension Color {
     }
 
     static func accessibleBackground(_ config: AccessibilityConfig = .shared) -> Color {
-        config.highContrastMode ? .black : Color(uiColor: .systemBackground)
+        config.highContrastMode ? .black : DesignSystem.Colors.backgroundPrimary
     }
 }
 

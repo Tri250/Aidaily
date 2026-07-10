@@ -55,8 +55,8 @@ import AVFoundation
 
 extension CameraManager {
     /// 检查权限并在授权后配置会话。
-    /// 权限被拒绝时，通过 PermissionManager 引导用户到系统设置。
-    func checkAndConfigure(completion: @escaping (Result<Void, Error>) -> Void) {
+    /// 未请求权限时主动弹窗请求；被拒绝/受限时通过回调返回状态，由 UI 层引导用户。
+    func checkAndConfigure(completion: @escaping (Result<Void, CameraError>) -> Void) {
         let permManager = PermissionManager.shared
         permManager.refreshCameraStatus()
 
@@ -64,43 +64,59 @@ extension CameraManager {
         case .authorized:
             configureSessionAsync(completion: completion)
         case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .video) { granted in
+            // 主动请求权限，不直接打开系统设置
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
                 permManager.refreshCameraStatus()
                 if granted {
-                    self.configureSessionAsync(completion: completion)
+                    self?.configureSessionAsync(completion: completion)
                 } else {
                     DispatchQueue.main.async {
-                        completion(.failure(CameraError.notAuthorized))
+                        completion(.failure(.permissionDenied))
                     }
                 }
             }
-        case .denied, .restricted:
-            // 权限被拒绝，引导用户到系统设置
+        case .denied:
             DispatchQueue.main.async {
-                permManager.openSystemSettings()
-                completion(.failure(CameraError.notAuthorized))
+                completion(.failure(.permissionDenied))
+            }
+        case .restricted:
+            DispatchQueue.main.async {
+                completion(.failure(.permissionRestricted))
             }
         @unknown default:
-            completion(.failure(CameraError.notAuthorized))
+            completion(.failure(.notAuthorized))
         }
     }
 
     /// 异步串行地配置会话，避免阻塞调用线程。
-    func configureSessionAsync(completion: @escaping (Result<Void, Error>) -> Void) {
+    func configureSessionAsync(completion: @escaping (Result<Void, CameraError>) -> Void) {
         sessionQueue.async {
             do {
                 try self.configureSession()
                 completion(.success(()))
-            } catch {
+            } catch let error as CameraError {
                 completion(.failure(error))
+            } catch {
+                completion(.failure(.cameraUnavailable))
             }
         }
     }
 
     /// 设置会话输入输出与稳定参数，失败时抛出自定义错误。
+    /// 重复进入时会先清理旧输入输出，避免 session 已配置导致无法重启。
     func configureSession() throws {
         session.beginConfiguration()
         defer { session.commitConfiguration() }
+
+        // 清理旧输入输出，防止重复配置导致 canAdd 失败
+        for input in session.inputs {
+            session.removeInput(input)
+        }
+        for output in session.outputs {
+            session.removeOutput(output)
+        }
+        activeVideoInput = nil
+        activeVideoDevice = nil
 
         // Input
         let device: AVCaptureDevice = try selectInitialDevice(for: currentPosition)

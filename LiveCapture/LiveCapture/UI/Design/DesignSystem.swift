@@ -65,6 +65,13 @@ enum DesignSystem {
         static let backgroundSecondary = gray1
         static let backgroundTertiary = gray2
 
+        // 品牌渐变
+        static let primaryGradient = LinearGradient(
+            colors: [primary, secondary],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+
         // 极简相机专属色
         static let minimalBackground = Color.black
         static let minimalOverlay = Color.white.opacity(0.08)

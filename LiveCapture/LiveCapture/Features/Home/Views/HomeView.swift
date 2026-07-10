@@ -364,10 +364,10 @@ struct GalleryView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
         .background(
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .background(Color(uiColor: .systemBackground))
-        )
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .background(DesignSystem.Colors.backgroundPrimary)
+            )
     }
 
     @ViewBuilder

@@ -156,7 +156,7 @@ struct ICPFilingDetailView: View {
                 }
                 .padding(20)
             }
-            .background(Color(uiColor: .systemBackground))
+            .background(DesignSystem.Colors.backgroundPrimary)
             .navigationTitle("ICP 备案")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -45,6 +45,13 @@ struct BeautyPanelView: View {
                 .accessibilityLabel("重置美颜")
                 .accessibilityHint("双击将所有美颜参数恢复默认值")
 
+                // 美颜开关
+                Toggle("", isOn: $viewModel.isBeautyEnabled)
+                    .labelsHidden()
+                    .toggleStyle(SwitchToggleStyle(tint: DesignSystem.Colors.primary))
+                    .accessibilityLabel("美颜开关")
+                    .accessibilityHint("双击开启或关闭美颜效果")
+
                 // 关闭按钮
                 Button {
                     HapticManager.shared.light()

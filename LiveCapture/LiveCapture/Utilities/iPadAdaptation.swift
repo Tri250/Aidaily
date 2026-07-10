@@ -137,7 +137,7 @@ struct iPadSidebarAdaptable: ViewModifier {
             }
             .listStyle(.sidebar)
         }
-        .background(Color(uiColor: .systemGroupedBackground))
+        .background(DesignSystem.Colors.backgroundPrimary)
     }
 }
 

@@ -227,7 +227,7 @@ struct PrivacyConsentSheet: View {
                 您的照片和视频仅在设备本地处理，不会上传到云端。
                 """)
                 .font(DesignSystem.Typography.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(DesignSystem.Colors.textSecondary)
                 .multilineTextAlignment(.center)
                 .lineSpacing(4)
                 .padding(.horizontal, 24)
@@ -243,7 +243,7 @@ struct PrivacyConsentSheet: View {
                         Image(systemName: "chevron.right")
                     }
                     .padding()
-                    .background(Color(.systemGray6))
+                    .background(DesignSystem.Colors.backgroundSecondary)
                     .cornerRadius(10)
                 }
 
@@ -257,7 +257,7 @@ struct PrivacyConsentSheet: View {
                         Image(systemName: "chevron.right")
                     }
                     .padding()
-                    .background(Color(.systemGray6))
+                    .background(DesignSystem.Colors.backgroundSecondary)
                     .cornerRadius(10)
                 }
             }

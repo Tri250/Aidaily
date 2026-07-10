@@ -181,6 +181,7 @@ final class CaptureViewModel: ObservableObject {
 	private let detector: CropDetectionStrategy
 	private let boxCenterManager = BoxCenterManager()
 	private let intelligenceEngine = SceneIntelligenceEngine()
+	var portraitViewModel: PortraitViewModel?
 
 	// MARK: - Published State
 	
@@ -201,12 +202,14 @@ final class CaptureViewModel: ObservableObject {
 	@Published var captureDelay: Double = 1.0
 	@Published var isSwitchingCamera: Bool = false
 	@Published var isCompositionPipelineEnabled: Bool = false
-	@Published var isAIEngineActive: Bool = false
+	@Published var isAIEngineActive: Bool = true
+	@Published var cameraPermissionStatus: PermissionManager.PermissionStatus = .notDetermined
 	@Published var currentSceneName: String = "未知场景"
 	@Published var aiSuggestedLens: String = ""
 	@Published var aiSuggestedZoom: CGFloat = 1.0
 	
 	var onCaptureTriggered: (() -> Void)?
+	var onPhotoCaptured: ((UIImage) -> Void)?
 	
 	// MARK: - Computed Properties
 	
@@ -279,18 +282,29 @@ final class CaptureViewModel: ObservableObject {
 	
 	func onAppear() {
 		camera.shouldBeRunning = true
+		PermissionManager.shared.refreshCameraStatus()
+		cameraPermissionStatus = PermissionManager.shared.cameraStatus
+
 		camera.checkAndConfigure { [weak self] result in
 			guard let self else { return }
+			DispatchQueue.main.async {
+				PermissionManager.shared.refreshCameraStatus()
+				self.cameraPermissionStatus = PermissionManager.shared.cameraStatus
+			}
 			switch result {
 			case .success:
 				self.camera.startSession()
-				// 🔥 相机启动成功后，刷新引导文字
 				DispatchQueue.main.async {
 					self.refreshUserGuidance()
 				}
-			case .failure:
+			case .failure(let error):
 				DispatchQueue.main.async {
-					self.setStage(.error, message: "相机启动失败")
+					switch error {
+					case .permissionDenied, .permissionRestricted, .notAuthorized:
+						self.setStage(.error, message: "相机权限未开启")
+					default:
+						self.setStage(.error, message: "相机启动失败")
+					}
 				}
 			}
 		}
@@ -539,8 +553,72 @@ final class CaptureViewModel: ObservableObject {
 		}
 		camera.onPhotoDataReady = { [weak self] data in
 			guard let self else { return }
-			PhotoStorageService.shared.savePhoto(data: data, detectionMethod: self.detectionMode.displayName)
+			self.handlePhotoDataReady(data)
 		}
+	}
+
+	private func handlePhotoDataReady(_ data: Data) {
+		guard let sourceImage = CIImage(data: data) else {
+			PhotoStorageService.shared.savePhoto(data: data, detectionMethod: self.detectionMode.displayName)
+			return
+		}
+
+		let finalize: (CIImage) -> Void = { [weak self] image in
+			guard let self else { return }
+			let finalImage = self.applyActiveFilter(to: image)
+			self.savePhotoJPEG(finalImage, fallbackData: data)
+		}
+
+		if let portraitVM = portraitViewModel,
+		   (portraitVM.isBeautyEnabled || portraitVM.isPortraitModeEnabled) {
+			portraitVM.processPhoto(sourceImage) { processed in
+				finalize(processed)
+			}
+		} else {
+			finalize(sourceImage)
+		}
+	}
+
+	private func applyActiveFilter(to image: CIImage) -> CIImage {
+		guard let preset = camera.activeFilterPreset else { return image }
+		return camera.filterPreviewProcessor.applyFilter(
+			to: image,
+			preset: preset,
+			intensity: camera.activeFilterIntensity
+		)
+	}
+
+	private func savePhotoJPEG(_ image: CIImage, fallbackData: Data) {
+		let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
+		guard let jpegData = CaptureViewModel.ciContext.jpegRepresentation(
+			of: image,
+			colorSpace: colorSpace,
+			options: [:]
+		) else {
+			PhotoStorageService.shared.savePhoto(data: fallbackData, detectionMethod: self.detectionMode.displayName)
+			notifyPhotoCaptured(data: fallbackData)
+			return
+		}
+		PhotoStorageService.shared.savePhoto(data: jpegData, detectionMethod: self.detectionMode.displayName)
+		notifyPhotoCaptured(data: jpegData)
+	}
+
+	private func notifyPhotoCaptured(data: Data) {
+		guard let uiImage = UIImage(data: data) else { return }
+		DispatchQueue.main.async { [weak self] in
+			self?.onPhotoCaptured?(uiImage)
+		}
+	}
+
+	private func handlePortraitPreview(from sample: CMSampleBuffer) {
+		guard let portraitVM = portraitViewModel,
+			  (portraitVM.isBeautyEnabled || portraitVM.isPortraitModeEnabled),
+			  let pixelBuffer = CMSampleBufferGetImageBuffer(sample) else { return }
+
+		let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+		let orientation = pixelOrientation(for: pixelBuffer)
+		let orientedImage = ciImage.oriented(orientation)
+		portraitVM.processImage(orientedImage)
 	}
 	
 	private func handleSampleBuffer(_ sample: CMSampleBuffer) {
@@ -551,6 +629,9 @@ final class CaptureViewModel: ObservableObject {
 		if isAIEngineActive {
 			intelligenceEngine.analyzeFrame(rawPixel, orientation: orientation)
 		}
+
+		// 美颜/人像模式实时预览
+		handlePortraitPreview(from: sample)
 
 		// 构图流水线：仅在开启时执行检测流程
 		guard isCompositionPipelineEnabled else { return }

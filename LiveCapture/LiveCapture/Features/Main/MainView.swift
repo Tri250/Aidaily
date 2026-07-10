@@ -181,17 +181,17 @@ struct MinimalMainView: View {
                     .background(
                         RoundedRectangle(cornerRadius: 14)
                             .fill(captureMode == mode
-                                  ? Color.white.opacity(0.2)
-                                  : Color.black.opacity(0.4))
+                                  ? DesignSystem.Colors.minimalOverlay
+                                  : DesignSystem.Colors.minimalDarkOverlay)
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
                             .stroke(captureMode == mode
-                                    ? Color.white.opacity(0.6)
-                                    : Color.white.opacity(0.15),
+                                    ? DesignSystem.Colors.minimalActiveBorder
+                                    : DesignSystem.Colors.minimalBorder,
                                     lineWidth: 1)
                     )
-                    .foregroundColor(captureMode == mode ? .white : .white.opacity(0.6))
+                    .foregroundColor(captureMode == mode ? DesignSystem.Colors.minimalLabel : DesignSystem.Colors.minimalSecondaryLabel)
                 }
                 .accessibilityLabel("\(mode.rawValue)模式")
                 .accessibilityHint(captureMode == mode ? "当前已选中" : "点击切换到\(mode.rawValue)")
@@ -202,11 +202,11 @@ struct MinimalMainView: View {
         .padding(.vertical, 6)
         .background(
             Capsule()
-                .fill(Color.black.opacity(0.5))
+                .fill(DesignSystem.Colors.minimalDarkOverlay)
         )
         .overlay(
             Capsule()
-                .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+                .stroke(DesignSystem.Colors.minimalBorder, lineWidth: 0.5)
         )
     }
 
@@ -224,14 +224,14 @@ struct MinimalMainView: View {
 				}
 
 			// 相册内容
-			HStack(spacing: 0) {
-				LiveComposeView()
-					.frame(width: size.width * 0.85)
-					.background(Color(uiColor: .systemBackground))
+				HStack(spacing: 0) {
+					LiveComposeView()
+						.frame(width: size.width * 0.85)
+						.background(DesignSystem.Colors.backgroundPrimary)
 
-				Spacer()
-			}
-			.ignoresSafeArea()
+					Spacer()
+				}
+				.ignoresSafeArea()
 		}
 	}
 
@@ -249,14 +249,14 @@ struct MinimalMainView: View {
 				}
 
 			// 设置内容
-			HStack(spacing: 0) {
-				Spacer()
+				HStack(spacing: 0) {
+					Spacer()
 
-				SettingsView()
-					.frame(width: size.width * 0.85)
-					.background(Color(uiColor: .systemBackground))
-			}
-			.ignoresSafeArea()
+					SettingsView()
+						.frame(width: size.width * 0.85)
+						.background(DesignSystem.Colors.backgroundPrimary)
+				}
+				.ignoresSafeArea()
 		}
 	}
 
@@ -274,17 +274,17 @@ struct MinimalMainView: View {
 				}
 
 			// 社区内容
-			VStack(spacing: 0) {
-				Spacer()
+				VStack(spacing: 0) {
+					Spacer()
 
-				CommunityView()
-					.frame(height: size.height * 0.85)
-					.background(Color(uiColor: .systemBackground))
-					.clipShape(
-						RoundedCorner(radius: DesignSystem.CornerRadius.xLarge, corners: [.topLeft, .topRight])
-					)
-			}
-			.ignoresSafeArea()
+					CommunityView()
+						.frame(height: size.height * 0.85)
+						.background(DesignSystem.Colors.backgroundPrimary)
+						.clipShape(
+							RoundedCorner(radius: DesignSystem.CornerRadius.xLarge, corners: [.topLeft, .topRight])
+						)
+				}
+				.ignoresSafeArea()
 		}
 	}
 }

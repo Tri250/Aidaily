@@ -124,7 +124,7 @@ struct UserGuidanceView: View {
 		} else if guidance.contains("构图流水线已开启") {
 			return DesignSystem.Colors.success
 		} else if guidance.contains("魔术棒") {
-			return Color.purple
+            return DesignSystem.Colors.secondary
 		} else if guidance.contains("保存") || guidance.contains("完成") || guidance.contains("即将") {
 			return DesignSystem.Colors.success
 		} else if guidance.contains("保持") || guidance.contains("稳定") {

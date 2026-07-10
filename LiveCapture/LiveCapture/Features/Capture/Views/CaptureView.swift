@@ -16,6 +16,7 @@ struct CaptureView: View {
 	@StateObject private var proManager = ProCameraManager.shared
 	@StateObject private var enhancementManager = CameraEnhancementManager.shared
 	@StateObject private var levelMonitor = LevelMonitor()
+	@StateObject private var portraitViewModel = PortraitViewModel()
 
 	// 从设置中读取持久化配置
 	@AppStorage("defaultCompositionGuide") private var defaultCompositionGuide: String = "grid"
@@ -49,6 +50,10 @@ struct CaptureView: View {
 
 	// Pro 控制面板
 	@State private var showProControls = false
+
+	// 美颜/人像模式面板
+	@State private var showBeautyPanel = false
+	@State private var showPortraitMode = false
 
 	// 渐进式取景框：0=全部隐藏, 1=仅中心准星, 2=准星+追踪, 3=全部显示
 	@State private var overlayProgression: Int = 3
@@ -92,6 +97,18 @@ struct CaptureView: View {
 				// 相机预览层
 				cameraPreviewLayer(size: geo.size)
 					.zIndex(0)
+
+				// 美颜/人像模式处理后的实时预览
+				if let processedPreview = portraitViewModel.processedPreview,
+				   portraitViewModel.hasPortrait,
+				   (portraitViewModel.isBeautyEnabled || portraitViewModel.isPortraitModeEnabled) {
+					Image(uiImage: processedPreview)
+						.resizable()
+						.aspectRatio(contentMode: .fill)
+						.frame(width: geo.size.width, height: geo.size.height)
+						.ignoresSafeArea()
+						.zIndex(0.7)
+				}
 
 				// 拍照闪光效果
 				if captureFlashOpacity > 0 {
@@ -264,15 +281,48 @@ struct CaptureView: View {
 					.zIndex(2)
 					.transition(.opacity)
 				}
+
+				// 美颜面板
+				if showBeautyPanel {
+					BeautyPanelView(viewModel: portraitViewModel) {
+						withAnimation(DesignSystem.Animation.overlayFade) {
+							showBeautyPanel = false
+						}
+					}
+					.zIndex(55)
+					.transition(.move(edge: .bottom).combined(with: .opacity))
+				}
+
+				// 人像模式面板
+				if showPortraitMode {
+					PortraitModeView(viewModel: portraitViewModel) {
+						withAnimation(DesignSystem.Animation.overlayFade) {
+							showPortraitMode = false
+						}
+					}
+					.zIndex(55)
+					.transition(.move(edge: .bottom).combined(with: .opacity))
+				}
+
+				// 相机权限引导遮罩
+				if viewModel.cameraPermissionStatus.needsGuide {
+					permissionGuideOverlay
+						.zIndex(60)
+						.transition(.opacity.combined(with: .scale))
+				}
 			}
 		}
 		.ignoresSafeArea()
 		.navigationBarBackButtonHidden(true)
 		.preferredColorScheme(.dark)
 		.onAppear {
+			viewModel.portraitViewModel = portraitViewModel
 			viewModel.onAppear()
 			viewModel.onCaptureTriggered = {
 				triggerCaptureAnimation()
+			}
+			viewModel.onPhotoCaptured = { image in
+				lastCapturedImage = image
 			}
 			// 从设置中恢复持久化配置
 			applySettingsFromStorage()
@@ -329,6 +379,24 @@ struct CaptureView: View {
 		}
 		.onChange(of: enhancementManager.isLeftHanded) { _, newValue in
 			isLeftHandedDefault = newValue
+		}
+		.onChange(of: filterManager.selectedPreset) { _, newPreset in
+			applyFilter(newPreset)
+		}
+		.onChange(of: filterManager.filterIntensity) { _, newIntensity in
+			if filterManager.selectedPreset != nil {
+				viewModel.camera.activeFilterIntensity = newIntensity
+			}
+		}
+		.onChange(of: selectedCaptureMode) { _, newMode in
+			handleCaptureModeChange(newMode)
+		}
+		.onReceive(PhotoStorageService.shared.recordsPublisher) { records in
+			if lastCapturedImage != nil,
+			   lastCapturedRecord == nil,
+			   let record = records.first {
+				lastCapturedRecord = record
+			}
 		}
 	}
 
@@ -461,7 +529,21 @@ struct CaptureView: View {
 				action: { cycleCompositionGuide() }
 			)
 
+			// 美颜
+			controlButton(
+				icon: portraitViewModel.isBeautyEnabled ? "sparkles" : "sparkles",
+				action: { toggleBeautyPanel() }
+			)
+			.opacity(portraitViewModel.isBeautyEnabled ? 1.0 : 0.7)
+
 			Spacer()
+
+			// 人像模式
+			controlButton(
+				icon: portraitViewModel.isPortraitModeEnabled ? "person.crop.rectangle.fill" : "person.crop.rectangle",
+				action: { togglePortraitModePanel() }
+			)
+			.opacity(portraitViewModel.isPortraitModeEnabled ? 1.0 : 0.7)
 
 			// 水平仪
 			controlButton(
@@ -672,6 +754,60 @@ struct CaptureView: View {
 			.padding(.bottom, 8)
 	}
 
+	// MARK: - Permission Guide Overlay
+
+	private var permissionGuideOverlay: some View {
+		ZStack {
+			Color.black.opacity(0.85).ignoresSafeArea()
+
+			VStack(spacing: 24) {
+				Spacer()
+
+				Image(systemName: "camera.circle.fill")
+					.font(.system(size: 72, weight: .light))
+					.foregroundColor(DesignSystem.Colors.primary)
+
+				Text("需要相机权限")
+					.font(DesignSystem.Typography.title2)
+					.foregroundColor(.white)
+
+				Text("请在系统设置中允许 LiveCapture 访问相机，以使用拍摄、智能构图和 AI 场景识别功能。")
+					.font(DesignSystem.Typography.subheadline)
+					.foregroundColor(.white.opacity(0.7))
+					.multilineTextAlignment(.center)
+					.lineSpacing(4)
+					.padding(.horizontal, 40)
+
+				Button {
+					PermissionManager.shared.openSystemSettings()
+				} label: {
+					HStack {
+						Image(systemName: "gearshape.fill")
+						Text("前往系统设置开启")
+							.fontWeight(.semibold)
+					}
+					.frame(maxWidth: .infinity)
+					.padding(.vertical, 16)
+					.background(DesignSystem.Colors.primary)
+					.foregroundColor(.white)
+					.cornerRadius(DesignSystem.CornerRadius.large)
+				}
+				.padding(.horizontal, 32)
+
+				Button {
+					viewModel.onAppear()
+				} label: {
+					Text("重新检测权限")
+						.font(DesignSystem.Typography.subheadline)
+						.foregroundColor(.white.opacity(0.7))
+				}
+
+				Spacer()
+			}
+		}
+		.allowsHitTesting(true)
+	}
+
 	// MARK: - Actions
 
 	private func applySettingsFromStorage() {
@@ -707,6 +843,36 @@ struct CaptureView: View {
 
 	private func cycleFlashMode() {
 		flashMode = flashMode.next
+	}
+
+	private func toggleBeautyPanel() {
+		HapticManager.shared.light()
+		withAnimation(DesignSystem.Animation.bouncy) {
+			showBeautyPanel.toggle()
+			showPortraitMode = false
+			showFilterStrip = false
+			showModeSelector = false
+			showProControls = false
+		}
+		if showBeautyPanel {
+			portraitViewModel.isBeautyEnabled = true
+		}
+		resetAutoHideTimer()
+	}
+
+	private func togglePortraitModePanel() {
+		HapticManager.shared.light()
+		withAnimation(DesignSystem.Animation.bouncy) {
+			showPortraitMode.toggle()
+			showBeautyPanel = false
+			showFilterStrip = false
+			showModeSelector = false
+			showProControls = false
+		}
+		if showPortraitMode {
+			portraitViewModel.isPortraitModeEnabled = true
+		}
+		resetAutoHideTimer()
 	}
 
 	private func cycleCompositionGuide() {
@@ -748,6 +914,17 @@ struct CaptureView: View {
 		resetAutoHideTimer()
 	}
 
+	private func handleCaptureModeChange(_ mode: ModeSelectorView.CaptureMode) {
+		switch mode {
+		case .portrait:
+			portraitViewModel.isPortraitModeEnabled = true
+		case .photo:
+			portraitViewModel.isPortraitModeEnabled = false
+		default:
+			break
+		}
+	}
+
 	private func presentSettings() {
 		HapticManager.shared.light()
 		// 通过通知机制让父视图打开设置面板，而不是 dismiss 整个相机界面
@@ -755,8 +932,15 @@ struct CaptureView: View {
 		resetAutoHideTimer()
 	}
 
-	private func applyFilter(_ preset: LutFilterPreset) {
+	private func applyFilter(_ preset: LutFilterPreset?) {
 		resetAutoHideTimer()
+		if let preset = preset {
+			viewModel.camera.activeFilterPreset = preset
+			viewModel.camera.activeFilterIntensity = filterManager.filterIntensity
+		} else {
+			viewModel.camera.activeFilterPreset = nil
+			viewModel.camera.activeFilterIntensity = 1.0
+		}
 	}
 
 	private func performCapture() {

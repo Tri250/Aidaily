@@ -290,7 +290,59 @@ final class PortraitViewModel: ObservableObject {
         processImage(lastImage)
     }
 
-    // MARK: - Public API: Beauty Pipeline
+    // MARK: - Public API: Photo Pipeline
+
+    /// 异步处理照片：检测人脸并应用完整的人像效果管线（美颜 + 虚化 + 光效）。
+    /// - Parameters:
+    ///   - image: 输入图像
+    ///   - completion: 处理完成回调（主线程）
+    func processPhoto(_ image: CIImage, completion: @escaping (CIImage) -> Void) {
+        processingQueue.async { [weak self] in
+            guard let self else { return }
+            let faces = self.detectFaceObservations(in: image)
+            let processed = self.applyFullPipeline(to: image, faceObservations: faces)
+            DispatchQueue.main.async {
+                completion(processed)
+            }
+        }
+    }
+
+    /// 对图像应用完整的人像效果管线（美颜 + 虚化 + 光效）。
+    /// - Parameters:
+    ///   - image: 输入图像
+    ///   - faceObservations: 人脸检测结果（可选，不传则自动检测）
+    /// - Returns: 处理后的图像
+    func applyFullPipeline(to image: CIImage, faceObservations: [VNFaceObservation]? = nil) -> CIImage {
+        let faces: [VNFaceObservation]
+        if let provided = faceObservations, !provided.isEmpty {
+            faces = provided
+        } else {
+            faces = detectFaceObservations(in: image)
+        }
+
+        guard !faces.isEmpty else { return image }
+
+        var result = image
+
+        // 1. 美颜
+        let params = buildBeautyParams()
+        if !params.isOff {
+            result = beautifier.applyBeauty(to: result, params: params, faceObservations: faces)
+        }
+
+        // 2. 背景虚化
+        if portraitBlur > 0.01 {
+            let blurRadius = CGFloat(portraitBlur) * 20.0
+            result = applyDepthBlur(to: result, blurRadius: blurRadius, faceObservations: faces)
+        }
+
+        // 3. 光效
+        if lightingType != .natural {
+            result = engine.applyLighting(to: result, type: lightingType, faceObservations: faces)
+        }
+
+        return result
+    }
 
     /// 对图像应用美颜管线（供外部调用，如拍照时）
     /// - Parameters:
