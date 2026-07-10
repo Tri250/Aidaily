@@ -2341,22 +2341,38 @@ private fun BottomPillNav(
             modifier = Modifier
                 .clip(RoundedCornerShape(DesignSystem.CornerRadius.pill))
                 .background(DesignSystem.Colors.pillBackground)
+                .border(0.5.dp, DesignSystem.Colors.minimalBorder, RoundedCornerShape(DesignSystem.CornerRadius.pill))
                 .padding(DesignSystem.Dimensions.navPillPadding),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             items.forEachIndexed { index, label ->
                 val isSelected = selectedIndex == index
+                val interactionSource = remember { MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
+                val scale by animateFloatAsState(
+                    targetValue = if (isPressed) 0.93f else 1f,
+                    animationSpec = DesignSystem.Animation.quick
+                )
                 val bgColor by animateColorAsState(
                     targetValue = if (isSelected) DesignSystem.Colors.pillBackgroundActive else Color.Transparent,
-                    animationSpec = tween(250)
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                )
+                val textColor by animateColorAsState(
+                    targetValue = if (isSelected) DesignSystem.Colors.pillIndicator
+                    else DesignSystem.Colors.minimalLabelTertiary,
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
                 )
 
                 Box(
                     modifier = Modifier
+                        .scale(scale)
                         .clip(RoundedCornerShape(DesignSystem.CornerRadius.pill))
                         .background(bgColor)
-                        .clickable { onSelect(index) }
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = null
+                        ) { onSelect(index) }
                         .padding(horizontal = 28.dp, vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -2364,8 +2380,7 @@ private fun BottomPillNav(
                         text = label,
                         style = if (isSelected) DesignSystem.Typography.navLabelActive
                         else DesignSystem.Typography.navLabel,
-                        color = if (isSelected) DesignSystem.Colors.pillIndicator
-                        else DesignSystem.Colors.minimalLabelTertiary
+                        color = textColor
                     )
                 }
             }
@@ -4199,39 +4214,49 @@ private fun CaptureModeSelector(
     onModeSelected: (CaptureMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // [v1.1.7] 三种核心拍摄模式
+    // 三种核心拍摄模式：拍照 / 视频 / 延时
     val modes = listOf(CaptureMode.PHOTO, CaptureMode.VIDEO, CaptureMode.TIMELAPSE)
 
     Row(
         modifier = modifier
             .wrapContentWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(22.dp))
             .background(DesignSystem.Colors.minimalOverlay)
+            .border(0.5.dp, DesignSystem.Colors.minimalBorder, RoundedCornerShape(22.dp))
             .padding(3.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
         modes.forEach { mode ->
             val isSelected = mode == selectedMode
+            val interactionSource = remember { MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            val scale by animateFloatAsState(
+                targetValue = if (isPressed) 0.94f else 1f,
+                animationSpec = DesignSystem.Animation.quick
+            )
+            val bgColor by animateColorAsState(
+                targetValue = if (isSelected) DesignSystem.Colors.primary
+                else Color.Transparent,
+                animationSpec = tween(250, easing = FastOutSlowInEasing)
+            )
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(17.dp))
-                    .background(
-                        if (isSelected) DesignSystem.Colors.primary
-                        else Color.Transparent
-                    )
+                    .scale(scale)
+                    .clip(RoundedCornerShape(19.dp))
+                    .background(bgColor)
                     .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
+                        interactionSource = interactionSource,
                         indication = null
                     ) { onModeSelected(mode) }
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                    .padding(horizontal = 22.dp, vertical = 9.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = mode.label,
-                    style = DesignSystem.Typography.caption2,
+                    style = DesignSystem.Typography.footnote,
                     color = if (isSelected) Color.White
-                            else DesignSystem.Colors.minimalLabelSecondary,
+                    else DesignSystem.Colors.minimalLabelSecondary,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                 )
             }

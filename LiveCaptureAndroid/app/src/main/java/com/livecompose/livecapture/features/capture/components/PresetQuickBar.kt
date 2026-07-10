@@ -1,10 +1,14 @@
 package com.livecompose.livecapture.features.capture.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -17,9 +21,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -123,48 +129,71 @@ private fun PresetChip(
     icon: ImageVector,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = DesignSystem.Animation.quick
+    )
     val bgColor by animateColorAsState(
         if (isSelected) DesignSystem.Colors.primary
         else DesignSystem.Colors.backgroundSecondary(),
-        animationSpec = tween(200),
+        animationSpec = tween(250, easing = FastOutSlowInEasing),
         label = "presetBg"
     )
     val textColor by animateColorAsState(
         if (isSelected) Color.White
         else DesignSystem.Colors.textPrimary(),
-        animationSpec = tween(200),
+        animationSpec = tween(250, easing = FastOutSlowInEasing),
         label = "presetText"
+    )
+    val borderColor by animateColorAsState(
+        if (isSelected) DesignSystem.Colors.primary
+        else if (isRecommended) DesignSystem.Colors.accent.copy(alpha = 0.3f)
+        else Color.Transparent,
+        animationSpec = tween(250, easing = FastOutSlowInEasing),
+        label = "presetBorder"
     )
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .then(
-                if (isSelected) {
-                    Modifier.border(1.5.dp, DesignSystem.Colors.primary, RoundedCornerShape(12.dp))
-                } else Modifier
-            )
+            .scale(scale)
+            .clip(RoundedCornerShape(14.dp))
+            .border(1.5.dp, borderColor, RoundedCornerShape(14.dp))
             .background(bgColor)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         // AI 推荐标记
         if (isRecommended && !isSelected) {
-            Text(
-                "AI",
-                fontSize = 8.sp,
-                color = DesignSystem.Colors.accent,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 1.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(DesignSystem.Colors.accent.copy(alpha = 0.15f))
+                    .padding(horizontal = 4.dp, vertical = 1.dp)
+            ) {
+                Text(
+                    "AI",
+                    fontSize = 8.sp,
+                    fontFamily = FontFamily.Monospace,
+                    color = DesignSystem.Colors.accent,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.height(2.dp))
         }
         Icon(
             icon,
             contentDescription = name,
             tint = textColor,
-            modifier = Modifier.size(16.dp)
+            modifier = Modifier.size(18.dp)
         )
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             name,
             color = textColor,

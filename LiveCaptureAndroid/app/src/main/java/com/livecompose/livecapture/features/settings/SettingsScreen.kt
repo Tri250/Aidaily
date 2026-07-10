@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.livecompose.livecapture.core.detection.DetectionMode
 import com.livecompose.livecapture.core.frame.WatermarkInfo
 import com.livecompose.livecapture.core.lut.LchColorAdjustment
@@ -570,9 +571,18 @@ private fun SectionHeader(title: String, icon: ImageVector) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
-            .padding(bottom = 10.dp, top = 8.dp),
+            .padding(bottom = 10.dp, top = 20.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // 左侧强调色块
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .height(18.dp)
+                .clip(RoundedCornerShape(1.5.dp))
+                .background(DesignSystem.Colors.primary)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
         Icon(
             icon,
             contentDescription = null,
@@ -582,9 +592,10 @@ private fun SectionHeader(title: String, icon: ImageVector) {
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             title,
-            style = DesignSystem.Typography.title3,
+            style = DesignSystem.Typography.headline,
             color = DesignSystem.Colors.textPrimary(),
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.5.sp
         )
     }
 }
