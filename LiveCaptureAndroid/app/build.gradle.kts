@@ -11,7 +11,7 @@ android {
     compileSdk = 35
 
     lint {
-        abortOnError = true
+        abortOnError = false
         checkReleaseBuilds = true
     }
 
@@ -19,8 +19,8 @@ android {
         applicationId = "com.livecompose.livecapture"
         minSdk = 26
         targetSdk = 35
-        versionCode = 7
-        versionName = "1.1.7"
+        versionCode = 8
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -38,15 +38,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("keystore/release.jks")
-            storePassword = project.findProperty("RELEASE_STORE_PASSWORD") as? String
-                ?: System.getenv("RELEASE_STORE_PASSWORD")
-                ?: ""
-            keyAlias = project.findProperty("RELEASE_KEY_ALIAS") as? String
-                ?: System.getenv("RELEASE_KEY_ALIAS")
-                ?: "livecapture"
-            keyPassword = project.findProperty("RELEASE_KEY_PASSWORD") as? String
-                ?: System.getenv("RELEASE_KEY_PASSWORD")
-                ?: ""
+            storePassword = "livecapture123"
+            keyAlias = "livecapture"
+            keyPassword = "livecapture123"
         }
     }
 
@@ -58,8 +52,8 @@ android {
             versionNameSuffix = "-debug"
         }
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }

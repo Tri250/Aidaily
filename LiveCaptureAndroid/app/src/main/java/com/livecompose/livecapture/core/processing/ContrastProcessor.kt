@@ -3,6 +3,7 @@ package com.livecompose.livecapture.core.processing
 import android.graphics.Bitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.math.pow
 
 /**
  * 对比度处理器
@@ -110,7 +111,7 @@ class ContrastProcessor {
         return if (amount > 0f) {
             // 正对比度：增强极值
             val sign = if (centered > 0f) 1f else -1f
-            (0.5f + sign * (kotlin.math.abs(centered) * 2f).pow(1f / (1f + amount * 0.5f)) * 0.5f).coerceIn(0f, 1f)
+            (0.5f + sign * (kotlin.math.abs(centered) * 2f).toDouble().pow((1f / (1f + amount * 0.5f)).toDouble()).toFloat() * 0.5f).coerceIn(0f, 1f)
         } else {
             // 负对比度：向中间调靠拢
             val absAmount = kotlin.math.abs(amount)

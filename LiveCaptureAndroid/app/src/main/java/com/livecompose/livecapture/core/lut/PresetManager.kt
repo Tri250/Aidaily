@@ -27,6 +27,11 @@ class PresetManager(private val cacheDir: File) {
     var currentPreset: MasterPreset? = null
         private set
 
+    /** 设置当前预设 */
+    fun setCurrentPreset(preset: MasterPreset) {
+        currentPreset = preset
+    }
+
     /** 预设整体强度 0.0~1.0 */
     var presetIntensity: Float = 1.0f
 

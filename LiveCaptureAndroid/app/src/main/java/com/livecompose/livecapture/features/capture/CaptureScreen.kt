@@ -13,6 +13,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -538,7 +539,7 @@ fun CaptureScreen(
                 }
 
                 // AI场景识别标签 - 顶部半透显示
-                if (aiSceneName.isNotEmpty() && aiSceneType.isNotEmpty() && cameraError == null) {
+                if (aiSceneName.length > 0 && aiSceneType != com.livecompose.livecapture.core.intelligence.SceneType.UNKNOWN && cameraError == null) {
                     AiSceneLabel(
                         sceneName = aiSceneName,
                         modifier = Modifier
@@ -652,18 +653,17 @@ fun CaptureScreen(
                 }
 
                 // 内存监控视图
-                AnimatedVisibility(
-                    visible = showMemoryMonitor,
-                    enter = fadeIn() + slideInVertically(),
-                    exit = fadeOut() + slideOutVertically(),
+                Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    MemoryUsageView(
-                        monitor = appContainer.memoryMonitor,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
+                    if (showMemoryMonitor) {
+                        MemoryUsageView(
+                            monitor = appContainer.memoryMonitor,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
                 }
 
                 // 右上角设置按钮和闪光灯指示器
@@ -971,7 +971,7 @@ fun CaptureScreen(
                 }
 
                 // AI 场景识别指示器
-                if (aiSceneName.isNotEmpty() && aiSceneType != com.livecompose.livecapture.core.intelligence.SceneType.UNKNOWN && cameraError == null) {
+                if (aiSceneName.length > 0 && aiSceneType != com.livecompose.livecapture.core.intelligence.SceneType.UNKNOWN && cameraError == null) {
                     val aiTopPadding = if (selectedMode == CaptureMode.VIDEO) {
                         val base = if (videoRecordingState.isRecording) 56.dp else 16.dp
                         if (slowMotionEnabled) base + 40.dp else base
@@ -1005,7 +1005,7 @@ fun CaptureScreen(
 
                 // AI 姿势建议指示器
                 if (aiPoseSuggestion.isNotEmpty() && cameraError == null) {
-                    val poseTopPadding = if (aiSceneName.isNotEmpty() && aiSceneType != com.livecompose.livecapture.core.intelligence.SceneType.UNKNOWN) {
+                    val poseTopPadding = if (aiSceneName.length > 0 && aiSceneType != com.livecompose.livecapture.core.intelligence.SceneType.UNKNOWN) {
                         val base = if (hyperfocalEnabled) 56.dp else 16.dp
                         base + 40.dp
                     } else {
@@ -1068,7 +1068,7 @@ fun CaptureScreen(
                         else -> "3:4"
                     }
                     // XPAN 模式同步到 ViewModel
-                    viewModel.xpanModeEnabled.value = (currentRatio == "XPAN")
+                    viewModel.setXpanModeEnabled(currentRatio == "XPAN")
                     interactionCounter++
                 },
                 onToggleCamera = { triggerCameraFlip(); interactionCounter++ },
@@ -1146,13 +1146,13 @@ fun CaptureScreen(
             // [v1.1.7] 美颜快调面板 - 当美颜开启时显示
             AnimatedVisibility(
                 visible = isBeautyEnabled,
-                enter = fadeIn(DesignSystem.Animation.quick) + slideInVertically(
+                enter = fadeIn(animationSpec = tween(250)) + slideInVertically(
                     initialOffsetY = { it / 2 },
-                    animationSpec = DesignSystem.Animation.quick
+                    animationSpec = tween(250)
                 ),
-                exit = fadeOut(DesignSystem.Animation.quick) + slideOutVertically(
+                exit = fadeOut(animationSpec = tween(250)) + slideOutVertically(
                     targetOffsetY = { it / 2 },
-                    animationSpec = DesignSystem.Animation.quick
+                    animationSpec = tween(250)
                 )
             ) {
                 BeautyQuickBar(
@@ -1621,7 +1621,7 @@ fun CaptureScreen(
             PresetComparisonView(
                 originalBitmap = comparisonOriginalBitmap,
                 presetBitmap = presetBitmap,
-                presetName = selectedPreset?.name ?: "",
+                presetName = viewModel.selectedPreset.collectAsState().value?.name ?: "",
                 isVisible = showPresetComparison,
                 onConfirm = {
                     showPresetComparison = false
@@ -1781,7 +1781,6 @@ private fun ZoomPresetBar2026(
  * 底部功能图标行
  * Beta | 构图框 | 魔法棒 | 3:4 | 翻转
  */
-@Composable
 /**
  * AI场景识别标签 - 顶部半透显示当前识别的场景
  * 对标 OPPO Find X9 哈苏大师的 AI 场景识别标签
@@ -1827,6 +1826,7 @@ private fun AiSceneLabel(
     }
 }
 
+@Composable
 private fun ToolIconRow(
     isGridEnabled: Boolean,
     onToggleGrid: () -> Unit,
@@ -2579,7 +2579,7 @@ private fun ManualControlPanelOverlay(
     }
     LaunchedEffect(params.shutterSpeed, params.shutterSpeedAuto) {
         if (!params.shutterSpeedAuto) {
-            proCameraManager.setShutterSpeed(params.shutterSpeed)
+            proCameraManager.setShutterSpeed((params.shutterSpeed * 1_000_000_000L).toLong())
         } else {
             proCameraManager.setAutoShutterSpeed()
         }
@@ -3012,11 +3012,11 @@ private fun SettingsBottomSheet2026(
                 SettingsDivider()
                 SettingsSwitchRow("HDR 模式", "多曝光融合保留高光细节", Icons.Default.HdrOn, hdrEnabled) { onHdrChange(it) }
                 SettingsDivider()
-                SettingsSwitchRow("Live Photo", "拍摄时同时记录1.5秒动态短片，让照片活起来", Icons.Default.MotionPhotosOn, livePhotoEnabled) { livePhotoEnabled = it }
+                SettingsSwitchRow("Live Photo", "拍摄时同时记录1.5秒动态短片，让照片活起来", Icons.Default.MotionPhotosOn, livePhotoEnabled) { onLivePhotoChange(it) }
                 SettingsDivider()
-                SettingsSwitchRow("单手模式", "将核心控件下移，适配大屏单手操作，方便拇指触达", Icons.Default.PanTool, oneHandMode) { oneHandMode = it }
+                SettingsSwitchRow("单手模式", "将核心控件下移，适配大屏单手操作，方便拇指触达", Icons.Default.PanTool, oneHandMode) { onOneHandModeChange(it) }
                 SettingsDivider()
-                SettingsSwitchRow("左手模式", "镜像翻转控制栏布局，适配左手持机习惯", Icons.Default.SwipeLeft, leftHandMode) { leftHandMode = it }
+                SettingsSwitchRow("左手模式", "镜像翻转控制栏布局，适配左手持机习惯", Icons.Default.SwipeLeft, leftHandMode) { onLeftHandModeChange(it) }
                 SettingsDivider()
                 SettingsSwitchRow("镜像前置", "前置摄像头拍摄时水平翻转预览画面", Icons.Default.FlipCameraAndroid, mirrorFrontEnabled) { mirrorFrontEnabled = it }
                 SettingsDivider()

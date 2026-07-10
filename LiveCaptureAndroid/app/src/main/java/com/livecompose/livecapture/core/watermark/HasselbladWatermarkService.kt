@@ -71,7 +71,7 @@ class HasselbladWatermarkService {
         drawBottomBar(canvas, totalWidth, barTop, bottomBarHeight.toFloat(), config)
 
         // 4. 绘制哈苏 H logo
-        drawHasselbladLogo(canvas, totalWidth.toFloat(), barTop, bottomBarHeight.toFloat())
+        drawHasselbladLogo(canvas, totalWidth.toFloat(), barTop.toFloat(), bottomBarHeight.toFloat())
 
         return result
     }

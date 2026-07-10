@@ -164,9 +164,13 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
     private val _xpanModeEnabled = MutableStateFlow(false)
     val xpanModeEnabled: StateFlow<Boolean> = _xpanModeEnabled.asStateFlow()
 
+    fun setXpanModeEnabled(enabled: Boolean) {
+        _xpanModeEnabled.value = enabled
+    }
+
     fun selectPreset(preset: MasterPreset) {
         _selectedPreset.value = preset
-        presetManager.currentPreset = preset
+        presetManager.setCurrentPreset(preset)
         presetManager.presetIntensity = _presetIntensity.value
         HapticManager.light()
     }

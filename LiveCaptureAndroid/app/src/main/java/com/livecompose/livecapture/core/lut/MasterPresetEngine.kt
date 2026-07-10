@@ -5,6 +5,7 @@ import com.livecompose.livecapture.core.editing.VignetteProcessor
 import com.livecompose.livecapture.core.processing.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.math.pow
 
 /**
  * 大师预设引擎
@@ -298,5 +299,5 @@ class MasterPresetEngine {
         return output
     }
 
-    private fun Float.pow(exp: Float): Float = kotlin.math.pow(this.toDouble(), exp.toDouble()).toFloat()
+    private fun Float.pow(exp: Float): Float = this.toDouble().pow(exp.toDouble()).toFloat()
 }
