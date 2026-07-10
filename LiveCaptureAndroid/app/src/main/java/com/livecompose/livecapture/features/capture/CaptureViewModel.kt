@@ -642,7 +642,8 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
             // 1. 调整曝光补偿（AE 模式下可用）
             // AE 曝光补偿在自动模式下通过 AE_EXPOSURE_COMPENSATION 控制
             val aeCompensation = params.exposureBias.toInt().coerceIn(-3, 3)
-            // 注意：AE 补偿在自动模式下可用，如果相机支持手动模式则可直接设置 ISO/快门
+            appContainer.proCameraManager.setExposureCompensation(aeCompensation)
+            camera.refreshRepeatingRequest()
 
             // 2. 应用建议变焦
             if (params.suggestedZoomFactor > 0f) {

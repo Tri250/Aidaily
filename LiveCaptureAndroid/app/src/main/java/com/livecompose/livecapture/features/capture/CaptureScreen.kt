@@ -540,15 +540,15 @@ fun CaptureScreen(
                     GridOverlayView(mode = gridMode)
                 }
 
-                // AI场景识别标签 - 顶部半透显示
-                if (aiSceneName.length > 0 && aiSceneType != com.livecompose.livecapture.core.intelligence.SceneType.UNKNOWN && cameraError == null) {
-                    AiSceneLabel(
-                        sceneName = aiSceneName,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 8.dp)
-                    )
-                }
+                // AI 场景识别 / 胶片标签 / 上下文面板
+                CaptureIntelligenceOverlay(
+                    viewModel = viewModel,
+                    aiSceneName = aiSceneName,
+                    aiSceneType = aiSceneType,
+                    hyperfocalEnabled = hyperfocalEnabled,
+                    selectedMode = selectedMode,
+                    cameraError = cameraError
+                )
 
                 // 用户引导视图 - 对标 iOS UserGuidanceView
                 if (userGuidanceText.isNotEmpty() && cameraError == null) {
@@ -1857,51 +1857,6 @@ private fun ZoomPresetBar2026(
  * 底部功能图标行
  * Beta | 构图框 | 魔法棒 | 3:4 | 翻转
  */
-/**
- * AI场景识别标签 - 顶部半透显示当前识别的场景
- * 对标 OPPO Find X9 哈苏大师的 AI 场景识别标签
- * 绿点脉动 = 正在分析，常亮 = 已识别
- */
-@Composable
-private fun AiSceneLabel(
-    sceneName: String,
-    modifier: Modifier = Modifier
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "aiPulse")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
-        targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "aiPulse"
-    )
-
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color.Black.copy(alpha = 0.55f))
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Canvas(modifier = Modifier.size(6.dp)) {
-                drawCircle(
-                    color = Color(0xFF5DA87A).copy(alpha = pulseAlpha),
-                    radius = 3.dp.toPx()
-                )
-            }
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                sceneName,
-                color = Color.White.copy(alpha = 0.9f),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium
-            )
-        }
-    }
-}
-
 @Composable
 private fun ToolIconRow(
     isGridEnabled: Boolean,

@@ -565,6 +565,21 @@ class CameraManager(private val context: Context) {
         )
     }
 
+    /**
+     * 刷新当前重复请求，应用专业模式参数（如曝光补偿）的实时变更
+     */
+    fun refreshRepeatingRequest() {
+        val session = captureSession ?: return
+        val requestBuilder = captureRequestBuilder ?: return
+        val characteristics = cameraCharacteristics ?: return
+        try {
+            proCameraManager?.applyToCaptureRequest(requestBuilder, characteristics)
+            session.setRepeatingRequest(requestBuilder.build(), null, backgroundHandler)
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "刷新重复请求失败", e)
+        }
+    }
+
     private fun computeZoomRect(zoomFactor: Float): android.graphics.Rect {
         val characteristics = cameraCharacteristics ?: return android.graphics.Rect(0, 0, 100, 100)
         val sensorSize = characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE) ?: android.graphics.Rect(0, 0, 100, 100)
