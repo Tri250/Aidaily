@@ -133,6 +133,10 @@ class ProCameraManager(private val context: Context) : ViewModel() {
     private var focusPointX: Float = 0.5f
     private var focusPointY: Float = 0.5f
 
+    // 相机能力范围（由 applyToCaptureRequest 调用时通过 characteristics 设置）
+    var isoRange: Range<Int>? = null
+    var shutterSpeedRange: Range<Long>? = null
+
     // MARK: - 专业模式开关
 
     /**
@@ -183,10 +187,57 @@ class ProCameraManager(private val context: Context) : ViewModel() {
     }
 
     /**
+     * 设置 ISO 值（范围校验）
+     * @param iso ISO 值
+     */
+    fun setISO(iso: Int) {
+        val range = isoRange ?: return
+        val clampedIso = iso.coerceIn(range.lower, range.upper)
+        _iso.value = clampedIso
+        _manualExposureEnabled.value = true
+    }
+
+    /**
+     * 设置快门速度（范围校验）
+     * @param shutterSpeedNs 快门速度（纳秒）
+     */
+    fun setShutterSpeed(shutterSpeedNs: Long) {
+        val range = shutterSpeedRange ?: return
+        val clampedShutter = shutterSpeedNs.coerceIn(range.lower, range.upper)
+        _shutterSpeed.value = clampedShutter
+        _manualExposureEnabled.value = true
+    }
+
+    /**
      * 设置曝光补偿（EV 单位）
      */
     fun setExposureBias(bias: Int) {
         _exposureBias.value = bias
+    }
+
+    // [v1.1.7] 自动模式方法 - 供 ManualControlPanelOverlay 调用
+
+    /**
+     * 恢复自动 ISO - 关闭手动曝光模式
+     */
+    fun setAutoISO() {
+        _manualExposureEnabled.value = false
+        _aeLocked.value = false
+    }
+
+    /**
+     * 恢复自动快门速度 - 关闭手动曝光模式
+     */
+    fun setAutoShutterSpeed() {
+        _manualExposureEnabled.value = false
+        _aeLocked.value = false
+    }
+
+    /**
+     * 设置曝光补偿（别名，兼容 CaptureScreen 调用）
+     */
+    fun setExposureCompensation(bias: Int) {
+        setExposureBias(bias)
     }
 
     // MARK: - 白平衡控制
@@ -199,6 +250,23 @@ class ProCameraManager(private val context: Context) : ViewModel() {
         val clamped = colorTemperature.coerceIn(1500, 12000)
         _colorTemperature.value = clamped
         _manualWhiteBalanceEnabled.value = true
+    }
+
+    // [v1.1.7] 便捷方法
+
+    /**
+     * 恢复自动白平衡 - 关闭手动白平衡
+     */
+    fun setAutoWhiteBalance() {
+        _manualWhiteBalanceEnabled.value = false
+    }
+
+    /**
+     * 设置白平衡色温（别名，兼容 CaptureScreen 调用）
+     * @param temperature 色温（开尔文）
+     */
+    fun setWhiteBalance(temperature: Int) {
+        setManualWhiteBalance(temperature)
     }
 
     // MARK: - AE/AF 锁定
@@ -215,6 +283,26 @@ class ProCameraManager(private val context: Context) : ViewModel() {
      */
     fun toggleAFLock() {
         _afLocked.value = !_afLocked.value
+    }
+
+    // [v1.1.7] 自动对焦方法
+
+    /**
+     * 恢复自动对焦（单次 AF-S）
+     * 关闭手动对焦和 AF 锁定
+     */
+    fun setAutoFocus() {
+        _manualFocusEnabled.value = false
+        _afLocked.value = false
+    }
+
+    /**
+     * 恢复连续自动对焦（AF-C）
+     * 关闭手动对焦和 AF 锁定
+     */
+    fun setContinuousAutoFocus() {
+        _manualFocusEnabled.value = false
+        _afLocked.value = false
     }
 
     // MARK: - 斑马纹
@@ -336,6 +424,9 @@ class ProCameraManager(private val context: Context) : ViewModel() {
                 val exposureRange = characteristics.get(
                     CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE
                 )
+                // 更新相机能力范围以供 setISO/setShutterSpeed 使用
+                this@ProCameraManager.isoRange = isoRange
+                this@ProCameraManager.shutterSpeedRange = exposureRange
                 val clampedIso = isoRange?.let { _iso.value.coerceIn(it.lower, it.upper) }
                     ?: _iso.value
                 val clampedShutter = exposureRange?.let {

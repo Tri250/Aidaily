@@ -78,17 +78,21 @@ import com.livecompose.livecapture.core.editing.StyleTransfer
 import com.livecompose.livecapture.core.lut.AiColorMatcher
 import com.livecompose.livecapture.core.processing.HealingBrushProcessor
 import com.livecompose.livecapture.di.AppContainer
+import com.livecompose.livecapture.features.home.HomeViewModel // v1.1.7: 保存编辑结果
 import com.livecompose.livecapture.ui.design.DesignSystem
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.lifecycle.viewmodel.compose.viewModel // v1.1.7: HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AIEditScreen(
     photoId: String,
     sourceBitmap: Bitmap?,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    homeViewModel: HomeViewModel = viewModel() // v1.1.7: 保存编辑结果到存储
 ) {
     val context = LocalContext.current
     val viewModel = remember { AppContainer.getInstance(context).aiEditViewModel }
@@ -257,6 +261,16 @@ fun AIEditScreen(
                 onApply = {
                     scope.launch {
                         viewModel.applyEdit()
+                        // v1.1.7: 保存编辑结果到存储
+                        val editedBitmap = viewModel.editedImage.value
+                        if (editedBitmap != null) {
+                            homeViewModel.saveProcessedBitmap(photoId, editedBitmap, "AI编辑")
+                            Toast.makeText(context, "编辑已保存", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "编辑失败，请重试", Toast.LENGTH_SHORT).show()
+                        }
+                        delay(500)
+                        onBack()
                     }
                 },
                 onApplyAndContinue = {

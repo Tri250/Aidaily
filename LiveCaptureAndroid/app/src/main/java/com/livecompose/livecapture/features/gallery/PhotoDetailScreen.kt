@@ -62,9 +62,22 @@ fun PhotoDetailScreen(
     viewModel: HomeViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
-    LaunchedEffect(photoId) {
-        bitmap = viewModel.getFullPhoto(photoId)
+    var isLoading by remember { mutableStateOf(true) }
+    var loadError by remember { mutableStateOf<String?>(null) }
+    var photoBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var retryTrigger by remember { mutableIntStateOf(0) }
+    LaunchedEffect(photoId, retryTrigger) {
+        isLoading = true
+        loadError = null
+        try {
+            withContext(Dispatchers.IO) {
+                photoBitmap = viewModel.getFullPhoto(photoId)
+            }
+        } catch (e: Exception) {
+            loadError = "照片加载失败: ${e.message}"
+        } finally {
+            isLoading = false
+        }
     }
     val records by viewModel.records.collectAsState()
     val record = remember(photoId, records) {
@@ -141,20 +154,37 @@ fun PhotoDetailScreen(
                         record.imageWidth.toFloat() / record.imageHeight else 3f / 4f),
                 contentAlignment = Alignment.Center
             ) {
-                if (bitmap != null) {
-                    val bmp = bitmap!!
-                    Image(
-                        bitmap = bmp.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
+                when {
+                    isLoading -> {
                         CircularProgressIndicator(color = DesignSystem.Colors.primary)
+                    }
+                    loadError != null -> {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.Error,
+                                contentDescription = null,
+                                tint = DesignSystem.Colors.error,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                loadError!!,
+                                color = DesignSystem.Colors.minimalSecondaryLabel,
+                                style = DesignSystem.Typography.footnote
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            TextButton(onClick = { retryTrigger++ }) {
+                                Text("重试", color = DesignSystem.Colors.primary)
+                            }
+                        }
+                    }
+                    photoBitmap != null -> {
+                        Image(
+                            bitmap = photoBitmap!!.asImageBitmap(),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
                     }
                 }
             }
@@ -231,8 +261,8 @@ fun PhotoDetailScreen(
                 Spacer(modifier = Modifier.height(DesignSystem.Spacing.xSmall))
 
                 // RGB 直方图卡片
-                if (bitmap != null) {
-                    val bmp = bitmap
+                if (photoBitmap != null) {
+                    val bmp = photoBitmap
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
@@ -345,8 +375,8 @@ fun PhotoDetailScreen(
                 Spacer(modifier = Modifier.height(DesignSystem.Spacing.xSmall))
 
                 // AI 质量评估卡片
-                if (bitmap != null) {
-                    AIQualityAssessmentCard(bitmap!!, context)
+                if (photoBitmap != null) {
+                    AIQualityAssessmentCard(photoBitmap!!, context)
                     Spacer(modifier = Modifier.height(DesignSystem.Spacing.xSmall))
                 }
 
@@ -359,7 +389,7 @@ fun PhotoDetailScreen(
     if (showAIEdit) {
         AIEditScreen(
             photoId = photoId,
-            sourceBitmap = bitmap,
+            sourceBitmap = photoBitmap,
             onBack = { showAIEdit = false }
         )
     }
@@ -368,11 +398,13 @@ fun PhotoDetailScreen(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("确认删除") },
-            text = { Text("删除后无法恢复，确定要删除这张照片吗？") },
+            title = { Text("删除照片", color = DesignSystem.Colors.minimalLabel) },
+            text = { Text("确定要删除这张照片吗？此操作不可恢复。", color = DesignSystem.Colors.minimalSecondaryLabel) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteRecord(photoId)
+                    if (photoFile.exists()) photoFile.delete()
+                    Toast.makeText(context, "照片已删除", Toast.LENGTH_SHORT).show()
                     showDeleteConfirm = false
                     onBack()
                 }) {
@@ -381,9 +413,11 @@ fun PhotoDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("取消")
+                    Text("取消", color = DesignSystem.Colors.minimalSecondaryLabel)
                 }
-            }
+            },
+            containerColor = DesignSystem.Colors.gray2(),
+            titleContentColor = DesignSystem.Colors.minimalLabel
         )
     }
 }

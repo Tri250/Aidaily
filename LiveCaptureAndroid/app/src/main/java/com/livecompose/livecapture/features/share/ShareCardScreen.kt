@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -180,6 +181,13 @@ fun ShareCardScreen(
         viewModel.generatePreviews(photo)
     }
 
+    // 分享卡片生成后反馈
+    LaunchedEffect(cardImage, isGenerating) {
+        if (cardImage != null && !isGenerating) {
+            Toast.makeText(context, "分享卡片已生成", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     fun showSnack(message: String) {
         scope.launch { snackbarHostState.showSnackbar(message) }
     }
@@ -239,6 +247,7 @@ fun ShareCardScreen(
                             currentShareImage(),
                             SendMessageToWX.Req.WXSceneSession,
                         )
+                        Toast.makeText(context, "已分享到微信", Toast.LENGTH_SHORT).show()
                         showSnack("已分享到微信好友")
                     }
                 },
@@ -250,6 +259,7 @@ fun ShareCardScreen(
                             currentShareImage(),
                             SendMessageToWX.Req.WXSceneTimeline,
                         )
+                        Toast.makeText(context, "已分享到微信", Toast.LENGTH_SHORT).show()
                         showSnack("已分享到朋友圈")
                     }
                 },

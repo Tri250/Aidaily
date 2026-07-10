@@ -80,6 +80,7 @@ import com.livecompose.livecapture.core.video.SlowMotionSpeed
 import com.livecompose.livecapture.core.video.VideoRecordingState
 import com.livecompose.livecapture.di.AppContainer
 import com.livecompose.livecapture.features.capture.components.*
+import com.livecompose.livecapture.features.capture.PhotoCaptureResult
 import com.livecompose.livecapture.features.home.HomeViewModel
 import com.livecompose.livecapture.core.storage.PhotoRecord
 import com.livecompose.livecapture.ui.design.DesignSystem
@@ -340,6 +341,20 @@ fun CaptureScreen(
                     camera.openCamera()
                 }
             }
+        }
+    }
+
+    // 拍照结果反馈
+    val photoCaptureResult by viewModel.photoCaptureResult.collectAsState()
+    LaunchedEffect(photoCaptureResult) {
+        when (photoCaptureResult) {
+            is PhotoCaptureResult.Success -> {
+                // 拍照成功，已在 onPhotoDataReady 中处理
+            }
+            is PhotoCaptureResult.Error -> {
+                Toast.makeText(context, "拍照失败: ${(photoCaptureResult as PhotoCaptureResult.Error).message}", Toast.LENGTH_SHORT).show()
+            }
+            null -> {}
         }
     }
 
@@ -787,6 +802,38 @@ fun CaptureScreen(
                     }
                 }
 
+                // 延时摄影录制时长显示
+                if (videoViewModel.isRecordingTimelapse && cameraError == null) {
+                    val timelapseTopPadding = if (videoRecordingState.isRecording) {
+                        if (slowMotionEnabled) 96.dp else 56.dp
+                    } else {
+                        if (slowMotionEnabled) 56.dp else 16.dp
+                    }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(top = timelapseTopPadding, start = 16.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(DesignSystem.Colors.accentWarm.copy(alpha = 0.7f))
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Timer,
+                                null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "延时 ${videoViewModel.timelapseElapsedTime}",
+                                style = DesignSystem.Typography.caption2,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+
                 // AI 场景识别指示器
                 if (aiSceneName.isNotEmpty() && aiSceneType != com.livecompose.livecapture.core.intelligence.SceneType.UNKNOWN && cameraError == null) {
                     val aiTopPadding = if (selectedMode == CaptureMode.VIDEO) {
@@ -918,6 +965,34 @@ fun CaptureScreen(
                 }
             )
 
+            // [v1.1.7] 美颜快调面板 - 当美颜开启时显示
+            AnimatedVisibility(
+                visible = isBeautyEnabled,
+                enter = fadeIn(DesignSystem.Animation.quick) + slideInVertically(
+                    initialOffsetY = { it / 2 },
+                    animationSpec = DesignSystem.Animation.quick
+                ),
+                exit = fadeOut(DesignSystem.Animation.quick) + slideOutVertically(
+                    targetOffsetY = { it / 2 },
+                    animationSpec = DesignSystem.Animation.quick
+                )
+            ) {
+                BeautyQuickBar(
+                    params = beautyParams,
+                    currentPreset = beautyPreset,
+                    isBeautyEnabled = isBeautyEnabled,
+                    onParamsChange = { beautyParams = it },
+                    onPresetChange = { preset ->
+                        beautyPreset = preset
+                        beautyParams = presetParamsFor(preset)
+                    },
+                    onToggleBeauty = { isBeautyEnabled = !isBeautyEnabled },
+                    onExpandFull = {
+                        isBeautyPanelVisible = true
+                    }
+                )
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
 
             // 快门控制行（缩略图 | 快门 | AI构图）
@@ -933,6 +1008,12 @@ fun CaptureScreen(
                                 if (videoRecordingState.isRecording) {
                                     videoViewModel.stopRecording()
                                     val duration = videoViewModel.recordingState.value.duration
+                                    // 停止后检查录制结果
+                                    val videoPath = videoViewModel.videoRecorder.lastRecordedPath
+                                    if (videoPath.isNullOrEmpty()) {
+                                        Toast.makeText(context, "视频保存失败，请重试", Toast.LENGTH_SHORT).show()
+                                        return@launch
+                                    }
                                     Toast.makeText(context, "视频录制完成 (${"%.1f".format(duration)}秒)", Toast.LENGTH_SHORT).show()
                                     // 显示视频编辑选项
                                     lastRecordedVideoPath = videoViewModel.videoRecorder.lastRecordedPath
@@ -1036,6 +1117,16 @@ fun CaptureScreen(
                                 }
                                 // 基础拍照
                                 viewModel.capturePhoto()
+                                // 显示拍照反馈
+                                Toast.makeText(context, "拍照完成", Toast.LENGTH_SHORT).show()
+                                // 连拍模式：连续拍摄3张
+                                if (burstModeEnabled) {
+                                    repeat(3) { i ->
+                                        kotlinx.coroutines.delay(200)
+                                        camera.capturePhoto()
+                                    }
+                                    Toast.makeText(context, "连拍完成，已保存3张照片", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         } catch (e: Exception) {
                             Toast.makeText(context, "拍摄失败: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -1757,6 +1848,7 @@ private fun MainShutterButton2026(
     Box(
         modifier = Modifier
             .size(DesignSystem.Dimensions.shutterButtonOuter)
+            .animateContentSize()
             .scale(scale)
             .pointerInput(isVideoMode) {
                 detectTapGestures(

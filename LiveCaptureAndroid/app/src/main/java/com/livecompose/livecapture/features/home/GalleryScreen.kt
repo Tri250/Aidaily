@@ -88,6 +88,7 @@ fun GalleryScreen(
     var filterFlaggedOnly by remember { mutableStateOf(false) }
     var showFilterMenu by remember { mutableStateOf(false) }
     var emptyStateVisible by remember { mutableStateOf(false) }
+    var showBatchDeleteConfirm by remember { mutableStateOf(false) } // v1.1.7: 批量删除确认
 
     // Feature A: PhotoSearchEngine
     var searchQuery by remember { mutableStateOf("") }
@@ -342,46 +343,35 @@ fun GalleryScreen(
         }
 
         if (displayRecords.isEmpty()) {
-            // 空状态 - 液态玻璃卡片 + 入场动画
-            AnimatedVisibility(
-                visible = emptyStateVisible,
-                enter = fadeIn(animationSpec = DesignSystem.Animation.entryFadeIn) +
-                        slideInVertically(
-                            initialOffsetY = { it / 4 },
-                            animationSpec = tween(300)
-                        )
+            // 空状态
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .padding(32.dp)
-                            .liquidGlass(cornerRadius = 24.dp, intensity = 0.08f)
-                            .padding(40.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.PhotoLibrary,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = DesignSystem.Colors.textTertiary()
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            "暂无照片",
-                            style = DesignSystem.Typography.title2,
-                            color = DesignSystem.Colors.textSecondary(),
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "使用下方拍摄按钮开始创作",
-                            style = DesignSystem.Typography.subheadline,
-                            color = DesignSystem.Colors.textTertiary()
-                        )
-                    }
+                    Icon(
+                        Icons.Default.PhotoLibrary,
+                        contentDescription = null,
+                        tint = DesignSystem.Colors.textTertiary(),
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "还没有照片",
+                        color = DesignSystem.Colors.textSecondary(),
+                        style = DesignSystem.Typography.headline
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "去拍摄第一张照片吧",
+                        color = DesignSystem.Colors.textTertiary(),
+                        style = DesignSystem.Typography.footnote
+                    )
                 }
             }
         } else {
@@ -446,9 +436,7 @@ fun GalleryScreen(
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     TextButton(onClick = {
-                        viewModel.deleteRecords(selectedIds.toList())
-                        selectedIds = emptySet()
-                        isSelectionMode = false
+                        showBatchDeleteConfirm = true // v1.1.7: 先显示确认对话框
                     }) {
                         Icon(
                             Icons.Default.Delete,
@@ -464,9 +452,23 @@ fun GalleryScreen(
                         onClick = {
                             scope.launch {
                                 val selectedRecords = records.filter { it.id in selectedIds }
-                                batchProcessor.applyAutoEnhance(selectedRecords)
-                                selectedIds = emptySet()
-                                isSelectionMode = false
+                                // v1.1.7: 添加Toast反馈
+                                try {
+                                    batchProcessor.applyAutoEnhance(selectedRecords)
+                                    selectedIds = emptySet()
+                                    isSelectionMode = false
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "批量增强完成（${selectedRecords.size}张）",
+                                        android.widget.Toast.LENGTH_SHORT
+                                    ).show()
+                                } catch (e: Exception) {
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "批量增强失败: ${e.message}",
+                                        android.widget.Toast.LENGTH_SHORT
+                                    ).show()
+                                }
                             }
                         },
                         colors = ButtonDefaults.buttonColors(
@@ -493,6 +495,46 @@ fun GalleryScreen(
             },
             onRatingChange = { rating -> viewModel.updateRating(record.id, rating) },
             onToggleFlag = { viewModel.toggleFlag(record.id) }
+        )
+    }
+
+    // v1.1.7: 批量删除确认对话框
+    if (showBatchDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showBatchDeleteConfirm = false },
+            title = {
+                Text("批量删除确认", color = DesignSystem.Colors.textPrimary())
+            },
+            text = {
+                Text(
+                    "确定要删除选中的 ${selectedIds.size} 张照片吗？此操作不可恢复。",
+                    color = DesignSystem.Colors.textSecondary()
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBatchDeleteConfirm = false
+                    viewModel.deleteRecords(selectedIds.toList())
+                    val count = selectedIds.size
+                    selectedIds = emptySet()
+                    isSelectionMode = false
+                    android.widget.Toast.makeText(
+                        context,
+                        "已删除 $count 张照片",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }) {
+                    Text("删除", color = DesignSystem.Colors.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBatchDeleteConfirm = false }) {
+                    Text("取消", color = DesignSystem.Colors.textSecondary())
+                }
+            },
+            containerColor = DesignSystem.Colors.backgroundPrimary(),
+            titleContentColor = DesignSystem.Colors.textPrimary(),
+            textContentColor = DesignSystem.Colors.textSecondary()
         )
     }
 }
@@ -644,6 +686,8 @@ private fun PhotoDetailDialog(
 
     var currentRating by remember { mutableIntStateOf(record.rating) }
     var isFlagged by remember { mutableStateOf(record.flag) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     val dateFormat = remember { SimpleDateFormat("yyyy年M月d日 HH:mm", Locale.CHINA) }
 
@@ -746,7 +790,7 @@ private fun PhotoDetailDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDelete) {
+            TextButton(onClick = { showDeleteConfirm = true }) {
                 Text("删除", color = DesignSystem.Colors.error)
             }
         },
@@ -756,6 +800,39 @@ private fun PhotoDetailDialog(
             }
         }
     )
+
+    // v1.1.7: 删除确认对话框 - 防止误删
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = {
+                Text("删除照片", color = DesignSystem.Colors.textPrimary())
+            },
+            text = {
+                Text(
+                    "确定要删除这张照片吗？此操作不可恢复。",
+                    color = DesignSystem.Colors.textSecondary()
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteConfirm = false
+                    onDelete()
+                    android.widget.Toast.makeText(context, "照片已删除", android.widget.Toast.LENGTH_SHORT).show()
+                }) {
+                    Text("删除", color = DesignSystem.Colors.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("取消", color = DesignSystem.Colors.textSecondary())
+                }
+            },
+            containerColor = DesignSystem.Colors.backgroundPrimary(),
+            titleContentColor = DesignSystem.Colors.textPrimary(),
+            textContentColor = DesignSystem.Colors.textSecondary()
+        )
+    }
 }
 
 @Composable

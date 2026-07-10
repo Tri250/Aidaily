@@ -28,6 +28,14 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 /**
+ * 拍照结果封装
+ */
+sealed class PhotoCaptureResult {
+    object Success : PhotoCaptureResult()
+    data class Error(val message: String) : PhotoCaptureResult()
+}
+
+/**
  * 拍摄功能 ViewModel
  */
 class CaptureViewModel(application: Application) : AndroidViewModel(application) {
@@ -106,6 +114,9 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
     val isSwitchingCamera = MutableStateFlow(false)
     val isCompositionPipelineEnabled = MutableStateFlow(false)
 
+    private val _photoCaptureResult = MutableStateFlow<PhotoCaptureResult?>(null)
+    val photoCaptureResult: StateFlow<PhotoCaptureResult?> = _photoCaptureResult.asStateFlow()
+
     var onCaptureTriggered: (() -> Unit)? = null
 
     // Computed
@@ -171,7 +182,14 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun capturePhoto() {
-        camera.capturePhoto()
+        viewModelScope.launch {
+            try {
+                camera.capturePhoto()
+                // 成功结果通过 setupCallbacks 中的 onPhotoDataReady 回调发出
+            } catch (e: Exception) {
+                _photoCaptureResult.value = PhotoCaptureResult.Error(e.message ?: "拍照失败")
+            }
+        }
     }
 
     fun selectZoomPreset(preset: ZoomPreset) {
@@ -379,6 +397,7 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
         }
         camera.onPhotoDataReady = { data ->
             storage.savePhoto(data, detectionMode.displayName)
+            _photoCaptureResult.value = PhotoCaptureResult.Success
         }
     }
 

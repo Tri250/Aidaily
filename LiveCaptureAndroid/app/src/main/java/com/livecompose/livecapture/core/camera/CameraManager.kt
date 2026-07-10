@@ -469,9 +469,10 @@ class CameraManager(private val context: Context) {
      * 切换前后摄像头
      */
     fun toggleCameraPosition() {
-        val newId = if (cameraId == "0") "1" else "0"
-        closeCamera()
-        openCamera(newId)
+        if (isDestroyed) return
+        val newCameraId = if (isFrontCamera) "0" else "1"
+        AppLogger.d(TAG, "切换摄像头: $cameraId -> $newCameraId")
+        openCamera(newCameraId)
     }
 
     /**
