@@ -13,6 +13,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -451,7 +452,7 @@ fun CaptureScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .padding(
-                    horizontal = if (isExpandedScreen) 48.dp else DesignSystem.Dimensions.previewMarginHorizontal,
+                    horizontal = if (isExpandedScreen) 12.dp else 12.dp,
                     vertical = DesignSystem.Dimensions.previewMarginTop
                 )
         ) {
@@ -460,7 +461,7 @@ fun CaptureScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .clip(RoundedCornerShape(DesignSystem.CornerRadius.preview))
+                    .clip(RoundedCornerShape(20.dp))
                     .background(DesignSystem.Colors.minimalSurface)
                     // 手势检测移至预览区内部，解决与底部控制按钮的手势冲突
                     .pointerInput(Unit) {
@@ -534,6 +535,16 @@ fun CaptureScreen(
                 // 网格线
                 if (isGridEnabled && cameraError == null) {
                     GridOverlayView(mode = gridMode)
+                }
+
+                // AI场景识别标签 - 顶部半透显示
+                if (aiSceneName.isNotEmpty() && aiSceneType.isNotEmpty() && cameraError == null) {
+                    AiSceneLabel(
+                        sceneName = aiSceneName,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 8.dp)
+                    )
                 }
 
                 // 水平仪
@@ -1771,6 +1782,51 @@ private fun ZoomPresetBar2026(
  * Beta | 构图框 | 魔法棒 | 3:4 | 翻转
  */
 @Composable
+/**
+ * AI场景识别标签 - 顶部半透显示当前识别的场景
+ * 对标 OPPO Find X9 哈苏大师的 AI 场景识别标签
+ * 绿点脉动 = 正在分析，常亮 = 已识别
+ */
+@Composable
+private fun AiSceneLabel(
+    sceneName: String,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "aiPulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "aiPulse"
+    )
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.Black.copy(alpha = 0.55f))
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Canvas(modifier = Modifier.size(6.dp)) {
+                drawCircle(
+                    color = Color(0xFF5DA87A).copy(alpha = pulseAlpha),
+                    radius = 3.dp.toPx()
+                )
+            }
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                sceneName,
+                color = Color.White.copy(alpha = 0.9f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
 private fun ToolIconRow(
     isGridEnabled: Boolean,
     onToggleGrid: () -> Unit,

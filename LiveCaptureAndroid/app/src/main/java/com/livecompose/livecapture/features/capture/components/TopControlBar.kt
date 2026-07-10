@@ -1,6 +1,7 @@
 package com.livecompose.livecapture.features.capture.components
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -32,7 +33,11 @@ fun TopControlBar(
     onToggleDebug: () -> Unit,
     onToggleCamera: () -> Unit,
     onToggleAutoCapture: () -> Unit,
-    onSetCaptureDelay: (Double) -> Unit
+    onSetCaptureDelay: (Double) -> Unit,
+    // [v1.1.7] AI场景识别标签
+    aiSceneName: String = "",
+    isAiActive: Boolean = false,
+    onAiSceneClick: () -> Unit = {}
 ) {
     var showCaptureMenu by remember { mutableStateOf(false) }
 
@@ -51,8 +56,34 @@ fun TopControlBar(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // 中间引导文字
-        if (userGuidanceText.isNotEmpty()) {
+        // 中间区域 - AI场景标签（优先显示）或引导文字
+        if (aiSceneName.isNotEmpty() && isAiActive) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0x4D000000))
+                    .clickable { onAiSceneClick() }
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // AI 脉动圆点
+                    Canvas(modifier = Modifier.size(6.dp)) {
+                        drawCircle(
+                            color = Color(0xFF5DA87A),
+                            radius = 3.dp.toPx()
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        aiSceneName,
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        } else if (userGuidanceText.isNotEmpty()) {
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))

@@ -262,8 +262,8 @@ object DesignSystem {
 
         // 底部功能图标标签
         val toolLabel = TextStyle(
-            fontSize = 10.sp, fontWeight = FontWeight.Medium, fontFamily = defaultFamily,
-            letterSpacing = 0.3f.sp, lineHeight = 12.sp
+            fontSize = 11.sp, fontWeight = FontWeight.Medium, fontFamily = defaultFamily,
+            letterSpacing = 0.3f.sp, lineHeight = 13.sp
         )
 
         // 底部导航标签

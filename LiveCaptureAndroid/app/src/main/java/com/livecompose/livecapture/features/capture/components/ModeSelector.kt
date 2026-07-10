@@ -155,12 +155,12 @@ private fun ModeCard(
     Box(
         modifier = Modifier
             .width(72.dp)
-            .height(56.dp)
+            .height(48.dp)
             .scale(scaleValue)
             .then(
                 if (isSelected) {
                     Modifier.shadow(
-                        elevation = 8.dp,
+                        elevation = 12.dp,
                         shape = cardShape,
                         ambientColor = mode.accentColor.copy(alpha = 0.3f),
                         spotColor = mode.accentColor.copy(alpha = 0.3f)

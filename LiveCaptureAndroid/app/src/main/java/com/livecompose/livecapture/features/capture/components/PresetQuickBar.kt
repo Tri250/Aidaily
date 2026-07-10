@@ -168,7 +168,7 @@ private fun PresetChip(
         Text(
             name,
             color = textColor,
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

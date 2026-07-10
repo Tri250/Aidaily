@@ -59,7 +59,7 @@ fun BottomSection(
                         DesignSystem.Colors.minimalBackground.copy(alpha = 0.6f),
                         DesignSystem.Colors.minimalBackground.copy(alpha = 0.9f)
                     ),
-                    startY = -100f,
+                    startY = -150f,
                     endY = Float.POSITIVE_INFINITY
                 )
             )
@@ -173,7 +173,7 @@ private fun ZoomControlBar(
                         )
                         Text(
                             preset.focalLengthLabel,
-                            fontSize = 10.sp,
+                            fontSize = 11.sp,
                             color = DesignSystem.Colors.minimalSecondaryLabel
                         )
                     }
@@ -199,7 +199,7 @@ private fun ZoomControlBar(
                     onZoomDragEnd(sliderPosition)
                 },
                 valueRange = zoomRange.start..zoomRange.endInclusive,
-                modifier = Modifier.fillMaxWidth(0.7f),
+                modifier = Modifier.fillMaxWidth(0.85f),
                 colors = SliderDefaults.colors(
                     thumbColor = DesignSystem.Colors.minimalLabel,
                     activeTrackColor = DesignSystem.Colors.minimalLabel,
