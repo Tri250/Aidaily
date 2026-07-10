@@ -10,8 +10,8 @@ android {
     compileSdk = 35
 
     lint {
-        abortOnError = false
-        checkReleaseBuilds = false
+        abortOnError = true
+        checkReleaseBuilds = true
     }
 
     defaultConfig {
@@ -29,8 +29,8 @@ android {
         buildConfigField("String", "WECHAT_APP_ID", "\"${project.findProperty("WECHAT_APP_ID") as? String ?: ""}\"")
 
         ndk {
-            // 仅保留 arm64-v8a，进一步降低构建内存消耗
-            abiFilters += listOf("arm64-v8a")
+            // arm64-v8a (主流设备) + x86_64 (模拟器兼容)
+            abiFilters += listOf("arm64-v8a", "x86_64")
         }
     }
 
@@ -57,8 +57,8 @@ android {
             versionNameSuffix = "-debug"
         }
         release {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
