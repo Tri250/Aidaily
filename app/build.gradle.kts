@@ -13,8 +13,8 @@ android {
         applicationId = "com.livecompose.livecapture"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -22,9 +22,21 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            // Release 签名配置 — 从环境变量读取，避免密钥泄露
+            storeFile = file(System.getenv("KEYSTORE_PATH") ?: "release.keystore")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "livecapture"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "livecapture"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "livecapture"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

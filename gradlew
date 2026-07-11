@@ -1,10 +1,10 @@
 #!/bin/sh
 
 #
-# Gradle start up script for UN*X
+# Gradle start up script for POSIX
 #
 
-# Resolve links: $0 may be a link
+# Attempt to set APP_HOME
 PRG="$0"
 # Need this for relative symlinks.
 while [ -h "$PRG" ] ; do
@@ -24,7 +24,7 @@ cd "$SAVED" >/dev/null
 APP_NAME="Gradle"
 APP_BASE_NAME=`basename "$0"`
 
-# Add default JVM options here.
+# Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
 DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
 
 # Use the maximum available, or set MAX_FD != -1 to use that value.
@@ -41,7 +41,7 @@ die () {
     exit 1
 }
 
-# OS specific support
+# OS specific support (must be 'true' or 'false').
 cygwin=false
 msys=false
 darwin=false
@@ -53,10 +53,10 @@ case "`uname`" in
   Darwin* )
     darwin=true
     ;;
-  MINGW* )
+  MSYS* | MINGW* )
     msys=true
     ;;
-  NONSTOP* )
+  NonStop* )
     nonstop=true
     ;;
 esac
@@ -66,23 +66,16 @@ CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
 # Determine the Java command to use to start the JVM.
 if [ -n "$JAVA_HOME" ] ; then
     if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
-        # IBM's JDK on AIX uses strange locations for the executables
         JAVACMD="$JAVA_HOME/jre/sh/java"
     else
         JAVACMD="$JAVA_HOME/bin/java"
     fi
     if [ ! -x "$JAVACMD" ] ; then
-        die "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
-
-Please set the JAVA_HOME variable in your environment to match the
-location of your Java installation."
+        die "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME"
     fi
 else
     JAVACMD="java"
     which java >/dev/null 2>&1 || die "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH."
-
-Please set the JAVA_HOME variable in your environment to match the
-location of your Java installation."
 fi
 
 # Increase the maximum file descriptors if we can.
@@ -101,44 +94,40 @@ if [ "$cygwin" = "false" -a "$darwin" = "false" -a "$nonstop" = "false" ] ; then
     fi
 fi
 
-# For Darwin, add options to specify how the application appears in the dock
-if $darwin; then
-    GRADLE_OPTS="$GRADLE_OPTS \"-Xdock:name=$APP_NAME\" \"-Xdock:icon=$APP_HOME/media/gradle.icns\""
-fi
-
-# For Cygwin, switch paths to Windows format before running java
-if $cygwin ; then
+# For Cygwin or MSYS, switch paths to Windows format before running java
+if [ "$cygwin" = "true" -o "$msys" = "true" ] ; then
     APP_HOME=`cygpath --path --mixed "$APP_HOME"`
     CLASSPATH=`cygpath --path --mixed "$CLASSPATH"`
     JAVACMD=`cygpath --unix "$JAVACMD"`
+fi
 
-    # We build the pattern for arguments to be converted via cygpath
-    ROOTDIRSRAW=`find -L / -maxdepth 1 -mindepth 1 -type d 2>/dev/null`
-    SEP=""
-    for dir in $ROOTDIRSRAW ; do
-        ROOTDIRS="$ROOTDIRS$SEP$dir"
-        SEP="|"
-    done
-    OURCYGPATTERN="(^($ROOTDIRS))"
-    # Add a user-defined pattern as well
-    OURCYGPATTERN="$OURCYGPATTERN|(${CYGPATTERN:-})"
-    # Now convert the arguments - kludge to limit ourselves to /bin/sh
-    for arg do
-        if [ `echo $arg | cut -c1-2` = -J ] ; then
-            # skip -J options
-            continue
-        fi
-        if [ `echo $arg | grep -E -c "$OURCYGPATTERN"` -gt 0 ] ; then
-            arg=`cygpath --path --mixed "$arg"`
-        fi
-        # escape spaces
-        arg=`echo "$arg" | sed -e 's/ /\\ /g'`
-        set -- "$@" "$arg"
-    done
+# Collect all arguments for the java command;
+#   * $DEFAULT_JVM_OPTS, $JAVA_OPTS, and $GRADLE_OPTS can contain fragments of
+#     shell script including quotes and variable substitutions, so put them in
+#     double quotes to make sure that they get re-expanded; and
+#   * put everything else in single quotes, so that it's not re-expanded.
+
+set -- \
+        "-Dorg.gradle.appname=$APP_BASE_NAME" \
+        -classpath "$CLASSPATH" \
+        org.gradle.wrapper.GradleWrapperMain \
+        "$@"
+
+# Stop when "xeli" is on the command line; just use the Xeli JVM options
+if [ "$1" = "xeli" ] ; then
     shift
 fi
 
-# Collect all arguments for the java command
-eval set -- $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS "\"-Dorg.gradle.appname=$APP_BASE_NAME\"" -classpath "\"$CLASSPATH\"" org.gradle.wrapper.GradleWrapperMain "$@"
+# Use "xeli" to pass JVM options to the wrapper
+if [ "$1" = "xeli" ] ; then
+    shift
+fi
+
+eval "set -- $(
+        printf '%s\n' "$DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS" |
+        xargs -n1 |
+        sed ' s~[^-4]~\\&~g; ' |
+        tr '\n' ' '
+    )" '"$@"'
 
 exec "$JAVACMD" "$@"
