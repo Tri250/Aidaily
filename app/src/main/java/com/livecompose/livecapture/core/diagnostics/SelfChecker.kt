@@ -111,15 +111,12 @@ class SelfChecker @Inject constructor(
         }
 
         // 检查 NNAPI 可用性 (TensorFlow Lite 硬件加速)
-        val nnapiAvailable = try {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && 
-            android.os.SystemProperties.getInt("ro.nnapi.extensions.allow", 0) >= 0
-        } catch (e: Exception) {
-            false
-        }
+        // NNAPI 在 Android 8.1+ (API 27) 引入，Android 9+ (API 28) 正式可用
+        // SystemProperties 是隐藏 API，在 Android 9+ 受限，改用 SDK 版本判断
+        val nnapiAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
         items.add(CheckItem("引擎", "NNAPI 硬件加速", 
-            if (nnapiAvailable || Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) CheckStatus.PASS else CheckStatus.WARN,
-            if (nnapiAvailable) "支持" else "可能不可用，将使用 CPU 回退"))
+            if (nnapiAvailable) CheckStatus.PASS else CheckStatus.WARN,
+            if (nnapiAvailable) "Android 9+ 支持" else "Android 8.x 不可用，将使用 CPU 回退"))
 
         return items
     }

@@ -33,7 +33,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            isDebuggable = true
+        }
         release {
+            isDebuggable = false
             isMinifyEnabled = true
             isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
@@ -42,6 +46,16 @@ android {
                 "proguard-rules.pro"
             )
         }
+    }
+    lint {
+        checkReleaseBuilds = true
+        abortOnError = true
+        warningsAsErrors = true
+        disable.add("UnusedResources") // Compose 资源引用可能被 lint 误报
+    }
+    ndk {
+        // 仅保留主流 ABI，减小 APK 体积
+        abiFilters += listOf("arm64-v8a", "armeabi-v7a")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
