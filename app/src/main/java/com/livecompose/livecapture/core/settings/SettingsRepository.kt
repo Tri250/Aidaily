@@ -25,6 +25,8 @@ class SettingsRepository @Inject constructor(
         val CAPTURE_DELAY = intPreferencesKey("capture_delay")
         val DARK_THEME = booleanPreferencesKey("dark_theme")
         val TORCH_ENABLED = booleanPreferencesKey("torch_enabled")
+        val PRIVACY_CONSENTED = booleanPreferencesKey("privacy_consented")
+        val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     }
 
     val detectionMode: Flow<String> = context.dataStore.data.map { it[DETECTION_MODE] ?: "FAST" }
@@ -32,6 +34,8 @@ class SettingsRepository @Inject constructor(
     val captureDelay: Flow<Int> = context.dataStore.data.map { it[CAPTURE_DELAY] ?: 0 }
     val darkTheme: Flow<Boolean> = context.dataStore.data.map { it[DARK_THEME] ?: true }
     val torchEnabled: Flow<Boolean> = context.dataStore.data.map { it[TORCH_ENABLED] ?: false }
+    val privacyConsented: Flow<Boolean> = context.dataStore.data.map { it[PRIVACY_CONSENTED] ?: false }
+    val onboardingCompleted: Flow<Boolean> = context.dataStore.data.map { it[ONBOARDING_COMPLETED] ?: false }
 
     suspend fun setDetectionMode(mode: String) {
         context.dataStore.edit { it[DETECTION_MODE] = mode }
@@ -51,5 +55,13 @@ class SettingsRepository @Inject constructor(
 
     suspend fun setTorchEnabled(enabled: Boolean) {
         context.dataStore.edit { it[TORCH_ENABLED] = enabled }
+    }
+
+    suspend fun setPrivacyConsented(consented: Boolean) {
+        context.dataStore.edit { it[PRIVACY_CONSENTED] = consented }
+    }
+
+    suspend fun setOnboardingCompleted(completed: Boolean) {
+        context.dataStore.edit { it[ONBOARDING_COMPLETED] = completed }
     }
 }

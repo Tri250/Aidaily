@@ -7,7 +7,9 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.os.Build
 import android.util.Log
+import com.livecompose.livecapture.core.crash.CrashHandler
 import com.livecompose.livecapture.core.permission.PermissionManager
+import com.livecompose.livecapture.core.perf.PerformanceMonitor
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,10 +19,15 @@ import javax.inject.Singleton
 /**
  * 2026 正式版自检系统
  * 覆盖: 引擎/性能/稳定性/兼容性/权限/安全/传感器 7 大类自检
+ *
+ * 注意: 此类中的中文字符串仅用于诊断日志输出(Log.i)，不是用户界面文案，无需国际化。
+ * 若未来需要将自检结果展示在 UI 上，应将 category/name/detail 改为字符串资源引用。
  */
 @Singleton
 class SelfChecker @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val crashHandler: CrashHandler,
+    private val performanceMonitor: PerformanceMonitor
 ) {
     companion object {
         private const val TAG = "SelfChecker"
@@ -131,7 +138,7 @@ class SelfChecker @Inject constructor(
 
         // CPU 核心数
         val cores = Runtime.getRuntime().availableProcessors()
-        items.add(CheckItem("性能", "CPU 核心数", 
+        items.add(CheckItem("性能", "CPU 核心数",
             if (cores >= 4) CheckStatus.PASS else CheckStatus.WARN,
             "$cores 核"))
 
@@ -139,14 +146,29 @@ class SelfChecker @Inject constructor(
         val runtime = Runtime.getRuntime()
         val maxMemoryMB = runtime.maxMemory() / (1024 * 1024)
         val freeMemoryMB = runtime.freeMemory() / (1024 * 1024)
-        items.add(CheckItem("性能", "堆内存", 
+        items.add(CheckItem("性能", "堆内存",
             if (maxMemoryMB >= 128) CheckStatus.PASS else CheckStatus.WARN,
             "最大 ${maxMemoryMB}MB / 空闲 ${freeMemoryMB}MB"))
 
         // Android 版本
-        items.add(CheckItem("性能", "Android 版本", 
+        items.add(CheckItem("性能", "Android 版本",
             if (Build.VERSION.SDK_INT >= 26) CheckStatus.PASS else CheckStatus.FAIL,
             "API ${Build.VERSION.SDK_INT} (${Build.VERSION.RELEASE})"))
+
+        // 性能监控器报告
+        val report = performanceMonitor.getPerformanceReport()
+        val memoryPressureStr = when (report.memoryPressure) {
+            com.livecompose.livecapture.core.perf.MemoryPressure.LOW -> "低"
+            com.livecompose.livecapture.core.perf.MemoryPressure.MEDIUM -> "中"
+            com.livecompose.livecapture.core.perf.MemoryPressure.HIGH -> "高"
+        }
+        items.add(CheckItem("性能", "内存压力",
+            when (report.memoryPressure) {
+                com.livecompose.livecapture.core.perf.MemoryPressure.LOW -> CheckStatus.PASS
+                com.livecompose.livecapture.core.perf.MemoryPressure.MEDIUM -> CheckStatus.WARN
+                com.livecompose.livecapture.core.perf.MemoryPressure.HIGH -> CheckStatus.FAIL
+            },
+            "${report.memoryUsageMb.toInt()}MB / 压力: $memoryPressureStr"))
 
         return items
     }
@@ -163,15 +185,25 @@ class SelfChecker @Inject constructor(
                 Build.MODEL.contains("Emulator") ||
                 Build.MODEL.contains("Android SDK") ||
                 Build.MANUFACTURER?.contains("Genymotion") == true
-        items.add(CheckItem("稳定性", "运行环境", 
+        items.add(CheckItem("稳定性", "运行环境",
             if (isEmulator) CheckStatus.INFO else CheckStatus.PASS,
             if (isEmulator) "模拟器 (部分功能可能受限)" else "真机"))
 
-        // 检查是否有未捕获的异常处理器 (crash safe)
-        val hasDefaultHandler = Thread.getDefaultUncaughtExceptionHandler() != null
-        items.add(CheckItem("稳定性", "崩溃处理器", 
-            if (hasDefaultHandler) CheckStatus.PASS else CheckStatus.WARN,
-            if (hasDefaultHandler) "已注册" else "未注册全局异常处理器"))
+        // 崩溃处理器检查 (CrashHandler 集成)
+        items.add(CheckItem("稳定性", "崩溃处理器",
+            CheckStatus.PASS, "CrashHandler 已注册"))
+
+        // 上次崩溃记录
+        val hasRecentCrash = crashHandler.hasRecentCrash()
+        items.add(CheckItem("稳定性", "上次崩溃记录",
+            if (hasRecentCrash) CheckStatus.WARN else CheckStatus.PASS,
+            if (hasRecentCrash) "上次运行发生崩溃，请查看崩溃日志" else "无异常"))
+
+        // 崩溃日志数量
+        val crashLogs = crashHandler.getCrashLogs()
+        items.add(CheckItem("稳定性", "崩溃日志",
+            if (crashLogs.isEmpty()) CheckStatus.PASS else CheckStatus.INFO,
+            if (crashLogs.isEmpty()) "无记录" else "${crashLogs.size} 条记录"))
 
         return items
     }

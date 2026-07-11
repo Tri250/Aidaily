@@ -102,7 +102,7 @@ class CameraManager @Inject constructor(
                 bindCameraUseCases(lifecycleOwner, previewView, useFrontCamera)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start camera", e)
-                _errorMessage.value = "相机启动失败"
+                _errorMessage.value = "相机启动失败" // TODO(i18n): R.string.camera_error_start_failed
             }
         }, ContextCompat.getMainExecutor(context))
     }
@@ -113,7 +113,7 @@ class CameraManager @Inject constructor(
         useFrontCamera: Boolean
     ) {
         val provider = cameraProvider ?: run {
-            _errorMessage.value = "CameraProvider 未初始化"
+            _errorMessage.value = "CameraProvider 未初始化" // TODO(i18n): R.string.camera_error_provider_not_init
             return
         }
 
@@ -126,7 +126,7 @@ class CameraManager @Inject constructor(
         // 切换前检查目标相机是否存在，避免无前置摄像头设备绑定失败
         try {
             if (!provider.hasCamera(cameraSelector)) {
-                _errorMessage.value = if (useFrontCamera) "设备无前置摄像头" else "设备无后置摄像头"
+                _errorMessage.value = if (useFrontCamera) "设备无前置摄像头" else "设备无后置摄像头" // TODO(i18n): R.string.camera_error_no_front_camera / R.string.camera_error_no_back_camera
                 return
             }
         } catch (e: Exception) {
@@ -214,7 +214,7 @@ class CameraManager @Inject constructor(
             Log.d(TAG, "Camera bound successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Use case binding failed", e)
-            _errorMessage.value = "相机绑定失败"
+            _errorMessage.value = "相机绑定失败" // TODO(i18n): R.string.camera_error_binding_failed
             _isCameraReady.value = false
         }
     }

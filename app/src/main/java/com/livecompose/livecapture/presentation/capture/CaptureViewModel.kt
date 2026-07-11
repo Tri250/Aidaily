@@ -60,6 +60,7 @@ class CaptureViewModel @Inject constructor(
     private val _pipelineStage = MutableStateFlow(PipelineStage.IDLE)
     val pipelineStage: StateFlow<PipelineStage> = _pipelineStage
 
+    // TODO(i18n): 初始值应使用 R.string.guidance_idle — 需引入 StringResourceResolver
     private val _guidanceText = MutableStateFlow("准备拍摄")
     val guidanceText: StateFlow<String> = _guidanceText
 
@@ -326,32 +327,38 @@ class CaptureViewModel @Inject constructor(
         }
     }
 
+    // TODO(i18n): 引导文案在 ViewModel 中硬编码，无法直接使用 stringResource。应引入 StringResourceResolver 接口，
+    //   由 Composable 层提供 context.getString() 实现，实现完整国际化。
+    //   对应字符串资源: R.string.capture_guidance_*
     private fun updateGuidanceText(stage: PipelineStage) {
         _guidanceText.value = when (stage) {
-            PipelineStage.IDLE -> "准备拍摄"
-            PipelineStage.STARTING_CAMERA -> "启动相机中..."
-            PipelineStage.WAITING_FOR_STABILITY -> "请保持手机稳定"
-            PipelineStage.DETECTING_REGION -> "AI 分析画面中..."
-            PipelineStage.TEMPLATE_READY -> "跟随指引移动手机"
+            PipelineStage.IDLE -> "准备拍摄" // R.string.capture_guidance_idle
+            PipelineStage.STARTING_CAMERA -> "启动相机中..." // R.string.capture_guidance_starting
+            PipelineStage.WAITING_FOR_STABILITY -> "请保持手机稳定" // R.string.capture_guidance_wait_stability
+            PipelineStage.DETECTING_REGION -> "AI 分析画面中..." // R.string.capture_guidance_detecting
+            PipelineStage.TEMPLATE_READY -> "跟随指引移动手机" // R.string.capture_guidance_template_ready
             PipelineStage.READY_TO_CAPTURE -> {
                 // 根据 autoCapture 设置显示不同文案
                 if (autoCaptureEnabled) "即将自动拍摄" else "对齐完美，点击拍摄"
+                // R.string.capture_guidance_ready_auto / R.string.capture_guidance_ready_manual
             }
-            PipelineStage.CAPTURING_PHOTO -> "拍摄中..."
-            PipelineStage.SAVING_PHOTO -> "保存中..."
-            PipelineStage.ERROR -> "发生错误，请重试"
+            PipelineStage.CAPTURING_PHOTO -> "拍摄中..." // R.string.capture_guidance_capturing
+            PipelineStage.SAVING_PHOTO -> "保存中..." // R.string.capture_guidance_saving
+            PipelineStage.ERROR -> "发生错误，请重试" // R.string.capture_guidance_error
         }
     }
 
+    // TODO(i18n): 动作引导文案在 ViewModel 中硬编码，应使用 StringResourceResolver。
+    //   对应字符串资源: R.string.capture_guidance_move_* / R.string.capture_guidance_hold
     private fun updateGuidanceByAction(action: CompositionResult.ActionType) {
         _guidanceText.value = when (action) {
-            CompositionResult.ActionType.LEFT -> "向左移动"
-            CompositionResult.ActionType.RIGHT -> "向右移动"
-            CompositionResult.ActionType.UP -> "向上移动"
-            CompositionResult.ActionType.DOWN -> "向下移动"
-            CompositionResult.ActionType.ZOOM_IN -> "靠近一些"
-            CompositionResult.ActionType.ZOOM_OUT -> "远离一些"
-            CompositionResult.ActionType.STOP -> "保持不动"
+            CompositionResult.ActionType.LEFT -> "向左移动" // R.string.capture_guidance_move_left
+            CompositionResult.ActionType.RIGHT -> "向右移动" // R.string.capture_guidance_move_right
+            CompositionResult.ActionType.UP -> "向上移动" // R.string.capture_guidance_move_up
+            CompositionResult.ActionType.DOWN -> "向下移动" // R.string.capture_guidance_move_down
+            CompositionResult.ActionType.ZOOM_IN -> "靠近一些" // R.string.capture_guidance_zoom_in
+            CompositionResult.ActionType.ZOOM_OUT -> "远离一些" // R.string.capture_guidance_zoom_out
+            CompositionResult.ActionType.STOP -> "保持不动" // R.string.capture_guidance_hold
         }
     }
 
@@ -363,7 +370,7 @@ class CaptureViewModel @Inject constructor(
         autoCaptureJob = viewModelScope.launch {
             try {
                 if (delaySeconds > 0) {
-                    _guidanceText.value = "${delaySeconds} 秒后拍摄..."
+                    _guidanceText.value = "${delaySeconds} 秒后拍摄..." // TODO(i18n): R.string.capture_guidance_delay_countdown
                     delay(delaySeconds * 1000L)
                 }
 

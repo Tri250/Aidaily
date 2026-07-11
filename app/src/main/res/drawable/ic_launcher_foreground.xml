@@ -2,9 +2,31 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M38,42 L70,42 L70,70 L38,70 Z M42,46 L66,46 L66,66 L42,66 Z M52,50 L56,50 L56,58 L52,58 Z" />
+    android:viewportWidth="162"
+    android:viewportHeight="162">
+    <!-- Camera icon as foreground with proper safe zone (108dp icon area centered in 162dp) -->
+    <group
+        android:translateX="27"
+        android:translateY="27">
+        <!-- Camera body -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M24,38 L84,38 Q90,38 90,44 L90,80 Q90,86 84,86 L24,86 Q18,86 18,80 L18,44 Q18,38 24,38 Z" />
+        <!-- Camera top bump (flash/housing) -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M38,38 L42,30 Q43,28 45,28 L63,28 Q65,28 66,30 L70,38 Z" />
+        <!-- Lens outer ring -->
+        <path
+            android:fillColor="#2196F3"
+            android:pathData="M54,48 A16,16 0 1,1 54,80 A16,16 0 1,1 54,48 Z" />
+        <!-- Lens inner circle -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,52 A12,12 0 1,1 54,76 A12,12 0 1,1 54,52 Z" />
+        <!-- Lens reflection highlight -->
+        <path
+            android:fillColor="#2196F3"
+            android:pathData="M54,56 A8,8 0 1,1 54,72 A8,8 0 1,1 54,56 Z" />
+    </group>
 </vector>

@@ -2,8 +2,10 @@ package com.livecompose.livecapture
 
 import android.app.Application
 import com.livecompose.livecapture.core.camera.CameraManager
+import com.livecompose.livecapture.core.crash.CrashHandler
 import com.livecompose.livecapture.core.detection.AdacropInferenceEngine
 import com.livecompose.livecapture.core.diagnostics.SelfChecker
+import com.livecompose.livecapture.core.perf.PerformanceMonitor
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -19,6 +21,12 @@ class LiveCaptureApp : Application() {
     @Inject
     lateinit var selfChecker: SelfChecker
 
+    @Inject
+    lateinit var crashHandler: CrashHandler
+
+    @Inject
+    lateinit var performanceMonitor: PerformanceMonitor
+
     companion object {
         @Volatile
         private var resourcesReleased = false
@@ -26,6 +34,8 @@ class LiveCaptureApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // 初始化崩溃处理器
+        crashHandler.init()
         // 启动时执行全量自检，输出诊断日志
         selfChecker.runFullCheck()
     }

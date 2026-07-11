@@ -35,9 +35,12 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.LiveCapture"
+            android:theme="@style/Theme.LiveCapture.SplashScreen"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden"
             android:screenOrientation="fullSensor">
+            <meta-data
+                android:name="android.app.splash_screen_theme"
+                android:resource="@style/Theme.LiveCapture.SplashScreen" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

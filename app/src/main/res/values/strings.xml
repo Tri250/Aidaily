@@ -1,17 +1,51 @@
 <resources>
     <string name="app_name">构妙 LiveCapture</string>
+
+    <!-- Tab labels -->
     <string name="tab_compose">构妙</string>
     <string name="tab_home">图库</string>
     <string name="tab_capture">拍摄</string>
     <string name="tab_settings">设置</string>
+
+    <!-- Capture screen: permission -->
+    <string name="capture_permission_required">需要相机权限</string>
+    <string name="capture_permission_rationale">构妙 LiveCapture 需要相机权限来实现实时构图辅助拍摄，请授权使用相机。</string>
+    <string name="capture_permission_denied_permanently">相机权限已被永久拒绝，请在设置中手动开启权限后返回。</string>
+    <string name="capture_grant_permission">授予权限</string>
+    <string name="capture_open_settings">打开设置</string>
+
+    <!-- Capture screen: error -->
+    <string name="capture_error_title">发生错误</string>
+    <string name="capture_error_default_message">拍摄流程发生错误</string>
+    <string name="capture_retry">重试</string>
+    <string name="camera_error_start_failed">相机启动失败</string>
+    <string name="camera_error_provider_not_init">CameraProvider 未初始化</string>
+    <string name="camera_error_no_front_camera">设备无前置摄像头</string>
+    <string name="camera_error_no_back_camera">设备无后置摄像头</string>
+    <string name="camera_error_binding_failed">相机绑定失败</string>
+
+    <!-- Capture screen: loading -->
+    <string name="capture_starting_camera">启动相机中...</string>
+    <string name="capture_loading_model">加载 AI 模型中...</string>
+    <string name="capture_model_load_failed">AI 模型加载失败，使用默认构图</string>
+    <string name="capture_model_loading">AI 模型加载中...</string>
+
+    <!-- Capture screen: overlay -->
+    <string name="capture_score_format">评分 %.2f</string>
+    <string name="capture_aligned_perfect">对齐完美！</string>
+    <string name="capture_close">关闭</string>
+
+    <!-- Capture guidance (ViewModel, non-Composable context) -->
     <string name="guidance_idle">准备拍摄</string>
     <string name="guidance_starting">启动相机中...</string>
     <string name="guidance_wait_stability">请保持手机稳定</string>
     <string name="guidance_detecting">AI 分析画面中...</string>
     <string name="guidance_template_ready">跟随指引移动手机</string>
     <string name="guidance_ready_capture">即将自动拍摄</string>
+    <string name="capture_guidance_ready_manual">对齐完美，点击拍摄</string>
     <string name="guidance_capturing">拍摄中...</string>
     <string name="guidance_saving">保存中...</string>
+    <string name="capture_guidance_error">发生错误，请重试</string>
     <string name="guidance_move_left">向左移动</string>
     <string name="guidance_move_right">向右移动</string>
     <string name="guidance_move_up">向上移动</string>
@@ -19,11 +53,290 @@
     <string name="guidance_zoom_in">靠近一些</string>
     <string name="guidance_zoom_out">远离一些</string>
     <string name="guidance_hold">保持不动</string>
+    <string name="capture_guidance_delay_countdown">%d 秒后拍摄...</string>
+
+    <!-- Home screen -->
+    <string name="home_empty_title">暂无照片\n开始拍摄你的第一张照片吧</string>
+    <string name="home_photo_detail">照片详情</string>
+    <string name="home_detail_time">时间</string>
+    <string name="home_detail_size">尺寸</string>
+    <string name="home_detail_size_format">%d x %d</string>
+    <string name="home_detail_shutter">快门</string>
+    <string name="home_detail_aperture">光圈</string>
+    <string name="home_detail_focal_length">焦距</string>
+    <string name="home_detail_aesthetic_score">美学评分</string>
+    <string name="home_detail_crop_region">裁切区域</string>
+    <string name="home_detail_crop_format">(%.2f, %.2f)</string>
+    <string name="home_close">关闭</string>
+    <string name="home_delete">删除</string>
+
+    <!-- LiveCompose screen -->
+    <string name="compose_brand_name">构妙</string>
+    <string name="compose_subtitle">你的 AI 摄影师</string>
+    <string name="compose_feature_ai_title">AI 实时构图分析</string>
+    <string name="compose_feature_ai_desc">基于强化学习模型，实时分析取景画面，计算最佳构图位置</string>
+    <string name="compose_feature_tracking_title">智能追踪引导</string>
+    <string name="compose_feature_tracking_desc">结合陀螺仪与磁性吸附，物理级流畅追踪引导</string>
+    <string name="compose_offline_ai">端侧 AI 离线运行，无需联网</string>
+    <string name="compose_model_info">模型: MobileNetV3-Small | 框架: TensorFlow Lite</string>
+
+    <!-- LiveCompose: Interactive demo -->
+    <string name="compose_demo_title">构图示例演示</string>
+    <string name="compose_demo_button">查看构图示例</string>
+    <string name="compose_demo_grid_label">三分法构图网格</string>
+    <string name="compose_demo_tracking_dot">演示追踪点</string>
+    <string name="compose_start_capture">开始拍摄</string>
+    <string name="compose_tips_section_title">构图技巧</string>
+    <string name="compose_tip_rule_of_thirds_title">三分法构图</string>
+    <string name="compose_tip_rule_of_thirds_desc">将画面横竖各三等分，主体放置在交叉点或线上，使画面更加和谐自然。</string>
+    <string name="compose_tip_center_title">中心构图</string>
+    <string name="compose_tip_center_desc">将主体放在画面正中央，突出主体的重要性，适合对称或庄重的场景。</string>
+    <string name="compose_tip_leading_lines_title">引导线构图</string>
+    <string name="compose_tip_leading_lines_desc">利用道路、河流等线条引导观者视线，营造纵深感和方向感。</string>
+    <string name="compose_tip_symmetry_title">对称构图</string>
+    <string name="compose_tip_symmetry_desc">利用水面、建筑等对称元素，创造平衡与秩序感，视觉冲击力强。</string>
+    <string name="compose_feature_ai_detail">AI 引擎会实时分析取景画面中的主体位置，结合三分法等经典构图规则，计算最佳构图方案。支持 Fast（轻量）和 Pro（高精度）两种模式。</string>
+    <string name="compose_feature_tracking_detail">追踪系统融合陀螺仪传感器数据，实现物理级别的流畅引导。当主体对齐到最佳构图位置时，追踪点会变为绿色并显示对齐标记。</string>
+    <string name="compose_feature_auto_capture_title">智能自动拍摄</string>
+    <string name="compose_feature_auto_capture_desc">对齐完美构图后自动按下快门，支持自定义延迟拍摄。</string>
+    <string name="compose_feature_auto_capture_detail">开启自动拍摄后，当 AI 检测到画面构图达到最佳状态时，会自动执行拍摄。也可设置延迟拍摄，给自己留出准备时间。</string>
+
+    <!-- Accessibility: Capture screen -->
+    <string name="a11y_camera_switch">切换前后摄像头</string>
+    <string name="a11y_flash_on">闪光灯已开启，点击关闭</string>
+    <string name="a11y_flash_off">闪光灯已关闭，点击开启</string>
+    <string name="a11y_flash_disabled">闪光灯不可用</string>
+    <string name="a11y_exposure">曝光补偿</string>
+    <string name="a11y_gallery">相册</string>
+    <string name="a11y_capture_button_enabled">拍摄按钮，可拍摄</string>
+    <string name="a11y_capture_button_disabled">拍摄按钮，不可拍摄</string>
+    <string name="a11y_tracking_dot_aligned">AI 构图追踪点，已对齐</string>
+    <string name="a11y_tracking_dot_not_aligned">AI 构图追踪点，未对齐</string>
+    <string name="a11y_zoom_button">缩放 %s</string>
+    <string name="a11y_zoom_button_selected">缩放 %s，已选中</string>
+    <string name="a11y_last_photo">最近拍摄的照片</string>
+    <string name="a11y_guidance_live_region">构图引导信息</string>
+
+    <!-- Accessibility: Home screen -->
+    <string name="a11y_photo_thumbnail">照片，拍摄于 %s</string>
+    <string name="a11y_photo_detail_image">照片详情</string>
+    <string name="a11y_delete_photo">删除照片</string>
+    <string name="a11y_delete_confirm">照片已删除</string>
+    <string name="a11y_photo_grid">照片网格</string>
+
+    <!-- Accessibility: Settings screen -->
+    <string name="a11y_switch_on">%s，已开启</string>
+    <string name="a11y_switch_off">%s，已关闭</string>
+    <string name="a11y_radio_selected">%s，已选中</string>
+    <string name="a11y_radio_not_selected">%s，未选中</string>
+    <string name="a11y_slider_label">%s，当前值 %s</string>
+
+    <!-- Accessibility: LiveCompose screen -->
+    <string name="a11y_compose_logo">构妙品牌标志</string>
+    <string name="a11y_compose_feature_card">功能卡片：%s</string>
+    <string name="a11y_compose_feature_card_expanded">功能卡片：%s，已展开</string>
+    <string name="a11y_compose_feature_card_collapsed">功能卡片：%s，已折叠</string>
+    <string name="a11y_compose_tip_card">构图技巧：%s</string>
+    <string name="a11y_compose_demo_area">构图演示区域</string>
+
+    <!-- Settings screen -->
     <string name="setting_detection_mode">检测模式</string>
-    <string name="setting_detection_fast">快速 (MobileNetV3)</string>
-    <string name="setting_detection_pro">专业 (MobileNetV3-Large)</string>
-    <string name="setting_theme">主题</string>
+    <string name="settings_detection_fast">快速 (Student 模型, 节电 ~5fps)</string>
+    <string name="settings_detection_pro">专业 (Teacher 模型, 全帧率高精度)</string>
     <string name="setting_auto_capture">自动拍摄</string>
+    <string name="settings_auto_capture_desc">对齐后自动拍摄</string>
     <string name="setting_capture_delay">拍摄延迟</string>
+    <string name="settings_delay_format">%d 秒</string>
+    <string name="setting_theme">主题</string>
+    <string name="settings_dark_mode">深色模式</string>
+    <string name="settings_flash">闪光灯</string>
+    <string name="settings_flash_default_on">默认开启闪光灯</string>
+    <string name="settings_about">关于</string>
+    <string name="settings_about_version">构妙 LiveCapture v1.0.0</string>
+    <string name="settings_about_description">基于强化学习的 AI 端侧智能构图辅助</string>
+    <string name="settings_about_model">模型: MobileNetV3-Small (蒸馏)</string>
+    <string name="settings_about_framework">框架: TensorFlow Lite + NNAPI</string>
     <string name="setting_color_scheme">色彩方案</string>
+
+    <!-- Settings: Developer options -->
+    <string name="dev_options">开发者选项</string>
+    <string name="dev_perf_monitor">性能监控</string>
+    <string name="dev_crash_logs">崩溃日志</string>
+    <string name="dev_no_crash_logs">暂无崩溃日志记录</string>
+    <string name="dev_clear_crash_logs">清除全部</string>
+    <string name="dev_close">关闭</string>
+    <string name="settings_memory_format">内存: %.0fMB (压力: %s)</string>
+    <string name="settings_jank_frames">卡顿帧: %d</string>
+    <string name="settings_fps_format">FPS: %.1f</string>
+    <string name="settings_crash_log_count_format">%d 条</string>
+    <string name="settings_none">无</string>
+    <string name="memory_pressure_low">低</string>
+    <string name="memory_pressure_medium">中</string>
+    <string name="memory_pressure_high">高</string>
+
+    <!-- Settings: Feedback -->
+    <string name="settings_feedback">反馈</string>
+    <string name="settings_submit_feedback">提交反馈</string>
+    <string name="feedback_title">用户反馈</string>
+    <string name="feedback_category">反馈类别</string>
+    <string name="feedback_category_bug">问题报告</string>
+    <string name="feedback_category_suggestion">功能建议</string>
+    <string name="feedback_category_other">其他</string>
+    <string name="feedback_content">反馈内容</string>
+    <string name="feedback_email">邮箱 (选填)</string>
+    <string name="feedback_submit">提交</string>
+    <string name="feedback_success">感谢您的反馈</string>
+    <string name="feedback_content_required">请输入反馈内容</string>
+
+    <!-- Settings: Legal info -->
+    <string name="settings_legal_info">法律信息</string>
+    <string name="settings_privacy_policy">隐私政策</string>
+    <string name="settings_user_agreement">用户服务协议</string>
+    <string name="settings_personal_info_declaration">个人信息收集声明</string>
+
+    <!-- Update -->
+    <string name="update_check">检查更新</string>
+    <string name="update_available">发现新版本</string>
+    <string name="update_not_available">已是最新版本</string>
+
+    <!-- Common -->
+    <string name="back">返回</string>
+
+    <!-- Privacy Consent Dialog -->
+    <string name="privacy_consent_title">隐私政策提示</string>
+    <string name="privacy_consent_message">感谢您使用构妙 LiveCapture！在使用本应用之前，请您仔细阅读并了解相关隐私政策与用户协议。</string>
+    <string name="privacy_consent_detail_prefix">请您仔细阅读</string>
+    <string name="privacy_consent_and">与</string>
+    <string name="privacy_consent_detail_suffix">。如您同意，请点击"同意并继续"开始使用本应用。</string>
+    <string name="privacy_consent_agree">同意并继续</string>
+    <string name="privacy_consent_decline">退出</string>
+
+    <!-- Privacy Policy -->
+    <string name="privacy_policy_title">隐私政策</string>
+    <string name="privacy_policy_update_date">更新日期：2026年7月</string>
+    <string name="privacy_policy_intro_title">一、概述</string>
+    <string name="privacy_policy_intro_body">构妙 LiveCapture（以下简称"本应用"）是一款基于端侧 AI 的智能摄影辅助应用。我们深知个人信息对您的重要性，并将按照法律法规的要求，以高度审慎的态度对待您的个人信息。本隐私政策将帮助您了解：我们如何收集和使用您的个人信息、如何存储和保护您的个人信息、您如何管理您的个人信息。本应用承诺：所有 AI 推理均在设备本地完成，不进行任何网络数据传输。</string>
+    <string name="privacy_policy_camera_title">二、相机使用</string>
+    <string name="privacy_policy_camera_body">本应用需要使用您的设备相机进行实时取景与构图引导。相机画面仅用于实时构图分析与辅助指引，不会被录制、截取或上传至任何服务器。相机画面数据仅在您使用拍摄功能期间在内存中处理，关闭拍摄功能后即被释放，不会留存任何缓存。</string>
+    <string name="privacy_policy_storage_title">三、照片存储</string>
+    <string name="privacy_policy_storage_body">您拍摄的照片将通过系统 MediaStore 保存至设备本地相册。照片仅保存在您的设备本地存储中，不会上传至任何云端服务器或远程存储。您可以随时通过系统相册查看、删除或管理您的照片。本应用不会在未获得您明确操作的情况下保存任何照片。</string>
+    <string name="privacy_policy_sensors_title">四、传感器访问</string>
+    <string name="privacy_policy_sensors_body">本应用使用设备陀螺仪和加速度计传感器进行运动检测与构图稳定性判断。传感器数据仅用于判断手机运动状态，辅助实时构图引导功能。传感器数据仅在内存中实时处理，不会被记录、存储或上传。关闭应用后，所有传感器数据即刻释放。</string>
+    <string name="privacy_policy_ai_title">五、AI 推理</string>
+    <string name="privacy_policy_ai_body">本应用使用 TensorFlow Lite 框架在设备端本地运行 AI 模型（MobileNetV3），进行实时构图分析与评分。AI 推理完全在您的设备本地执行，不依赖任何网络连接，不向任何服务器发送数据。AI 模型文件随应用安装包内置，不会动态下载或更新。</string>
+    <string name="privacy_policy_network_title">六、网络通信</string>
+    <string name="privacy_policy_network_body">本应用不包含任何网络通信功能。本应用不使用 HTTP/HTTPS 请求、WebSocket、TCP/UDP Socket 等任何网络通信方式。本应用不会将您的任何数据上传至服务器，也不会从服务器下载任何数据。本应用可完全在无网络环境下正常运行。</string>
+    <string name="privacy_policy_third_party_title">七、第三方 SDK</string>
+    <string name="privacy_policy_third_party_body">本应用不集成任何可能收集用户个人信息的第三方 SDK。本应用不包含任何广告 SDK、统计分析 SDK、推送 SDK 或社交分享 SDK。本应用所使用的技术组件（TensorFlow Lite、Android Jetpack、DataStore 等）均为本地运行框架，不具备网络数据采集能力。</string>
+    <string name="privacy_policy_retention_title">八、数据保留</string>
+    <string name="privacy_policy_retention_body">本应用仅在您的设备本地保留以下数据：\n\n1. 您主动拍摄的照片（通过 MediaStore 存储在本地相册，您可自行管理）；\n2. 应用偏好设置（通过 DataStore 存储在应用私有目录，卸载应用时自动清除）。\n\n本应用不会在设备以外的任何位置保留您的数据。如需删除所有数据，您可以在系统设置中清除应用数据或卸载本应用。</string>
+    <string name="privacy_policy_rights_title">九、您的权利</string>
+    <string name="privacy_policy_rights_body">根据相关法律法规，您享有以下权利：\n\n1. 知情权：您有权了解本应用如何处理您的个人信息；\n2. 访问权：您可以随时通过系统相册查看您的照片，通过应用设置查看您的偏好设置；\n3. 删除权：您可以随时删除您的照片（通过系统相册），或清除应用数据（通过系统设置）；\n4. 撤回同意权：您可以随时在系统设置中撤回对本应用的相机、传感器等权限授权；\n5. 卸载权：您可以随时卸载本应用，卸载后将自动清除所有应用私有数据。</string>
+    <string name="privacy_policy_changes_title">十、隐私政策的变更</string>
+    <string name="privacy_policy_changes_body">本应用可能会适时修订本隐私政策。当隐私政策条款发生变更时，我们会在应用内以弹窗或公告的方式通知您。若您在隐私政策变更后继续使用本应用，即视为您接受变更后的隐私政策。</string>
+    <string name="privacy_policy_contact_title">十一、联系我们</string>
+    <string name="privacy_policy_contact_body">如您对本隐私政策有任何疑问、意见或建议，请通过以下方式与我们联系：\n\n应用名称：构妙 LiveCapture\n开发者：LiveCompose Team\n邮箱：privacy@livecompose.dev</string>
+
+    <!-- User Agreement -->
+    <string name="user_agreement_title">用户服务协议</string>
+    <string name="user_agreement_update_date">更新日期：2026年7月</string>
+    <string name="user_agreement_acceptance_title">一、协议的接受与修改</string>
+    <string name="user_agreement_acceptance_body">1.1 本协议是您与 LiveCompose Team 之间关于使用构妙 LiveCapture 应用（以下简称"本应用"）所订立的协议。请您仔细阅读本协议，在确认充分理解并同意后再开始使用。\n\n1.2 一旦您使用本应用，即视为您已充分阅读、理解并接受本协议的全部内容。\n\n1.3 LiveCompose Team 有权在必要时修改本协议条款。修改后的协议一经在应用内公布即有效替代原协议。如您继续使用本应用，即视为您接受修改后的协议。</string>
+    <string name="user_agreement_scope_title">二、服务范围</string>
+    <string name="user_agreement_scope_body">2.1 本应用提供基于端侧 AI 的智能摄影构图辅助服务，包括但不限于：实时构图分析、构图引导、自动拍摄等功能。\n\n2.2 本应用所有 AI 推理功能均在设备本地运行，无需网络连接。\n\n2.3 本应用的功能可能会根据版本更新而调整、增加或减少，具体以应用实际提供的服务为准。</string>
+    <string name="user_agreement_obligations_title">三、用户行为规范</string>
+    <string name="user_agreement_obligations_body">3.1 您应当合法、合规地使用本应用，不得利用本应用从事任何违反法律法规的活动。\n\n3.2 您应当妥善保管您的设备，因设备保管不善导致的风险和损失由您自行承担。\n\n3.3 您在使用本应用拍摄时，应遵守所在地区关于摄影和肖像权的法律法规，尊重他人合法权益。\n\n3.4 您不得对本应用进行反编译、反汇编、修改、篡改或创建衍生作品。</string>
+    <string name="user_agreement_ip_title">四、知识产权</string>
+    <string name="user_agreement_ip_body">4.1 本应用的所有知识产权（包括但不限于著作权、商标权、专利权等）均归 LiveCompose Team 所有。\n\n4.2 本应用中使用的 AI 模型（MobileNetV3）及相关技术框架的知识产权归其原始权利人所有。\n\n4.3 您通过本应用拍摄的照片，其著作权归您所有。本应用不会对您的照片主张任何权利。</string>
+    <string name="user_agreement_privacy_title">五、隐私保护</string>
+    <string name="user_agreement_privacy_body">5.1 本应用重视您的隐私保护，具体隐私政策请参阅《隐私政策》。\n\n5.2 本应用承诺不收集、不上传您的任何个人信息至远程服务器。\n\n5.3 本应用所有数据处理均在设备本地完成。</string>
+    <string name="user_agreement_liability_title">六、免责声明</string>
+    <string name="user_agreement_liability_body">6.1 本应用提供的构图建议仅供参考，不构成专业摄影指导。因构图效果差异导致的任何损失，本应用不承担责任。\n\n6.2 因不可抗力、系统故障、设备硬件问题等原因导致的服务中断或数据丢失，本应用不承担责任。\n\n6.3 因您自身原因（包括但不限于设备故障、误操作、未及时备份等）导致的数据丢失，本应用不承担责任。\n\n6.4 本应用不保证服务不会中断，对服务的及时性、安全性、准确性不作担保。</string>
+    <string name="user_agreement_termination_title">七、协议的终止</string>
+    <string name="user_agreement_termination_body">7.1 您可以随时卸载本应用以终止本协议。\n\n7.2 如您违反本协议的任何条款，LiveCompose Team 有权终止向您提供服务。\n\n7.3 协议终止后，本应用没有义务为您保留任何数据。</string>
+    <string name="user_agreement_dispute_title">八、争议解决</string>
+    <string name="user_agreement_dispute_body">8.1 本协议的订立、执行和解释及争议的解决均应适用中华人民共和国法律。\n\n8.2 如双方就本协议内容或其执行发生任何争议，双方应尽力友好协商解决；协商不成时，任何一方均有权向 LiveCompose Team 所在地有管辖权的人民法院提起诉讼。</string>
+    <string name="user_agreement_changes_title">九、其他</string>
+    <string name="user_agreement_changes_body">9.1 本协议的标题仅为方便阅读而设，不影响本协议任何条款的含义或解释。\n\n9.2 本协议中未尽事宜，依照中华人民共和国相关法律法规执行。\n\n9.3 如本协议中的任何条款无论因何种原因完全或部分无效或不具有执行力，该条款的其余部分及本协议的其他条款仍应有效并具有约束力。</string>
+
+    <!-- Personal Info Declaration -->
+    <string name="personal_info_declaration_title">个人信息收集声明</string>
+    <string name="personal_info_declaration_update_date">更新日期：2026年7月</string>
+    <string name="personal_info_declaration_intro">根据《个人信息保护法》《App违法违规收集使用个人信息行为认定方法》等法律法规要求，构妙 LiveCapture 特此向您明示收集、使用个人信息的情况：</string>
+    <string name="personal_info_header_type">信息类型</string>
+    <string name="personal_info_header_purpose">用途</string>
+    <string name="personal_info_header_storage">存储方式</string>
+    <string name="personal_info_header_retention">保留期限</string>
+    <string name="personal_info_camera_type">相机画面</string>
+    <string name="personal_info_camera_purpose">实时构图分析与引导</string>
+    <string name="personal_info_camera_storage">仅在内存中实时处理，不存储</string>
+    <string name="personal_info_camera_retention">不保留</string>
+    <string name="personal_info_photos_type">拍摄照片</string>
+    <string name="personal_info_photos_purpose">用户拍摄成果保存</string>
+    <string name="personal_info_photos_storage">本地 MediaStore 相册</string>
+    <string name="personal_info_photos_retention">用户自行管理</string>
+    <string name="personal_info_sensors_type">陀螺仪/加速度计数据</string>
+    <string name="personal_info_sensors_purpose">运动检测与构图稳定性判断</string>
+    <string name="personal_info_sensors_storage">仅在内存中实时处理，不存储</string>
+    <string name="personal_info_sensors_retention">不保留</string>
+    <string name="personal_info_settings_type">应用偏好设置</string>
+    <string name="personal_info_settings_purpose">保存用户个性化设置</string>
+    <string name="personal_info_settings_storage">本地 DataStore 加密存储</string>
+    <string name="personal_info_settings_retention">卸载即清除</string>
+    <string name="personal_info_summary_title">声明总结</string>
+    <string name="personal_info_summary_body">本应用不收集任何用户身份信息（如姓名、手机号、身份证号、设备标识符等）。本应用不进行任何网络数据传输，所有数据处理均在设备本地完成。本应用不集成任何第三方数据采集 SDK。本应用遵循最小必要原则，仅收集实现核心功能所必需的信息，并在使用目的实现后即时删除或匿名化处理。</string>
+
+    <!-- Share -->
+    <string name="share">分享</string>
+    <string name="share_to_wechat">分享到微信</string>
+    <string name="share_photo_title">分享照片</string>
+    <string name="share_success">分享成功</string>
+    <string name="share_wechat_not_installed">未安装微信，已切换到通用分享</string>
+    <string name="share_multiple_photos_title">分享多张照片</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_page1_title">AI 实时构图</string>
+    <string name="onboarding_page1_desc">基于强化学习模型，实时分析取景画面，计算最佳构图位置，让你轻松拍出专业级照片</string>
+    <string name="onboarding_page2_title">智能追踪引导</string>
+    <string name="onboarding_page2_desc">结合陀螺仪与磁性吸附，物理级流畅追踪引导，精准对齐理想构图</string>
+    <string name="onboarding_page3_title">一键完美拍摄</string>
+    <string name="onboarding_page3_desc">构图对齐后自动拍摄，也可手动触发，捕捉每一个完美瞬间</string>
+    <string name="onboarding_next">下一步</string>
+    <string name="onboarding_skip">跳过</string>
+    <string name="onboarding_start">开始使用</string>
+
+    <!-- Photo Editor -->
+    <string name="editor_title">编辑照片</string>
+    <string name="editor_save">保存</string>
+    <string name="editor_save_error">保存失败</string>
+    <string name="editor_ok">确定</string>
+    <string name="editor_tab_crop">裁剪</string>
+    <string name="editor_tab_filter">滤镜</string>
+    <string name="editor_tab_adjust">调整</string>
+
+    <!-- Editor: Crop -->
+    <string name="editor_crop_free">自由</string>
+    <string name="editor_crop_rotate">旋转</string>
+    <string name="editor_crop_apply">应用</string>
+    <string name="editor_crop_cancel">取消</string>
+
+    <!-- Editor: Filter -->
+    <string name="editor_filter_original">原图</string>
+    <string name="editor_filter_black_white">黑白</string>
+    <string name="editor_filter_warm">暖色调</string>
+    <string name="editor_filter_cool">冷色调</string>
+    <string name="editor_filter_vintage">复古</string>
+    <string name="editor_filter_vivid">鲜艳</string>
+
+    <!-- Editor: Adjust -->
+    <string name="editor_adjust_brightness">亮度</string>
+    <string name="editor_adjust_contrast">对比度</string>
+    <string name="editor_adjust_saturation">饱和度</string>
+
+    <!-- Editor: Messages -->
+    <string name="editor_save_success">保存成功</string>
+    <string name="editor_saving">保存中...</string>
+
+    <!-- Home: Edit button -->
+    <string name="home_edit">编辑</string>
 </resources>

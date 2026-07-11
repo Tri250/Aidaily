@@ -1,0 +1,342 @@
+<resources>
+    <string name="app_name">GouMiao LiveCapture</string>
+
+    <!-- Tab labels -->
+    <string name="tab_compose">GouMiao</string>
+    <string name="tab_home">Gallery</string>
+    <string name="tab_capture">Capture</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Capture screen: permission -->
+    <string name="capture_permission_required">Camera Permission Required</string>
+    <string name="capture_permission_rationale">GouMiao LiveCapture needs camera permission for real-time composition-assisted photography. Please grant camera access.</string>
+    <string name="capture_permission_denied_permanently">Camera permission has been permanently denied. Please manually enable it in Settings and return.</string>
+    <string name="capture_grant_permission">Grant Permission</string>
+    <string name="capture_open_settings">Open Settings</string>
+
+    <!-- Capture screen: error -->
+    <string name="capture_error_title">Error Occurred</string>
+    <string name="capture_error_default_message">An error occurred during capture</string>
+    <string name="capture_retry">Retry</string>
+    <string name="camera_error_start_failed">Failed to start camera</string>
+    <string name="camera_error_provider_not_init">CameraProvider not initialized</string>
+    <string name="camera_error_no_front_camera">No front camera on this device</string>
+    <string name="camera_error_no_back_camera">No rear camera on this device</string>
+    <string name="camera_error_binding_failed">Camera binding failed</string>
+
+    <!-- Capture screen: loading -->
+    <string name="capture_starting_camera">Starting camera…</string>
+    <string name="capture_loading_model">Loading AI model…</string>
+    <string name="capture_model_load_failed">AI model load failed, using default composition</string>
+    <string name="capture_model_loading">Loading AI model…</string>
+
+    <!-- Capture screen: overlay -->
+    <string name="capture_score_format">Score %.2f</string>
+    <string name="capture_aligned_perfect">Perfect alignment!</string>
+    <string name="capture_close">Close</string>
+
+    <!-- Capture guidance (ViewModel, non-Composable context) -->
+    <string name="guidance_idle">Ready to capture</string>
+    <string name="guidance_starting">Starting camera…</string>
+    <string name="guidance_wait_stability">Keep your phone steady</string>
+    <string name="guidance_detecting">AI analyzing frame…</string>
+    <string name="guidance_template_ready">Follow guidance to move phone</string>
+    <string name="guidance_ready_capture">Auto capture imminent</string>
+    <string name="capture_guidance_ready_manual">Perfect alignment, tap to capture</string>
+    <string name="guidance_capturing">Capturing…</string>
+    <string name="guidance_saving">Saving…</string>
+    <string name="capture_guidance_error">Error occurred, please retry</string>
+    <string name="guidance_move_left">Move left</string>
+    <string name="guidance_move_right">Move right</string>
+    <string name="guidance_move_up">Move up</string>
+    <string name="guidance_move_down">Move down</string>
+    <string name="guidance_zoom_in">Move closer</string>
+    <string name="guidance_zoom_out">Move away</string>
+    <string name="guidance_hold">Hold still</string>
+    <string name="capture_guidance_delay_countdown">Capturing in %d seconds…</string>
+
+    <!-- Home screen -->
+    <string name="home_empty_title">No photos yet\nStart capturing your first photo</string>
+    <string name="home_photo_detail">Photo Details</string>
+    <string name="home_detail_time">Time</string>
+    <string name="home_detail_size">Size</string>
+    <string name="home_detail_size_format">%d x %d</string>
+    <string name="home_detail_shutter">Shutter</string>
+    <string name="home_detail_aperture">Aperture</string>
+    <string name="home_detail_focal_length">Focal Length</string>
+    <string name="home_detail_aesthetic_score">Aesthetic Score</string>
+    <string name="home_detail_crop_region">Crop Region</string>
+    <string name="home_detail_crop_format">(%.2f, %.2f)</string>
+    <string name="home_close">Close</string>
+    <string name="home_delete">Delete</string>
+
+    <!-- LiveCompose screen -->
+    <string name="compose_brand_name">GouMiao</string>
+    <string name="compose_subtitle">Your AI Photographer</string>
+    <string name="compose_feature_ai_title">Real-time AI Composition Analysis</string>
+    <string name="compose_feature_ai_desc">Based on reinforcement learning, analyzes your viewfinder in real-time and calculates optimal composition</string>
+    <string name="compose_feature_tracking_title">Smart Tracking Guidance</string>
+    <string name="compose_feature_tracking_desc">Combines gyroscope with magnetic snapping for smooth, physics-level tracking guidance</string>
+    <string name="compose_offline_ai">On-device AI runs offline, no internet required</string>
+    <string name="compose_model_info">Model: MobileNetV3-Small | Framework: TensorFlow Lite</string>
+
+    <!-- LiveCompose: Interactive demo -->
+    <string name="compose_demo_title">Composition Demo</string>
+    <string name="compose_demo_button">View Composition Examples</string>
+    <string name="compose_demo_grid_label">Rule of Thirds Grid</string>
+    <string name="compose_demo_tracking_dot">Demo tracking dot</string>
+    <string name="compose_start_capture">Start Capture</string>
+    <string name="compose_tips_section_title">Composition Tips</string>
+    <string name="compose_tip_rule_of_thirds_title">Rule of Thirds</string>
+    <string name="compose_tip_rule_of_thirds_desc">Divide the frame into thirds both horizontally and vertically. Place the subject at intersection points or along the lines for a more harmonious and natural composition.</string>
+    <string name="compose_tip_center_title">Center Composition</string>
+    <string name="compose_tip_center_desc">Place the subject at the center of the frame to emphasize its importance. Ideal for symmetrical or formal scenes.</string>
+    <string name="compose_tip_leading_lines_title">Leading Lines</string>
+    <string name="compose_tip_leading_lines_desc">Use roads, rivers, and other lines to guide the viewer\'s gaze, creating depth and direction.</string>
+    <string name="compose_tip_symmetry_title">Symmetry</string>
+    <string name="compose_tip_symmetry_desc">Use reflective surfaces, architecture, and other symmetrical elements to create balance and order with strong visual impact.</string>
+    <string name="compose_feature_ai_detail">The AI engine analyzes the subject position in your viewfinder in real-time, combining classic composition rules like the rule of thirds to calculate the optimal composition. Supports Fast (lightweight) and Pro (high-precision) modes.</string>
+    <string name="compose_feature_tracking_detail">The tracking system integrates gyroscope sensor data for physics-level smooth guidance. When the subject aligns with the optimal composition position, the tracking dot turns green and displays alignment markers.</string>
+    <string name="compose_feature_auto_capture_title">Smart Auto Capture</string>
+    <string name="compose_feature_auto_capture_desc">Automatically triggers the shutter when the perfect composition is aligned. Supports custom delay capture.</string>
+    <string name="compose_feature_auto_capture_detail">With auto capture enabled, the AI will automatically take a photo when it detects the composition has reached the optimal state. You can also set a delay timer to give yourself time to prepare.</string>
+
+    <!-- Accessibility: Capture screen -->
+    <string name="a11y_camera_switch">Switch front/rear camera</string>
+    <string name="a11y_flash_on">Flash on, tap to turn off</string>
+    <string name="a11y_flash_off">Flash off, tap to turn on</string>
+    <string name="a11y_flash_disabled">Flash unavailable</string>
+    <string name="a11y_exposure">Exposure compensation</string>
+    <string name="a11y_gallery">Gallery</string>
+    <string name="a11y_capture_button_enabled">Capture button, ready to capture</string>
+    <string name="a11y_capture_button_disabled">Capture button, not ready</string>
+    <string name="a11y_tracking_dot_aligned">AI composition tracking dot, aligned</string>
+    <string name="a11y_tracking_dot_not_aligned">AI composition tracking dot, not aligned</string>
+    <string name="a11y_zoom_button">Zoom %s</string>
+    <string name="a11y_zoom_button_selected">Zoom %s, selected</string>
+    <string name="a11y_last_photo">Last captured photo</string>
+    <string name="a11y_guidance_live_region">Composition guidance info</string>
+
+    <!-- Accessibility: Home screen -->
+    <string name="a11y_photo_thumbnail">Photo, taken on %s</string>
+    <string name="a11y_photo_detail_image">Photo detail</string>
+    <string name="a11y_delete_photo">Delete photo</string>
+    <string name="a11y_delete_confirm">Photo deleted</string>
+    <string name="a11y_photo_grid">Photo grid</string>
+
+    <!-- Accessibility: Settings screen -->
+    <string name="a11y_switch_on">%s, on</string>
+    <string name="a11y_switch_off">%s, off</string>
+    <string name="a11y_radio_selected">%s, selected</string>
+    <string name="a11y_radio_not_selected">%s, not selected</string>
+    <string name="a11y_slider_label">%s, current value %s</string>
+
+    <!-- Accessibility: LiveCompose screen -->
+    <string name="a11y_compose_logo">GouMiao brand logo</string>
+    <string name="a11y_compose_feature_card">Feature card: %s</string>
+    <string name="a11y_compose_feature_card_expanded">Feature card: %s, expanded</string>
+    <string name="a11y_compose_feature_card_collapsed">Feature card: %s, collapsed</string>
+    <string name="a11y_compose_tip_card">Composition tip: %s</string>
+    <string name="a11y_compose_demo_area">Composition demo area</string>
+
+    <!-- Settings screen -->
+    <string name="setting_detection_mode">Detection Mode</string>
+    <string name="settings_detection_fast">Fast (Student model, power-saving ~5fps)</string>
+    <string name="settings_detection_pro">Pro (Teacher model, full framerate high precision)</string>
+    <string name="setting_auto_capture">Auto Capture</string>
+    <string name="settings_auto_capture_desc">Auto capture when aligned</string>
+    <string name="setting_capture_delay">Capture Delay</string>
+    <string name="settings_delay_format">%d sec</string>
+    <string name="setting_theme">Theme</string>
+    <string name="settings_dark_mode">Dark Mode</string>
+    <string name="settings_flash">Flash</string>
+    <string name="settings_flash_default_on">Flash on by default</string>
+    <string name="settings_about">About</string>
+    <string name="settings_about_version">GouMiao LiveCapture v1.0.0</string>
+    <string name="settings_about_description">AI on-device smart composition assistant based on reinforcement learning</string>
+    <string name="settings_about_model">Model: MobileNetV3-Small (Distilled)</string>
+    <string name="settings_about_framework">Framework: TensorFlow Lite + NNAPI</string>
+    <string name="setting_color_scheme">Color Scheme</string>
+
+    <!-- Settings: Developer options -->
+    <string name="dev_options">Developer Options</string>
+    <string name="dev_perf_monitor">Performance Monitor</string>
+    <string name="dev_crash_logs">Crash Logs</string>
+    <string name="dev_no_crash_logs">No crash logs recorded</string>
+    <string name="dev_clear_crash_logs">Clear All</string>
+    <string name="dev_close">Close</string>
+    <string name="settings_memory_format">Memory: %.0fMB (Pressure: %s)</string>
+    <string name="settings_jank_frames">Jank frames: %d</string>
+    <string name="settings_fps_format">FPS: %.1f</string>
+    <string name="settings_crash_log_count_format">%d entries</string>
+    <string name="settings_none">None</string>
+    <string name="memory_pressure_low">Low</string>
+    <string name="memory_pressure_medium">Medium</string>
+    <string name="memory_pressure_high">High</string>
+
+    <!-- Settings: Feedback -->
+    <string name="settings_feedback">Feedback</string>
+    <string name="settings_submit_feedback">Submit Feedback</string>
+    <string name="feedback_title">User Feedback</string>
+    <string name="feedback_category">Feedback Category</string>
+    <string name="feedback_category_bug">Bug Report</string>
+    <string name="feedback_category_suggestion">Feature Suggestion</string>
+    <string name="feedback_category_other">Other</string>
+    <string name="feedback_content">Feedback Content</string>
+    <string name="feedback_email">Email (optional)</string>
+    <string name="feedback_submit">Submit</string>
+    <string name="feedback_success">Thank you for your feedback</string>
+    <string name="feedback_content_required">Please enter feedback content</string>
+
+    <!-- Settings: Legal info -->
+    <string name="settings_legal_info">Legal Info</string>
+    <string name="settings_privacy_policy">Privacy Policy</string>
+    <string name="settings_user_agreement">User Service Agreement</string>
+    <string name="settings_personal_info_declaration">Personal Information Collection Declaration</string>
+
+    <!-- Update -->
+    <string name="update_check">Check for Updates</string>
+    <string name="update_available">New version available</string>
+    <string name="update_not_available">Already up to date</string>
+
+    <!-- Common -->
+    <string name="back">Back</string>
+
+    <!-- Privacy Consent Dialog -->
+    <string name="privacy_consent_title">Privacy Policy Notice</string>
+    <string name="privacy_consent_message">Thank you for using GouMiao LiveCapture! Before using this app, please carefully read and understand the relevant privacy policy and user agreement.</string>
+    <string name="privacy_consent_detail_prefix">Please carefully read the </string>
+    <string name="privacy_consent_and"> and the </string>
+    <string name="privacy_consent_detail_suffix">. If you agree, please click \"Agree and Continue\" to start using this app.</string>
+    <string name="privacy_consent_agree">Agree and Continue</string>
+    <string name="privacy_consent_decline">Exit</string>
+
+    <!-- Privacy Policy -->
+    <string name="privacy_policy_title">Privacy Policy</string>
+    <string name="privacy_policy_update_date">Last updated: July 2026</string>
+    <string name="privacy_policy_intro_title">1. Overview</string>
+    <string name="privacy_policy_intro_body">GouMiao LiveCapture (hereinafter referred to as \"this App\") is an on-device AI-powered intelligent photography assistant. We understand the importance of your personal information and will treat it with the utmost care in compliance with applicable laws and regulations. This Privacy Policy will help you understand: how we collect and use your personal information, how we store and protect your personal information, and how you can manage your personal information. This App promises: all AI inference is performed locally on your device, with no network data transmission whatsoever.</string>
+    <string name="privacy_policy_camera_title">2. Camera Usage</string>
+    <string name="privacy_policy_camera_body">This App requires access to your device camera for real-time viewfinding and composition guidance. The camera feed is used solely for real-time composition analysis and guidance, and will not be recorded, captured, or uploaded to any server. Camera frame data is processed in memory only while you are using the shooting feature, and is released when the shooting feature is closed. No cache is retained.</string>
+    <string name="privacy_policy_storage_title">3. Photo Storage</string>
+    <string name="privacy_policy_storage_body">Photos you capture are saved to your device\'s local gallery via the system MediaStore. Photos are stored only on your device\'s local storage and are never uploaded to any cloud server or remote storage. You can view, delete, or manage your photos at any time through the system gallery. This App will not save any photos without your explicit action.</string>
+    <string name="privacy_policy_sensors_title">4. Sensor Access</string>
+    <string name="privacy_policy_sensors_body">This App uses the device\'s gyroscope and accelerometer sensors for motion detection and composition stability assessment. Sensor data is used solely for detecting device motion and assisting real-time composition guidance. Sensor data is processed in real-time in memory only, and is never recorded, stored, or uploaded. All sensor data is immediately released when the app is closed.</string>
+    <string name="privacy_policy_ai_title">5. AI Inference</string>
+    <string name="privacy_policy_ai_body">This App uses the TensorFlow Lite framework to run AI models (MobileNetV3) locally on your device for real-time composition analysis and scoring. AI inference is performed entirely on your device locally, does not depend on any network connection, and does not send any data to any server. AI model files are bundled within the app installation package and are not dynamically downloaded or updated.</string>
+    <string name="privacy_policy_network_title">6. Network Communication</string>
+    <string name="privacy_policy_network_body">This App does not include any network communication functionality. This App does not use HTTP/HTTPS requests, WebSocket, TCP/UDP sockets, or any other network communication methods. This App will not upload any of your data to servers, nor will it download any data from servers. This App can run completely in an offline environment.</string>
+    <string name="privacy_policy_third_party_title">7. Third-Party SDKs</string>
+    <string name="privacy_policy_third_party_body">This App does not integrate any third-party SDKs that may collect user personal information. This App does not include any advertising SDKs, analytics SDKs, push notification SDKs, or social sharing SDKs. The technical components used by this App (TensorFlow Lite, Android Jetpack, DataStore, etc.) are all locally-running frameworks without network data collection capabilities.</string>
+    <string name="privacy_policy_retention_title">8. Data Retention</string>
+    <string name="privacy_policy_retention_body">This App only retains the following data locally on your device:\n\n1. Photos you actively capture (stored in the local gallery via MediaStore, which you can manage yourself);\n2. App preference settings (stored in the app\'s private directory via DataStore, automatically cleared when the app is uninstalled).\n\nThis App does not retain any of your data outside of your device. To delete all data, you can clear app data in system settings or uninstall this App.</string>
+    <string name="privacy_policy_rights_title">9. Your Rights</string>
+    <string name="privacy_policy_rights_body">Under applicable laws and regulations, you have the following rights:\n\n1. Right to be informed: You have the right to know how this App handles your personal information;\n2. Right of access: You can view your photos through the system gallery at any time and check your preferences through the app settings;\n3. Right to deletion: You can delete your photos at any time (through the system gallery) or clear app data (through system settings);\n4. Right to withdraw consent: You can revoke camera, sensor, and other permissions for this App in system settings at any time;\n5. Right to uninstall: You can uninstall this App at any time, and all app private data will be automatically cleared upon uninstallation.</string>
+    <string name="privacy_policy_changes_title">10. Changes to This Privacy Policy</string>
+    <string name="privacy_policy_changes_body">This App may revise this Privacy Policy from time to time. When the terms of this Privacy Policy change, we will notify you through in-app dialogs or announcements. If you continue to use this App after the Privacy Policy changes, it means you accept the revised Privacy Policy.</string>
+    <string name="privacy_policy_contact_title">11. Contact Us</string>
+    <string name="privacy_policy_contact_body">If you have any questions, opinions, or suggestions about this Privacy Policy, please contact us through the following:\n\nApp Name: GouMiao LiveCapture\nDeveloper: LiveCompose Team\nEmail: privacy@livecompose.dev</string>
+
+    <!-- User Agreement -->
+    <string name="user_agreement_title">User Service Agreement</string>
+    <string name="user_agreement_update_date">Last updated: July 2026</string>
+    <string name="user_agreement_acceptance_title">1. Acceptance and Modification of Agreement</string>
+    <string name="user_agreement_acceptance_body">1.1 This Agreement is a contract between you and LiveCompose Team regarding the use of GouMiao LiveCapture (hereinafter referred to as \"this App\"). Please read this Agreement carefully and confirm that you fully understand and agree to it before starting to use it.\n\n1.2 Once you use this App, you are deemed to have fully read, understood, and accepted all the contents of this Agreement.\n\n1.3 LiveCompose Team reserves the right to modify the terms of this Agreement when necessary. The modified Agreement will effectively replace the original Agreement once published in the App. If you continue to use this App, you are deemed to accept the modified Agreement.</string>
+    <string name="user_agreement_scope_title">2. Scope of Services</string>
+    <string name="user_agreement_scope_body">2.1 This App provides on-device AI-powered intelligent photography composition assistance services, including but not limited to: real-time composition analysis, composition guidance, and auto-capture features.\n\n2.2 All AI inference features of this App run locally on the device without requiring a network connection.\n\n2.3 The features of this App may be adjusted, added, or reduced according to version updates, subject to the actual services provided by the App.</string>
+    <string name="user_agreement_obligations_title">3. User Obligations</string>
+    <string name="user_agreement_obligations_body">3.1 You shall use this App lawfully and in compliance with regulations, and shall not use this App for any activities that violate laws and regulations.\n\n3.2 You shall properly safeguard your device, and you shall bear the risks and losses caused by improper custody of the device.\n\n3.3 When taking photos with this App, you shall comply with the laws and regulations regarding photography and portrait rights in your jurisdiction, and respect the lawful rights and interests of others.\n\n3.4 You shall not reverse-engineer, decompile, modify, tamper with, or create derivative works of this App.</string>
+    <string name="user_agreement_ip_title">4. Intellectual Property Rights</string>
+    <string name="user_agreement_ip_body">4.1 All intellectual property rights of this App (including but not limited to copyrights, trademarks, patents, etc.) belong to LiveCompose Team.\n\n4.2 The intellectual property rights of the AI models (MobileNetV3) and related technical frameworks used in this App belong to their original rights holders.\n\n4.3 The copyright of photos you capture through this App belongs to you. This App does not claim any rights over your photos.</string>
+    <string name="user_agreement_privacy_title">5. Privacy Protection</string>
+    <string name="user_agreement_privacy_body">5.1 This App values your privacy protection. For details, please refer to the Privacy Policy.\n\n5.2 This App promises not to collect or upload any of your personal information to remote servers.\n\n5.3 All data processing of this App is completed locally on your device.</string>
+    <string name="user_agreement_liability_title">6. Disclaimer of Liability</string>
+    <string name="user_agreement_liability_body">6.1 The composition suggestions provided by this App are for reference only and do not constitute professional photography guidance. This App is not responsible for any losses caused by differences in composition results.\n\n6.2 This App is not responsible for service interruption or data loss caused by force majeure, system failures, device hardware issues, etc.\n\n6.3 This App is not responsible for data loss caused by your own reasons (including but not limited to device failure, misoperation, failure to back up in a timely manner, etc.).\n\n6.4 This App does not guarantee uninterrupted service and makes no warranties regarding the timeliness, security, or accuracy of the service.</string>
+    <string name="user_agreement_termination_title">7. Termination of Agreement</string>
+    <string name="user_agreement_termination_body">7.1 You may uninstall this App at any time to terminate this Agreement.\n\n7.2 If you violate any terms of this Agreement, LiveCompose Team reserves the right to terminate the service provided to you.\n\n7.3 After the Agreement is terminated, this App has no obligation to retain any of your data.</string>
+    <string name="user_agreement_dispute_title">8. Dispute Resolution</string>
+    <string name="user_agreement_dispute_body">8.1 The formation, execution, and interpretation of this Agreement and the resolution of disputes shall be governed by the laws of the People\'s Republic of China.\n\n8.2 If any dispute arises between the parties regarding the content or execution of this Agreement, both parties shall endeavor to resolve it through amicable negotiation; if negotiation fails, either party has the right to file a lawsuit with the people\'s court having jurisdiction over the location of LiveCompose Team.</string>
+    <string name="user_agreement_changes_title">9. Miscellaneous</string>
+    <string name="user_agreement_changes_body">9.1 The headings in this Agreement are for convenience of reading only and do not affect the meaning or interpretation of any provision of this Agreement.\n\n9.2 Matters not covered in this Agreement shall be governed by the relevant laws and regulations of the People\'s Republic of China.\n\n9.3 If any provision of this Agreement is wholly or partially invalid or unenforceable for any reason, the remaining portion of that provision and the other provisions of this Agreement shall remain valid and binding.</string>
+
+    <!-- Personal Info Declaration -->
+    <string name="personal_info_declaration_title">Personal Information Collection Declaration</string>
+    <string name="personal_info_declaration_update_date">Last updated: July 2026</string>
+    <string name="personal_info_declaration_intro">In accordance with the Personal Information Protection Law, the Measures for Identifying Illegal Collection and Use of Personal Information by Apps, and other applicable laws and regulations, GouMiao LiveCapture hereby declares the collection and use of personal information as follows:</string>
+    <string name="personal_info_header_type">Info Type</string>
+    <string name="personal_info_header_purpose">Purpose</string>
+    <string name="personal_info_header_storage">Storage</string>
+    <string name="personal_info_header_retention">Retention</string>
+    <string name="personal_info_camera_type">Camera feed</string>
+    <string name="personal_info_camera_purpose">Real-time composition analysis and guidance</string>
+    <string name="personal_info_camera_storage">Real-time processing in memory only, not stored</string>
+    <string name="personal_info_camera_retention">Not retained</string>
+    <string name="personal_info_photos_type">Captured photos</string>
+    <string name="personal_info_photos_purpose">Saving user\'s photo captures</string>
+    <string name="personal_info_photos_storage">Local MediaStore gallery</string>
+    <string name="personal_info_photos_retention">User-managed</string>
+    <string name="personal_info_sensors_type">Gyroscope/Accelerometer data</string>
+    <string name="personal_info_sensors_purpose">Motion detection and composition stability assessment</string>
+    <string name="personal_info_sensors_storage">Real-time processing in memory only, not stored</string>
+    <string name="personal_info_sensors_retention">Not retained</string>
+    <string name="personal_info_settings_type">App preferences</string>
+    <string name="personal_info_settings_purpose">Saving user personalization settings</string>
+    <string name="personal_info_settings_storage">Local DataStore encrypted storage</string>
+    <string name="personal_info_settings_retention">Cleared on uninstall</string>
+    <string name="personal_info_summary_title">Declaration Summary</string>
+    <string name="personal_info_summary_body">This App does not collect any user identity information (such as name, phone number, ID number, device identifiers, etc.). This App does not perform any network data transmission; all data processing is completed locally on the device. This App does not integrate any third-party data collection SDKs. This App follows the principle of data minimization, collecting only the information necessary for core functions, and immediately deletes or anonymizes it after the purpose of use is achieved.</string>
+
+    <!-- Share -->
+    <string name="share">Share</string>
+    <string name="share_to_wechat">Share to WeChat</string>
+    <string name="share_photo_title">Share Photo</string>
+    <string name="share_success">Shared successfully</string>
+    <string name="share_wechat_not_installed">WeChat not installed, switched to general sharing</string>
+    <string name="share_multiple_photos_title">Share Multiple Photos</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_page1_title">Real-time AI Composition</string>
+    <string name="onboarding_page1_desc">Based on reinforcement learning models, real-time analysis of the viewfinder, calculating optimal composition positions, helping you easily take professional-grade photos</string>
+    <string name="onboarding_page2_title">Smart Tracking Guidance</string>
+    <string name="onboarding_page2_desc">Combining gyroscope and magnetic snapping for physics-level smooth tracking guidance, precisely aligning with the ideal composition</string>
+    <string name="onboarding_page3_title">One-tap Perfect Capture</string>
+    <string name="onboarding_page3_desc">Auto capture when composition is aligned, or manual trigger, capturing every perfect moment</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_start">Get Started</string>
+
+    <!-- Photo Editor -->
+    <string name="editor_title">Edit Photo</string>
+    <string name="editor_save">Save</string>
+    <string name="editor_save_error">Save failed</string>
+    <string name="editor_ok">OK</string>
+    <string name="editor_tab_crop">Crop</string>
+    <string name="editor_tab_filter">Filter</string>
+    <string name="editor_tab_adjust">Adjust</string>
+
+    <!-- Editor: Crop -->
+    <string name="editor_crop_free">Free</string>
+    <string name="editor_crop_rotate">Rotate</string>
+    <string name="editor_crop_apply">Apply</string>
+    <string name="editor_crop_cancel">Cancel</string>
+
+    <!-- Editor: Filter -->
+    <string name="editor_filter_original">Original</string>
+    <string name="editor_filter_black_white">Black &amp; White</string>
+    <string name="editor_filter_warm">Warm</string>
+    <string name="editor_filter_cool">Cool</string>
+    <string name="editor_filter_vintage">Vintage</string>
+    <string name="editor_filter_vivid">Vivid</string>
+
+    <!-- Editor: Adjust -->
+    <string name="editor_adjust_brightness">Brightness</string>
+    <string name="editor_adjust_contrast">Contrast</string>
+    <string name="editor_adjust_saturation">Saturation</string>
+
+    <!-- Editor: Messages -->
+    <string name="editor_save_success">Saved successfully</string>
+    <string name="editor_saving">Saving…</string>
+
+    <!-- Home: Edit button -->
+    <string name="home_edit">Edit</string>
+</resources>

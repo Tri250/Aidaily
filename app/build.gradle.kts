@@ -13,8 +13,8 @@ android {
         applicationId = "com.livecompose.livecapture"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -26,9 +26,60 @@ android {
         create("release") {
             // Release 签名配置 — 从环境变量读取，避免密钥泄露
             storeFile = file(System.getenv("KEYSTORE_PATH") ?: "release.keystore")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "livecapture"
-            keyAlias = System.getenv("KEY_ALIAS") ?: "livecapture"
-            keyPassword = System.getenv("KEY_PASSWORD") ?: "livecapture"
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            keyAlias = System.getenv("KEY_ALIAS") ?: ""
+            keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+        }
+        getByName("debug") {
+            // Debug 签名使用标准 debug keystore
+            storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
+    // Release 签名密码为空时给出警告
+    afterEvaluate {
+        val storePw = System.getenv("KEYSTORE_PASSWORD").orEmpty()
+        val keyPw = System.getenv("KEY_PASSWORD").orEmpty()
+        if (storePw.isEmpty() || keyPw.isEmpty()) {
+            logger.warn("⚠️ Release signing passwords are empty — set KEYSTORE_PASSWORD and KEY_PASSWORD environment variables for release builds.")
+        }
+    }
+
+    flavorDimensions += "channel"
+
+    productFlavors {
+        create("huawei") {
+            dimension = "channel"
+            buildConfigField("String", "channel", "\"huawei\"")
+            matchingFallbacks += listOf("release")
+        }
+        create("xiaomi") {
+            dimension = "channel"
+            buildConfigField("String", "channel", "\"xiaomi\"")
+            matchingFallbacks += listOf("release")
+        }
+        create("oppo") {
+            dimension = "channel"
+            buildConfigField("String", "channel", "\"oppo\"")
+            matchingFallbacks += listOf("release")
+        }
+        create("vivo") {
+            dimension = "channel"
+            buildConfigField("String", "channel", "\"vivo\"")
+            matchingFallbacks += listOf("release")
+        }
+        create("yingyongbao") {
+            dimension = "channel"
+            buildConfigField("String", "channel", "\"yingyongbao\"")
+            matchingFallbacks += listOf("release")
+        }
+        create("google") {
+            dimension = "channel"
+            buildConfigField("String", "channel", "\"google\"")
+            matchingFallbacks += listOf("release")
         }
     }
 
@@ -52,6 +103,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14"
@@ -82,6 +134,7 @@ dependencies {
 
     // Core
     implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.2")
     implementation("androidx.activity:activity-compose:1.9.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.2")
@@ -114,6 +167,12 @@ dependencies {
 
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+    // Room
+    val room = "2.6.1"
+    implementation("androidx.room:room-runtime:$room")
+    implementation("androidx.room:room-ktx:$room")
+    kapt("androidx.room:room-compiler:$room")
 
     // EXIF
     implementation("androidx.exifinterface:exifinterface:1.3.7")

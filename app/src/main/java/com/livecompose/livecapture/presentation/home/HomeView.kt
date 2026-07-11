@@ -7,6 +7,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,19 +17,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.livecompose.livecapture.R
+import com.livecompose.livecapture.core.accessibility.AccessibilityHelper
 import com.livecompose.livecapture.core.design.TitleTextStyle
 import com.livecompose.livecapture.core.storage.PhotoRecord
 import java.io.File
+import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -36,6 +49,7 @@ fun HomeView(
     navController: NavController? = null
 ) {
     val records by viewModel.records.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var selectedRecord by remember { mutableStateOf<PhotoRecord?>(null) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -58,9 +72,11 @@ fun HomeView(
             .padding(16.dp)
     ) {
         Text(
-            text = "图库",
+            text = stringResource(R.string.tab_home),
             style = TitleTextStyle,
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier
+                .padding(bottom = 16.dp)
+                .semantics { heading() }
         )
 
         if (records.isEmpty()) {
@@ -69,7 +85,7 @@ fun HomeView(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "暂无照片\n开始拍摄你的第一张照片吧",
+                    text = stringResource(R.string.home_empty_title),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
             }
@@ -77,7 +93,8 @@ fun HomeView(
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.semantics { contentDescription = context.getString(R.string.a11y_photo_grid) }
             ) {
                 items(records) { record ->
                     PhotoThumbnail(
@@ -91,11 +108,25 @@ fun HomeView(
 
     // Photo detail dialog
     selectedRecord?.let { record ->
+        val context = LocalContext.current
         PhotoDetailDialog(
             record = record,
             onDismiss = { selectedRecord = null },
             onDelete = {
                 viewModel.deleteRecord(record)
+                selectedRecord = null
+            },
+            onShare = {
+                viewModel.sharePhoto(record, context)
+            },
+            onShareToWechat = {
+                viewModel.shareToWechat(record, context)
+            },
+            isWechatInstalled = viewModel.isWechatInstalled(context),
+            onEdit = {
+                val photoPath = viewModel.getPhotoForEditing(record)
+                val encoded = URLEncoder.encode(photoPath, "UTF-8")
+                navController?.navigate("photo_editor/$encoded")
                 selectedRecord = null
             }
         )
@@ -122,10 +153,14 @@ private fun PhotoThumbnail(
             .aspectRatio(3f / 4f)
             .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
+            .semantics {
+                contentDescription = AccessibilityHelper.contentDescriptionForPhoto(record)
+                role = Role.Button
+            }
     ) {
         AsyncImage(
             model = thumbModel,
-            contentDescription = "Photo",
+            contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
@@ -136,7 +171,11 @@ private fun PhotoThumbnail(
 private fun PhotoDetailDialog(
     record: PhotoRecord,
     onDismiss: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onShare: () -> Unit,
+    onShareToWechat: () -> Unit,
+    isWechatInstalled: Boolean,
+    onEdit: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
@@ -156,12 +195,12 @@ private fun PhotoDetailDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("照片详情") },
+        title = { Text(stringResource(R.string.home_photo_detail)) },
         text = {
             Column {
                 AsyncImage(
                     model = mainImageModel,
-                    contentDescription = "Photo detail",
+                    contentDescription = stringResource(R.string.a11y_photo_detail_image),
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -171,31 +210,63 @@ private fun PhotoDetailDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                DetailItem("时间", dateFormat.format(Date(record.timestamp)))
-                DetailItem("尺寸", "${record.width} x ${record.height}")
+                DetailItem(stringResource(R.string.home_detail_time), dateFormat.format(Date(record.timestamp)))
+                DetailItem(stringResource(R.string.home_detail_size), stringResource(R.string.home_detail_size_format, record.width, record.height))
                 record.iso?.let { DetailItem("ISO", it) }
-                record.shutterSpeed?.let { DetailItem("快门", it) }
-                record.aperture?.let { DetailItem("光圈", it) }
-                record.focalLength?.let { DetailItem("焦距", it) }
-                record.aestheticScore?.let { DetailItem("美学评分", String.format("%.2f", it)) }
+                record.shutterSpeed?.let { DetailItem(stringResource(R.string.home_detail_shutter), it) }
+                record.aperture?.let { DetailItem(stringResource(R.string.home_detail_aperture), it) }
+                record.focalLength?.let { DetailItem(stringResource(R.string.home_detail_focal_length), it) }
+                record.aestheticScore?.let { DetailItem(stringResource(R.string.home_detail_aesthetic_score), String.format("%.2f", it)) }
                 record.cropRegion?.let { region ->
-                    DetailItem("裁切区域", "(${String.format("%.2f", region.centerX)}, ${String.format("%.2f", region.centerY)})")
+                    DetailItem(stringResource(R.string.home_detail_crop_region), stringResource(R.string.home_detail_crop_format, region.centerX, region.centerY))
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("关闭")
+            Row {
+                // Edit button
+                TextButton(onClick = onEdit) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = stringResource(R.string.home_edit),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(stringResource(R.string.home_edit))
+                }
+                // Share button
+                TextButton(onClick = onShare) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = stringResource(R.string.share),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(stringResource(R.string.share))
+                }
+                // WeChat share button (only if WeChat installed)
+                if (isWechatInstalled) {
+                    TextButton(onClick = onShareToWechat) {
+                        Text(stringResource(R.string.share_to_wechat))
+                    }
+                }
             }
         },
         dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.home_close))
+            }
             TextButton(
                 onClick = onDelete,
                 colors = ButtonDefaults.textButtonColors(
                     contentColor = MaterialTheme.colorScheme.error
-                )
+                ),
+                modifier = Modifier.semantics {
+                    contentDescription = context.getString(R.string.a11y_delete_photo)
+                    role = Role.Button
+                }
             ) {
-                Text("删除")
+                Text(stringResource(R.string.home_delete))
             }
         }
     )

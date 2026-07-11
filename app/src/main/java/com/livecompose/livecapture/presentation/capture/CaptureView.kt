@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,15 +40,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.livecompose.livecapture.R
 import com.livecompose.livecapture.core.design.*
 import com.livecompose.livecapture.core.detection.AdacropInferenceEngine
 import com.livecompose.livecapture.core.permission.PermissionManager
+import com.livecompose.livecapture.core.accessibility.AccessibilityHelper
 import com.livecompose.livecapture.presentation.Screen
 import java.io.File
 import kotlin.math.abs
@@ -163,7 +174,7 @@ fun CaptureView(
             // #56/#17: ERROR 状态 — 显示错误重试 UI
             stage == CaptureViewModel.PipelineStage.ERROR || cameraError != null -> {
                 CameraErrorContent(
-                    errorMessage = cameraError ?: "拍摄流程发生错误",
+                    errorMessage = cameraError ?: stringResource(R.string.capture_error_default_message),
                     onRetry = {
                         viewModel.retry()
                         // 重新启动相机
@@ -199,9 +210,15 @@ fun CaptureView(
 
                 // Tracking Dot
                 trackPoint?.let { point ->
+                    val trackingDotDesc = if (isAligned) {
+                        stringResource(R.string.a11y_tracking_dot_aligned)
+                    } else {
+                        stringResource(R.string.a11y_tracking_dot_not_aligned)
+                    }
                     TrackingDot(
                         position = point,
                         isAligned = isAligned,
+                        contentDescription = trackingDotDesc,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -243,7 +260,7 @@ fun CaptureView(
                     modifier = Modifier.align(Alignment.Center)
                 ) {
                     LoadingOverlay(
-                        text = if (isCameraStarting) "启动相机中..." else "加载 AI 模型中..."
+                        text = if (isCameraStarting) stringResource(R.string.capture_starting_camera) else stringResource(R.string.capture_loading_model)
                     )
                 }
 
@@ -259,6 +276,47 @@ fun CaptureView(
                             .fillMaxSize()
                             .background(Color.White.copy(alpha = 0.3f))
                     )
+                }
+
+                // 拍摄成功后分享按钮
+                val lastSavedPhotoPath by viewModel.lastSavedPhotoPath.collectAsStateWithLifecycle()
+                AnimatedVisibility(
+                    visible = captureSuccess && lastSavedPhotoPath != null,
+                    enter = fadeIn(animationSpec = tween(300)) + slideInVertically { it / 2 },
+                    exit = fadeOut(animationSpec = tween(600)),
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 120.dp)
+                ) {
+                    Surface(
+                        color = GuidanceBg.copy(alpha = 0.9f),
+                        shape = RoundedCornerShape(CornerMedium)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .clickable {
+                                    lastSavedPhotoPath?.let { path ->
+                                        sharePhotoFromCapture(context, path)
+                                    }
+                                }
+                                .padding(horizontal = 20.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = stringResource(R.string.share),
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.share),
+                                color = Color.White,
+                                style = GuidanceTextStyle
+                            )
+                        }
+                    }
                 }
 
                 // Bottom Controls — #54: 刘海屏适配
@@ -302,7 +360,7 @@ private fun PermissionDeniedContent(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "需要相机权限",
+            text = stringResource(R.string.capture_permission_required),
             color = Color.White,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
@@ -311,9 +369,9 @@ private fun PermissionDeniedContent(
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = if (shouldShowRationale || !hasBeenDenied) {
-                "构妙 LiveCapture 需要相机权限来实现实时构图辅助拍摄，请授权使用相机。"
+                stringResource(R.string.capture_permission_rationale)
             } else {
-                "相机权限已被永久拒绝，请在设置中手动开启权限后返回。"
+                stringResource(R.string.capture_permission_denied_permanently)
             },
             color = Color.White.copy(alpha = 0.7f),
             fontSize = 14.sp,
@@ -325,14 +383,14 @@ private fun PermissionDeniedContent(
                 onClick = onRequestPermission,
                 colors = ButtonDefaults.buttonColors(containerColor = Primary)
             ) {
-                Text("授予权限", color = Color.White)
+                Text(stringResource(R.string.capture_grant_permission), color = Color.White)
             }
         } else {
             Button(
                 onClick = onOpenSettings,
                 colors = ButtonDefaults.buttonColors(containerColor = Primary)
             ) {
-                Text("打开设置", color = Color.White)
+                Text(stringResource(R.string.capture_open_settings), color = Color.White)
             }
         }
     }
@@ -354,7 +412,7 @@ private fun CameraErrorContent(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "发生错误",
+            text = stringResource(R.string.capture_error_title),
             color = ErrorColor,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
@@ -373,11 +431,11 @@ private fun CameraErrorContent(
         ) {
             Icon(
                 imageVector = Icons.Default.Refresh,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.capture_retry),
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("重试", color = Color.White)
+            Text(stringResource(R.string.capture_retry), color = Color.White)
         }
     }
 }
@@ -453,6 +511,7 @@ private fun CompositionGridOverlay() {
 private fun TrackingDot(
     position: PointF,
     isAligned: Boolean,
+    contentDescription: String,
     modifier: Modifier = Modifier
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -469,7 +528,7 @@ private fun TrackingDot(
     val dotColor = if (isAligned) TrackingDotAligned else TrackingDotColor
     val dotSize = if (isAligned) 24.dp else 20.dp
 
-    Box(modifier = modifier) {
+    Box(modifier = modifier.semantics { this.contentDescription = contentDescription }) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val x = position.x
             val y = position.y
@@ -530,7 +589,7 @@ private fun TopControlBar(
                 shape = RoundedCornerShape(CornerMedium)
             ) {
                 Text(
-                    text = "AI 模型加载失败，使用默认构图",
+                    text = stringResource(R.string.capture_model_load_failed),
                     style = GuidanceTextStyle.copy(fontSize = 12.sp),
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                 )
@@ -542,7 +601,7 @@ private fun TopControlBar(
                 shape = RoundedCornerShape(CornerMedium)
             ) {
                 Text(
-                    text = "AI 模型加载中...",
+                    text = stringResource(R.string.capture_model_loading),
                     style = GuidanceTextStyle.copy(fontSize = 12.sp),
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                 )
@@ -551,9 +610,14 @@ private fun TopControlBar(
         }
 
         if (guidanceText.isNotEmpty()) {
+            val guidanceLiveDesc = stringResource(R.string.a11y_guidance_live_region)
             Surface(
                 color = GuidanceBg,
-                shape = RoundedCornerShape(CornerMedium)
+                shape = RoundedCornerShape(CornerMedium),
+                modifier = Modifier.semantics {
+                    contentDescription = guidanceLiveDesc
+                    liveRegion = LiveRegionMode.Polite
+                }
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
@@ -597,7 +661,7 @@ private fun TopControlBar(
                     if (currentScore > 0f) {
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "评分 ${String.format("%.2f", currentScore)}",
+                            text = stringResource(R.string.capture_score_format, currentScore),
                             color = if (currentScore > 0.6f) TrackingDotAligned else Color.White.copy(alpha = 0.6f),
                             style = GuidanceTextStyle.copy(fontSize = 12.sp)
                         )
@@ -608,7 +672,7 @@ private fun TopControlBar(
 
         if (isAligned) {
             Text(
-                text = "对齐完美！",
+                text = stringResource(R.string.capture_aligned_perfect),
                 color = TrackingDotAligned,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 8.dp)
@@ -654,7 +718,7 @@ private fun ExposureSliderPanel(
             )
             Spacer(modifier = Modifier.height(8.dp))
             TextButton(onClick = onDismiss) {
-                Text("关闭", color = Color.White, fontSize = 12.sp)
+                Text(stringResource(R.string.capture_close), color = Color.White, fontSize = 12.sp)
             }
         }
     }
@@ -721,10 +785,11 @@ private fun BottomControls(
                     onClick = onGalleryClick
                 )
             } else {
+                val galleryDesc = stringResource(R.string.a11y_gallery)
                 IconButton(onClick = onGalleryClick) {
                     Icon(
                         imageVector = Icons.Default.PhotoLibrary,
-                        contentDescription = "Gallery",
+                        contentDescription = galleryDesc,
                         tint = Color.White,
                         modifier = Modifier.size(32.dp)
                     )
@@ -738,24 +803,36 @@ private fun BottomControls(
             )
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                val cameraSwitchDesc = stringResource(R.string.a11y_camera_switch)
                 IconButton(onClick = onSwitchCamera) {
                     Icon(
                         imageVector = Icons.Default.Cameraswitch,
-                        contentDescription = "Switch Camera",
+                        contentDescription = cameraSwitchDesc,
                         tint = Color.White,
                         modifier = Modifier.size(28.dp)
                     )
                 }
                 Row {
                     // 无闪光灯单元时禁用按钮，避免假显示
+                    val flashDesc = if (!hasTorchUnit) {
+                        stringResource(R.string.a11y_flash_disabled)
+                    } else if (isTorchEnabled) {
+                        stringResource(R.string.a11y_flash_on)
+                    } else {
+                        stringResource(R.string.a11y_flash_off)
+                    }
                     IconButton(
                         onClick = onTorchToggle,
                         enabled = hasTorchUnit,
                         modifier = Modifier.size(28.dp)
+                            .semantics {
+                                role = Role.Switch
+                                stateDescription = if (isTorchEnabled) "已开启" else "已关闭"
+                            }
                     ) {
                         Icon(
                             imageVector = if (isTorchEnabled) Icons.Default.FlashOn else Icons.Default.FlashOff,
-                            contentDescription = "Torch",
+                            contentDescription = flashDesc,
                             tint = when {
                                 !hasTorchUnit -> Color.White.copy(alpha = 0.3f)
                                 isTorchEnabled -> Color.Yellow
@@ -764,10 +841,11 @@ private fun BottomControls(
                             modifier = Modifier.size(20.dp)
                         )
                     }
+                    val exposureDesc = stringResource(R.string.a11y_exposure)
                     IconButton(onClick = onExposureClick, modifier = Modifier.size(28.dp)) {
                         Icon(
                             imageVector = Icons.Default.Exposure,
-                            contentDescription = "Exposure",
+                            contentDescription = exposureDesc,
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
@@ -796,7 +874,7 @@ private fun LastPhotoThumbnail(
     ) {
         AsyncImage(
             model = imageModel,
-            contentDescription = "Last photo",
+            contentDescription = stringResource(R.string.a11y_last_photo),
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
@@ -805,7 +883,19 @@ private fun LastPhotoThumbnail(
 
 @Composable
 private fun ZoomButton(label: String, isSelected: Boolean, onClick: () -> Unit) {
-    TextButton(onClick = onClick) {
+    val zoomDesc = if (isSelected) {
+        stringResource(R.string.a11y_zoom_button_selected, label)
+    } else {
+        stringResource(R.string.a11y_zoom_button, label)
+    }
+    TextButton(
+        onClick = onClick,
+        modifier = Modifier.semantics {
+            contentDescription = zoomDesc
+            role = Role.Button
+            stateDescription = if (isSelected) "已选中" else "未选中"
+        }
+    ) {
         Text(
             text = label,
             color = if (isSelected) Primary else Color.White.copy(alpha = 0.7f),
@@ -841,6 +931,12 @@ private fun CaptureButton(
         label = "ringScale"
     )
 
+    val captureDesc = if (enabled) {
+        stringResource(R.string.a11y_capture_button_enabled)
+    } else {
+        stringResource(R.string.a11y_capture_button_disabled)
+    }
+
     Box(
         modifier = Modifier
             .size(80.dp)
@@ -848,7 +944,12 @@ private fun CaptureButton(
             .background(ringColor, CircleShape)
             .padding(4.dp)
             .alpha(alpha)
-            .clickable(enabled = enabled) { onClick() },
+            .clickable(enabled = enabled) { onClick() }
+            .semantics {
+                contentDescription = captureDesc
+                role = Role.Button
+                stateDescription = if (enabled) "可拍摄" else "不可拍摄"
+            },
         contentAlignment = Alignment.Center
     ) {
         Box(
@@ -857,4 +958,31 @@ private fun CaptureButton(
                 .background(if (enabled) Color.Red else Color.Gray, CircleShape)
         )
     }
+}
+
+/**
+ * 拍摄成功后分享照片 — 使用 Intent 分享
+ */
+private fun sharePhotoFromCapture(context: android.content.Context, photoPath: String) {
+    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = "image/jpeg"
+        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+
+    if (photoPath.startsWith("content://")) {
+        val uri = android.net.Uri.parse(photoPath)
+        intent.putExtra(android.content.Intent.EXTRA_STREAM, uri)
+    } else {
+        val file = java.io.File(photoPath)
+        val authority = "${context.packageName}.fileprovider"
+        val uri = androidx.core.content.FileProvider.getUriForFile(context, authority, file)
+        intent.putExtra(android.content.Intent.EXTRA_STREAM, uri)
+    }
+
+    val chooser = android.content.Intent.createChooser(
+        intent, context.getString(R.string.share_photo_title)
+    ).apply {
+        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    context.startActivity(chooser)
 }
