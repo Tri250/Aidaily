@@ -175,13 +175,17 @@ class CameraManager @Inject constructor(
                 if (isProcessingFrame.compareAndSet(false, true)) {
                     try {
                         onFrameAnalyzed?.invoke(imageProxy)
+                        // 消费者负责关闭 imageProxy: 通过 onFrameProcessingComplete() 或直接 close()
+                        // 此处不关闭，因为消费者可能异步使用 buffer
                     } catch (e: Exception) {
                         Log.e(TAG, "Frame analysis callback error", e)
                         isProcessingFrame.set(false)
+                        imageProxy.close()  // 回调异常时关闭，避免泄漏
                     }
+                } else {
+                    // 帧被跳过，立即关闭 imageProxy 回收 buffer
+                    imageProxy.close()
                 }
-                // 始终关闭 imageProxy，确保 buffer 回收
-                imageProxy.close()
             }
         }
 
@@ -244,6 +248,8 @@ class CameraManager @Inject constructor(
 
     /**
      * 标记帧处理完成，允许下一帧进入处理
+     * 注意：消费者在调用此方法前必须确保已关闭 imageProxy（或不再使用其 buffer），
+     * 因为 imageProxy 的生命周期由消费者管理。
      */
     fun onFrameProcessingComplete() {
         isProcessingFrame.set(false)

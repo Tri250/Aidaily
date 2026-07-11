@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  网络安全配置 - LiveCapture 不需要网络访问
+  禁用明文流量，防止意外网络请求
+-->
+<network-security-config>
+    <!-- 禁止所有明文 HTTP 请求 -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

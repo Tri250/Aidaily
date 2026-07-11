@@ -232,6 +232,7 @@ class CaptureViewModel @Inject constructor(
                 _isDetectionReady.value = true
                 _currentScore.value = 0.5f
             }
+            imageProxy.close()
             cameraManager.onFrameProcessingComplete()
             return
         }
@@ -240,6 +241,7 @@ class CaptureViewModel @Inject constructor(
         val now = System.currentTimeMillis()
         val throttleMs = if (detectionMode == "PRO") PRO_MODE_THROTTLE_MS else FAST_MODE_THROTTLE_MS
         if (throttleMs > 0 && now - lastInferenceTimeMs < throttleMs) {
+            imageProxy.close()
             cameraManager.onFrameProcessingComplete()
             return
         }
@@ -249,12 +251,16 @@ class CaptureViewModel @Inject constructor(
             imageProxyToBitmap(imageProxy)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to convert frame", e)
+            imageProxy.close()
             cameraManager.onFrameProcessingComplete()
             return
         }
 
-        val width = imageProxy.width
-        val height = imageProxy.height
+        // Bitmap has been copied from the ImageProxy buffer — close it now to free the camera buffer immediately
+        imageProxy.close()
+
+        val width = bitmap.width
+        val height = bitmap.height
 
         viewModelScope.launch {
             try {

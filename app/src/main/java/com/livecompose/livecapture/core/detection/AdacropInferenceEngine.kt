@@ -17,6 +17,7 @@ import java.nio.ByteOrder
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.locks.ReentrantLock
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.abs
@@ -46,6 +47,11 @@ class AdacropInferenceEngine @Inject constructor(
             2f / 3f to 2f / 3f
         )
         private const val SAFETY_MARGIN = 0.1f // 边缘安全区 10%
+        private val DEFAULT_RESULT = CompositionResult(
+            bbox = floatArrayOf(0.5f, 0.5f, 0.8f, 0.8f),
+            action = ActionType.STOP,
+            actionProbabilities = FloatArray(NUM_ACTIONS) { 1f / NUM_ACTIONS }
+        )
     }
 
     /**
@@ -60,7 +66,9 @@ class AdacropInferenceEngine @Inject constructor(
 
     private var interpreter: Interpreter? = null
     private var nnApiDelegate: NnApiDelegate? = null
+    @Volatile
     private var isDualOutput = false
+    @Volatile
     private var inputDataType: Int = 0 // 0 = float32, 1 = uint8
 
     // 当前已加载的变体, 用于判断是否需要切换重载
@@ -69,6 +77,8 @@ class AdacropInferenceEngine @Inject constructor(
 
     // 模型加载状态跟踪，防止重复加载
     private val isLoadStarted = AtomicBoolean(false)
+
+    private val inferenceLock = ReentrantLock()
 
     private val inputBuffer: ByteBuffer
     // 复用 IntArray，避免每帧分配
@@ -239,60 +249,62 @@ class AdacropInferenceEngine @Inject constructor(
     }
 
     suspend fun analyze(bitmap: Bitmap): CompositionResult = withContext(Dispatchers.Default) {
-        val startTime = System.currentTimeMillis()
+        inferenceLock.withLock {
+            val startTime = System.currentTimeMillis()
 
-        val interp = interpreter ?: return@withContext defaultResult()
+            val interp = interpreter ?: return@withContext defaultResult()
 
-        var resizedBitmap: Bitmap? = null
-        var croppedBitmap: Bitmap? = null
-        try {
-            resizedBitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true)
-            preprocess(resizedBitmap)
+            var resizedBitmap: Bitmap? = null
+            var croppedBitmap: Bitmap? = null
+            try {
+                resizedBitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true)
+                preprocess(resizedBitmap)
 
-            val bbox: FloatArray
-            val actionProbs: FloatArray
+                val bbox: FloatArray
+                val actionProbs: FloatArray
 
-            if (isDualOutput) {
-                // 复用输出数组，避免每帧分配
-                interp.runForMultipleInputsOutputs(dualInputs, outputMap)
-                bbox = bboxOutput[0]
-                actionProbs = actionOutput[0]
-            } else {
-                interp.run(inputBuffer, bboxOutput)
-                bbox = bboxOutput[0]
+                if (isDualOutput) {
+                    // 复用输出数组，避免每帧分配
+                    interp.runForMultipleInputsOutputs(dualInputs, outputMap)
+                    bbox = bboxOutput[0]
+                    actionProbs = actionOutput[0]
+                } else {
+                    interp.run(inputBuffer, bboxOutput)
+                    bbox = bboxOutput[0]
 
-                croppedBitmap = cropAndResize(bitmap, bbox)
-                preprocess(croppedBitmap)
+                    croppedBitmap = cropAndResize(bitmap, bbox)
+                    preprocess(croppedBitmap)
 
-                interp.run(inputBuffer, actionOutput)
-                actionProbs = actionOutput[0]
+                    interp.run(inputBuffer, actionOutput)
+                    actionProbs = actionOutput[0]
+                }
+
+                _inferenceTime.value = System.currentTimeMillis() - startTime
+
+                val action = argMax(actionProbs)
+                val confidence = actionProbs.maxOrNull() ?: 0.5f
+
+                val ruleOfThirdsScore = calculateRuleOfThirdsScore(bbox)
+                val safetyMarginScore = calculateSafetyMarginScore(bbox)
+                val faceCoverage = estimateFaceCoverage(bbox, confidence)
+
+                CompositionResult(
+                    bbox = bbox,
+                    action = action,
+                    actionProbabilities = actionProbs,
+                    confidence = confidence,
+                    faceCoverage = faceCoverage,
+                    ruleOfThirdsScore = ruleOfThirdsScore,
+                    safetyMarginScore = safetyMarginScore
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Inference error", e)
+                defaultResult()
+            } finally {
+                // 确保异常路径 Bitmap 也被回收，避免 native 内存泄漏
+                resizedBitmap?.recycle()
+                croppedBitmap?.recycle()
             }
-
-            _inferenceTime.value = System.currentTimeMillis() - startTime
-
-            val action = argMax(actionProbs)
-            val confidence = actionProbs.maxOrNull() ?: 0.5f
-
-            val ruleOfThirdsScore = calculateRuleOfThirdsScore(bbox)
-            val safetyMarginScore = calculateSafetyMarginScore(bbox)
-            val faceCoverage = estimateFaceCoverage(bbox, confidence)
-
-            CompositionResult(
-                bbox = bbox,
-                action = action,
-                actionProbabilities = actionProbs,
-                confidence = confidence,
-                faceCoverage = faceCoverage,
-                ruleOfThirdsScore = ruleOfThirdsScore,
-                safetyMarginScore = safetyMarginScore
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "Inference error", e)
-            defaultResult()
-        } finally {
-            // 确保异常路径 Bitmap 也被回收，避免 native 内存泄漏
-            resizedBitmap?.recycle()
-            croppedBitmap?.recycle()
         }
     }
 
@@ -391,7 +403,11 @@ class AdacropInferenceEngine @Inject constructor(
         }
 
         val cropped = Bitmap.createBitmap(bitmap, left, top, cropWidth, cropHeight)
-        return Bitmap.createScaledBitmap(cropped, INPUT_SIZE, INPUT_SIZE, true)
+        val scaled = Bitmap.createScaledBitmap(cropped, INPUT_SIZE, INPUT_SIZE, true)
+        if (cropped !== scaled) {
+            cropped.recycle()
+        }
+        return scaled
     }
 
     private fun argMax(probabilities: FloatArray): ActionType {
@@ -399,13 +415,7 @@ class AdacropInferenceEngine @Inject constructor(
         return ActionType.entries.getOrElse(maxIndex) { ActionType.STOP }
     }
 
-    private fun defaultResult(): CompositionResult {
-        return CompositionResult(
-            bbox = floatArrayOf(0.5f, 0.5f, 0.8f, 0.8f),
-            action = ActionType.STOP,
-            actionProbabilities = FloatArray(NUM_ACTIONS) { 1f / NUM_ACTIONS }
-        )
-    }
+    private fun defaultResult(): CompositionResult = DEFAULT_RESULT
 
     fun close() {
         releaseInterpreter()
