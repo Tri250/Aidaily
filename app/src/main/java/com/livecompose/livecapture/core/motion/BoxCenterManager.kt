@@ -26,11 +26,15 @@ class BoxCenterManager @Inject constructor(
         private const val SNAP_LERP_FACTOR = 0.3f
     }
 
+    // #69: 协程中访问的字段加 @Volatile 保证跨线程可见性
+    private val centerLock = Any()
     private var referenceCenter: PointF? = null
     private var screenCenter: PointF = PointF(0.5f, 0.5f)
     private var screenWidth: Float = 0f
     private var screenHeight: Float = 0f
+    @Volatile
     private var isLocked = false
+    @Volatile
     private var lockTimestamp = 0L
 
     private val _trackPoint = MutableStateFlow<PointF?>(null)
@@ -63,16 +67,18 @@ class BoxCenterManager @Inject constructor(
         motionData: MotionStabilityMonitor.MotionData
     ) {
         // 记录基准中心（首次检测结果）
-        if (referenceCenter == null) {
-            referenceCenter = PointF(bboxCenterX, bboxCenterY)
-            Log.d(TAG, "Reference center set: ($bboxCenterX, $bboxCenterY)")
+        synchronized(centerLock) {
+            if (referenceCenter == null) {
+                referenceCenter = PointF(bboxCenterX, bboxCenterY)
+                Log.d(TAG, "Reference center set: ($bboxCenterX, $bboxCenterY)")
+            }
         }
 
         // 计算姿态变化带来的屏幕坐标偏移
         val offsetX = motionData.gyroY * 50f
         val offsetY = motionData.gyroX * 50f
 
-        val ref = referenceCenter ?: return
+        val ref = synchronized(centerLock) { referenceCenter } ?: return
 
         // 原始追踪点（不受吸附影响）
         val rawX = (ref.x + offsetX).coerceIn(0f, screenWidth)
@@ -128,7 +134,7 @@ class BoxCenterManager @Inject constructor(
     }
 
     fun reset() {
-        referenceCenter = null
+        synchronized(centerLock) { referenceCenter = null }
         _trackPoint.value = null
         _isAligned.value = false
         _alignmentProgress.value = 0f

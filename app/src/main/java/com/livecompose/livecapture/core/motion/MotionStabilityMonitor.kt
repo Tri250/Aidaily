@@ -43,11 +43,14 @@ class MotionStabilityMonitor @Inject constructor(
     private val _motionData = MutableStateFlow(MotionData())
     val motionData: StateFlow<MotionData> = _motionData
 
+    // #69: 传感器回调在独立线程执行，读写需同步保护
+    private val sensorLock = Any()
     private var gyroReadings = FloatArray(3) { 0f }
     private var accelReadings = FloatArray(3) { 0f }
 
     private var stableFrameCount = 0
     private var unstableFrameCount = 0
+    @Volatile
     private var isMonitoring = false
 
     data class MotionData(
@@ -85,59 +88,62 @@ class MotionStabilityMonitor @Inject constructor(
     }
 
     override fun onSensorChanged(event: SensorEvent) {
-        when (event.sensor.type) {
-            Sensor.TYPE_GYROSCOPE -> {
-                gyroReadings[0] = event.values[0]
-                gyroReadings[1] = event.values[1]
-                gyroReadings[2] = event.values[2]
+        // #69: 传感器回调在独立线程执行，同步保护读写
+        val gx: Float; val gy: Float; val gz: Float
+        val ax: Float; val ay: Float; val az: Float
+        synchronized(sensorLock) {
+            when (event.sensor.type) {
+                Sensor.TYPE_GYROSCOPE -> {
+                    gyroReadings[0] = event.values[0]
+                    gyroReadings[1] = event.values[1]
+                    gyroReadings[2] = event.values[2]
+                }
+                Sensor.TYPE_ACCELEROMETER -> {
+                    accelReadings[0] = event.values[0]
+                    accelReadings[1] = event.values[1]
+                    accelReadings[2] = event.values[2]
+                }
             }
-            Sensor.TYPE_ACCELEROMETER -> {
-                accelReadings[0] = event.values[0]
-                accelReadings[1] = event.values[1]
-                accelReadings[2] = event.values[2]
-            }
+            gx = gyroReadings[0]; gy = gyroReadings[1]; gz = gyroReadings[2]
+            ax = accelReadings[0]; ay = accelReadings[1]; az = accelReadings[2]
         }
 
         _motionData.value = MotionData(
-            gyroX = gyroReadings[0],
-            gyroY = gyroReadings[1],
-            gyroZ = gyroReadings[2],
-            accelX = accelReadings[0],
-            accelY = accelReadings[1],
-            accelZ = accelReadings[2]
+            gyroX = gx, gyroY = gy, gyroZ = gz,
+            accelX = ax, accelY = ay, accelZ = az
         )
 
         evaluateStability()
     }
 
     private fun evaluateStability() {
-        val gyroMagnitude = sqrt(
-            gyroReadings[0] * gyroReadings[0] +
-            gyroReadings[1] * gyroReadings[1] +
-            gyroReadings[2] * gyroReadings[2]
-        )
+        val (gx, gy, gz, ax, ay, az) = synchronized(sensorLock) {
+            arrayOf(
+                gyroReadings[0], gyroReadings[1], gyroReadings[2],
+                accelReadings[0], accelReadings[1], accelReadings[2]
+            )
+        }
 
-        val accelMagnitude = sqrt(
-            accelReadings[0] * accelReadings[0] +
-            accelReadings[1] * accelReadings[1] +
-            accelReadings[2] * accelReadings[2]
-        )
+        val gyroMagnitude = sqrt(gx as Float * gx + gy as Float * gy + gz as Float * gz)
+        val accelMagnitude = sqrt(ax as Float * ax + ay as Float * ay + az as Float * az)
         val accelDeviation = abs(accelMagnitude - 9.8f)
 
         val isCurrentlyStable = gyroMagnitude < GYROSCOPE_THRESHOLD &&
                 accelDeviation < ACCELEROMETER_THRESHOLD
 
-        if (isCurrentlyStable) {
-            stableFrameCount++
-            unstableFrameCount = 0
-            if (stableFrameCount >= STABILITY_WINDOW) {
-                _isStable.value = true
-            }
-        } else {
-            unstableFrameCount++
-            stableFrameCount = 0
-            if (unstableFrameCount >= INSTABILITY_THRESHOLD) {
-                _isStable.value = false
+        synchronized(sensorLock) {
+            if (isCurrentlyStable) {
+                stableFrameCount++
+                unstableFrameCount = 0
+                if (stableFrameCount >= STABILITY_WINDOW) {
+                    _isStable.value = true
+                }
+            } else {
+                unstableFrameCount++
+                stableFrameCount = 0
+                if (unstableFrameCount >= INSTABILITY_THRESHOLD) {
+                    _isStable.value = false
+                }
             }
         }
     }

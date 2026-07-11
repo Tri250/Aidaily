@@ -76,6 +76,10 @@ class CaptureViewModel @Inject constructor(
     private val _lastSavedThumbPath = MutableStateFlow<String?>(null)
     val lastSavedThumbPath: StateFlow<String?> = _lastSavedThumbPath
 
+    // 拍摄成功反馈 (用于 UI 闪白动画)
+    private val _captureSuccess = MutableStateFlow(false)
+    val captureSuccess: StateFlow<Boolean> = _captureSuccess
+
     val isModelReady: StateFlow<Boolean> = detectionEngine.isReady
     val isModelLoading: StateFlow<Boolean> = detectionEngine.isLoading
     val modelLoadFailed: StateFlow<Boolean> = detectionEngine.loadFailed
@@ -398,6 +402,8 @@ class CaptureViewModel @Inject constructor(
 
                                 _lastSavedPhotoPath.value = record.filePath
                                 _lastSavedThumbPath.value = record.thumbPath
+                                // 触发拍摄成功闪白动画
+                                _captureSuccess.value = true
                                 resetPipeline()
                             } catch (e: CancellationException) {
                                 throw e
@@ -478,6 +484,7 @@ class CaptureViewModel @Inject constructor(
         _isDetectionReady.value = false
         lastDetectionResult = null
         _currentScore.value = 0f
+        _captureSuccess.value = false
         boxCenterManager.reset()
         cameraManager.stopCamera()
         motionMonitor.stopMonitoring()

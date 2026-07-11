@@ -3,6 +3,7 @@ package com.livecompose.livecapture
 import android.app.Application
 import com.livecompose.livecapture.core.camera.CameraManager
 import com.livecompose.livecapture.core.detection.AdacropInferenceEngine
+import com.livecompose.livecapture.core.diagnostics.SelfChecker
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -15,12 +16,18 @@ class LiveCaptureApp : Application() {
     @Inject
     lateinit var detectionEngine: AdacropInferenceEngine
 
-    companion object {
-        /** BODY_SENSORS permission constant for runtime permission requests. */
-        const val BODY_SENSORS = "android.permission.BODY_SENSORS"
+    @Inject
+    lateinit var selfChecker: SelfChecker
 
+    companion object {
         @Volatile
         private var resourcesReleased = false
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        // 启动时执行全量自检，输出诊断日志
+        selfChecker.runFullCheck()
     }
 
     override fun onTerminate() {

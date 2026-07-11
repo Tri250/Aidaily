@@ -7,10 +7,12 @@
     <uses-feature android:name="android.hardware.camera" android:required="true" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
-    <!-- Sensor permissions for MotionStabilityMonitor (gyroscope access) -->
-    <uses-permission android:name="android.permission.BODY_SENSORS" />
-    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS"
-        tools:ignore="HighSamplingRate" />
+    <!--
+      Sensor: 陀螺仪和加速度计是普通传感器 (TYPE_GYROSCOPE / TYPE_ACCELEROMETER)，
+      不需要声明 BODY_SENSORS 权限。该权限仅在 Android 12 及以下对心率等受限传感器有效，
+      Android 13+ 已完全废弃。
+      MotionStabilityMonitor 采样率 60Hz (< 200Hz)，也无需 HIGH_SAMPLING_RATE_SENSORS。
+    -->
 
     <!-- Storage permissions for gallery access -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"

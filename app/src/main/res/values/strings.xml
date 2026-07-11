@@ -21,7 +21,7 @@
     <string name="guidance_hold">保持不动</string>
     <string name="setting_detection_mode">检测模式</string>
     <string name="setting_detection_fast">快速 (MobileNetV3)</string>
-    <string name="setting_detection_pro">专业 (ResNet50)</string>
+    <string name="setting_detection_pro">专业 (MobileNetV3-Large)</string>
     <string name="setting_theme">主题</string>
     <string name="setting_auto_capture">自动拍摄</string>
     <string name="setting_capture_delay">拍摄延迟</string>

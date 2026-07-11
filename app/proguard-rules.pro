@@ -2,9 +2,6 @@
 
 # ===== 应用核心 =====
 -keep class com.livecompose.livecapture.** { *; }
--keepclassmembers class * {
-    @com.google.gson.annotations.SerializedName <fields>;
-}
 -keepattributes *Annotation*, Signature, Exception, InnerClasses, SourceFile, LineNumberTable
 
 # ===== TensorFlow Lite =====

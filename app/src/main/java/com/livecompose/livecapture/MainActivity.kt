@@ -34,4 +34,12 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // #69: onTerminate() 在真机上不可靠，onDestroy() 中释放资源
+        if (isFinishing) {
+            (application as LiveCaptureApp).releaseResources()
+        }
+    }
 }
