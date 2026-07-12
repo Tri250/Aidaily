@@ -10,6 +10,8 @@ import com.livecompose.livecapture.core.detection.AdacropInferenceEngine
 import com.livecompose.livecapture.core.detection.CompositionResult
 import com.livecompose.livecapture.core.motion.BoxCenterManager
 import com.livecompose.livecapture.core.motion.MotionStabilityMonitor
+import com.livecompose.livecapture.core.permission.PermissionManager
+import com.livecompose.livecapture.core.settings.DetectionMode
 import com.livecompose.livecapture.core.settings.SettingsRepository
 import com.livecompose.livecapture.core.storage.PhotoRecord
 import com.livecompose.livecapture.core.storage.PhotoStorageService
@@ -73,6 +75,9 @@ class CaptureViewModelTest {
     private lateinit var settingsRepository: SettingsRepository
 
     @Mock
+    private lateinit var permissionManager: PermissionManager
+
+    @Mock
     private lateinit var lifecycleOwner: LifecycleOwner
 
     @Mock
@@ -84,7 +89,7 @@ class CaptureViewModelTest {
     // ---- SettingsRepository 的 MutableStateFlow 模拟 ----
 
     private val torchEnabledFlow = MutableStateFlow(false)
-    private val detectionModeFlow = MutableStateFlow("FAST")
+    private val detectionModeFlow = MutableStateFlow(DetectionMode.FAST)
     private val autoCaptureFlow = MutableStateFlow(true)
     private val captureDelayFlow = MutableStateFlow(0)
 
@@ -157,7 +162,8 @@ class CaptureViewModelTest {
             motionMonitor = motionMonitor,
             boxCenterManager = boxCenterManager,
             storageService = storageService,
-            settingsRepository = settingsRepository
+            settingsRepository = settingsRepository,
+            permissionManager = permissionManager
         )
     }
 
@@ -276,7 +282,7 @@ class CaptureViewModelTest {
         viewModel.startCamera(lifecycleOwner, previewView)
 
         // 切换到 PRO 模式
-        detectionModeFlow.value = "PRO"
+        detectionModeFlow.value = DetectionMode.PRO
 
         advanceUntilIdleWithDelay()
 
@@ -595,7 +601,7 @@ class CaptureViewModelTest {
     fun `processFrame PRO模式不节流`() = runTest {
         isModelReadyFlow.value = true
         modelLoadFailedFlow.value = false
-        detectionModeFlow.value = "PRO"
+        detectionModeFlow.value = DetectionMode.PRO
 
         setupImageProxyForBitmap()
         val compositionResult = CompositionResult(

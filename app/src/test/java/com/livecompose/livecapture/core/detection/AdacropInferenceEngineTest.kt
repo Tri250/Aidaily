@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -17,7 +18,6 @@ import org.robolectric.annotation.Config
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.nio.ByteBuffer
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * AdacropInferenceEngine 综合单元测试
@@ -169,25 +169,25 @@ class AdacropInferenceEngineTest {
     }
 
     @Test
-    fun `loadModelAsync 加载失败时 isLoadStarted 被重置允许重试`() = runTest {
+    fun `loadModelAsync 加载失败时 loadMutex 未锁定允许重试`() = runTest {
         engine.loadModelAsync(AdacropInferenceEngine.ModelVariant.STUDENT)
 
-        // 失败后 isLoadStarted 被重置为 false，允许后续重试
-        val isLoadStarted: AtomicBoolean = getFieldValue("isLoadStarted")
-        assertFalse(isLoadStarted.get())
+        // 失败后 loadMutex 应处于未锁定状态，允许后续重试
+        val loadMutex: Mutex = getFieldValue("loadMutex")
+        assertFalse(loadMutex.isLocked)
     }
 
     @Test
-    fun `loadModelAsync AtomicBoolean 防止重复加载 - 连续两次调用只加载一次`() = runTest {
-        // 第一次加载: isLoadStarted 从 false 变为 true
+    fun `loadModelAsync Mutex 防止重复加载 - 连续两次调用只加载一次`() = runTest {
+        // 第一次加载: loadMutex 加锁
         engine.loadModelAsync(AdacropInferenceEngine.ModelVariant.STUDENT)
 
-        // 第一次调用后 isLoadStarted 为 true (除非加载失败重置)
-        // 如果第一次加载失败，isLoadStarted 被重置为 false，第二次可以重试
+        // 第一次调用后 loadMutex 应已释放（加载完成，无论成功或失败）
+        // 如果第一次加载失败，loadMutex 被释放，第二次可以重试
         // 此处测试的是成功场景下的防重入: 若 interpreter 已存在且 isReady=true，则跳过
         // 由于没有真实模型文件，第一次必定失败; 验证失败后允许重试
-        val isLoadStarted: AtomicBoolean = getFieldValue("isLoadStarted")
-        assertFalse(isLoadStarted.get())
+        val loadMutex: Mutex = getFieldValue("loadMutex")
+        assertFalse(loadMutex.isLocked)
     }
 
     @Test
@@ -247,17 +247,13 @@ class AdacropInferenceEngineTest {
     }
 
     @Test
-    fun `switchVariant 重置 isLoadStarted 允许重新加载`() = runTest {
-        // 先设置 isLoadStarted 为 true (模拟已加载过的状态)
-        val isLoadStarted: AtomicBoolean = getFieldValue("isLoadStarted")
-        isLoadStarted.set(true)
-
-        // switchVariant 应重置 isLoadStarted
+    fun `switchVariant 后 loadMutex 未锁定允许重新加载`() = runTest {
+        // switchVariant 内部调用 loadModelAsync，完成后 loadMutex 应释放
         engine.switchVariant(AdacropInferenceEngine.ModelVariant.STUDENT)
 
-        // 切换后 isLoadStarted 被重置为 false，允许重新加载
-        // (随后 loadModelAsync 会再次设置为 true)
-        assertFalse(isLoadStarted.get() && engine.isReady.value)
+        // 切换后 loadMutex 被释放（loadModelAsync 内部 withLock 已退出）
+        val loadMutex: Mutex = getFieldValue("loadMutex")
+        assertFalse(loadMutex.isLocked)
     }
 
     @Test
@@ -867,11 +863,11 @@ class AdacropInferenceEngineTest {
     }
 
     @Test
-    fun `close 后 isLoadStarted 被重置为 false`() {
+    fun `close 后 loadMutex 未锁定`() {
         engine.close()
 
-        val isLoadStarted: AtomicBoolean = getFieldValue("isLoadStarted")
-        assertFalse(isLoadStarted.get())
+        val loadMutex: Mutex = getFieldValue("loadMutex")
+        assertFalse(loadMutex.isLocked)
     }
 
     @Test
@@ -1017,9 +1013,9 @@ class AdacropInferenceEngineTest {
         engine.loadModelAsync(AdacropInferenceEngine.ModelVariant.STUDENT)
         assertTrue(engine.loadFailed.value)
 
-        // 失败后 isLoadStarted 被重置，可以重试
-        val isLoadStarted: AtomicBoolean = getFieldValue("isLoadStarted")
-        assertFalse(isLoadStarted.get())
+        // 失败后 loadMutex 已释放，可以重试
+        val loadMutex: Mutex = getFieldValue("loadMutex")
+        assertFalse(loadMutex.isLocked)
 
         // 重试加载 (依然会失败，但不应抛异常)
         engine.loadModelAsync(AdacropInferenceEngine.ModelVariant.STUDENT)

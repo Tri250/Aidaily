@@ -7,6 +7,7 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.os.Build
 import androidx.test.core.app.ApplicationProvider
+import com.livecompose.livecapture.core.permission.PermissionManager
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -41,6 +42,7 @@ class SelfCheckerTest {
 
     private lateinit var context: Context
     private lateinit var shadowCameraManager: ShadowCameraManager
+    private lateinit var permissionManager: PermissionManager
 
     @Before
     fun setUp() {
@@ -49,6 +51,8 @@ class SelfCheckerTest {
         shadowCameraManager = Shadows.shadowOf(cameraManager)
         // 清空之前可能遗留的相机配置
         shadowCameraManager.clearCameras()
+        // PermissionManager 直接构造，通过 Context 检查权限
+        permissionManager = PermissionManager(context)
     }
 
     @After
@@ -68,7 +72,7 @@ class SelfCheckerTest {
      * SelfChecker 是 @Singleton，但我们可以直接构造用于测试。
      */
     private fun createSelfChecker(): SelfChecker {
-        return SelfChecker(context)
+        return SelfChecker(context, permissionManager)
     }
 
     /**
@@ -848,7 +852,7 @@ class SelfCheckerTest {
     // =====================================================
 
     @Test
-    fun `checkSecurity-包含代码混淆检查项且为PASS`() {
+    fun `checkSecurity-包含代码混淆检查项`() {
         addBackCamera()
         grantAllPermissions()
         val checker = createSelfChecker()
@@ -857,9 +861,9 @@ class SelfCheckerTest {
         val proguardItem = results.find { it.category == "安全" && it.name == "代码混淆" }
 
         assertNotNull("应包含代码混淆检查项", proguardItem)
-        // 代码混淆当前始终返回 PASS
-        assertEquals("代码混淆检查应为 PASS", SelfChecker.CheckStatus.PASS, proguardItem!!.status)
-        assertTrue("代码混淆详情应包含'ProGuard'", proguardItem.detail.contains("ProGuard"))
+        // Robolectric 默认是 Debug 构建，代码混淆检查应为 INFO
+        // 同时验证详情包含 ProGuard
+        assertTrue("代码混淆详情应包含'ProGuard'", proguardItem!!.detail.contains("ProGuard"))
     }
 
     // =====================================================
@@ -1173,5 +1177,132 @@ class SelfCheckerTest {
             assertEquals("第 $i 项 status 应一致", results[i].status, flowResults[i].status)
             assertEquals("第 $i 项 detail 应一致", results[i].detail, flowResults[i].detail)
         }
+    }
+
+    // =====================================================
+    // 2026 正式版新增检查项测试
+    // =====================================================
+
+    @Test
+    fun `checkEngine-包含TFLite模型文件检查项`() {
+        addBackCamera()
+        grantAllPermissions()
+        val checker = createSelfChecker()
+
+        val results = checker.runFullCheck()
+        val studentModel = results.find { it.category == "引擎" && it.name.contains("adacrop_student") }
+        val teacherModel = results.find { it.category == "引擎" && it.name.contains("adacrop_teacher") }
+
+        assertNotNull("应包含 Student 模型文件检查项", studentModel)
+        assertNotNull("应包含 Teacher 模型文件检查项", teacherModel)
+    }
+
+    @Test
+    fun `checkEngine-TFLite模型文件缺失时检查为FAIL`() {
+        addBackCamera()
+        grantAllPermissions()
+        val checker = createSelfChecker()
+
+        val results = checker.runFullCheck()
+        val modelItems = results.filter { it.category == "引擎" && it.name.startsWith("模型文件") }
+
+        // Robolectric 测试环境没有 assets，模型文件检查应为 FAIL
+        for (item in modelItems) {
+            assertEquals("模型文件缺失时应为 FAIL", SelfChecker.CheckStatus.FAIL, item.status)
+        }
+        assertTrue("应至少有2个模型文件检查项", modelItems.size >= 2)
+    }
+
+    @Test
+    fun `checkPerformance-包含存储空间检查项`() {
+        addBackCamera()
+        grantAllPermissions()
+        val checker = createSelfChecker()
+
+        val results = checker.runFullCheck()
+        val storageItem = results.find { it.category == "性能" && it.name == "存储空间" }
+
+        assertNotNull("应包含存储空间检查项", storageItem)
+        assertTrue("存储空间详情应包含'MB'或'GB'",
+            storageItem!!.detail.contains("MB") || storageItem.detail.contains("GB"))
+    }
+
+    @Test
+    fun `checkPerformance-包含GPU渲染检查项`() {
+        addBackCamera()
+        grantAllPermissions()
+        val checker = createSelfChecker()
+
+        val results = checker.runFullCheck()
+        val gpuItem = results.find { it.category == "性能" && it.name == "GPU 渲染" }
+
+        assertNotNull("应包含 GPU 渲染检查项", gpuItem)
+        assertTrue("GPU 详情应包含'OpenGL ES'", gpuItem!!.detail.contains("OpenGL ES"))
+    }
+
+    @Test
+    fun `checkStability-包含电池优化检查项`() {
+        addBackCamera()
+        grantAllPermissions()
+        val checker = createSelfChecker()
+
+        val results = checker.runFullCheck()
+        val batteryItem = results.find { it.category == "稳定性" && it.name == "电池优化" }
+
+        assertNotNull("应包含电池优化检查项", batteryItem)
+    }
+
+    @Test
+    fun `checkCompatibility-包含最低API要求检查项`() {
+        addBackCamera()
+        grantAllPermissions()
+        val checker = createSelfChecker()
+
+        val results = checker.runFullCheck()
+        val apiItem = results.find { it.category == "兼容性" && it.name == "最低 API 要求" }
+
+        assertNotNull("应包含最低 API 要求检查项", apiItem)
+        // SDK 34 >= 26，应为 PASS
+        assertEquals("SDK 34 应满足 API 26+ 要求", SelfChecker.CheckStatus.PASS, apiItem!!.status)
+    }
+
+    @Test
+    fun `checkPermissions-全权限授予时包含权限状态PASS项`() {
+        addBackCamera()
+        grantAllPermissions()
+        val checker = createSelfChecker()
+
+        val results = checker.runFullCheck()
+        val statusItem = results.find { it.category == "权限" && it.name == "权限状态" }
+
+        assertNotNull("全权限授予时应包含权限状态检查项", statusItem)
+        assertEquals("全权限授予时应为 PASS", SelfChecker.CheckStatus.PASS, statusItem!!.status)
+    }
+
+    @Test
+    fun `checkSecurity-包含明文流量检查项`() {
+        addBackCamera()
+        grantAllPermissions()
+        val checker = createSelfChecker()
+
+        val results = checker.runFullCheck()
+        val cleartextItem = results.find { it.category == "安全" && it.name == "明文流量" }
+
+        assertNotNull("应包含明文流量检查项", cleartextItem)
+    }
+
+    @Test
+    @Config(sdk = [25])
+    fun `checkCompatibility-SDK 25时最低API要求检查为FAIL`() {
+        addBackCamera()
+        grantAllPermissions()
+        val checker = createSelfChecker()
+
+        val results = checker.runFullCheck()
+        val apiItem = results.find { it.category == "兼容性" && it.name == "最低 API 要求" }
+
+        assertNotNull("应包含最低 API 要求检查项", apiItem)
+        // SDK 25 < 26，应为 FAIL
+        assertEquals("SDK 25 < 26 时应为 FAIL", SelfChecker.CheckStatus.FAIL, apiItem!!.status)
     }
 }

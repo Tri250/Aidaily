@@ -3,8 +3,10 @@ package com.livecompose.livecapture
 import android.app.Application
 import com.livecompose.livecapture.core.camera.CameraManager
 import com.livecompose.livecapture.core.detection.AdacropInferenceEngine
+import com.livecompose.livecapture.core.diagnostics.CrashHandler
 import com.livecompose.livecapture.core.diagnostics.SelfChecker
 import dagger.hilt.android.HiltAndroidApp
+import java.io.File
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -26,6 +28,11 @@ class LiveCaptureApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // 注册全局崩溃处理器，确保所有未捕获异常都被记录
+        val crashLogDir = File(filesDir, "crash_logs")
+        CrashHandler.register(crashLogDir)
+
         // 启动时执行全量自检，输出诊断日志
         selfChecker.runFullCheck()
     }
