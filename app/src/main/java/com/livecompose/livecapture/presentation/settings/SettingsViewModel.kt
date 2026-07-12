@@ -2,6 +2,7 @@ package com.livecompose.livecapture.presentation.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.livecompose.livecapture.core.settings.DetectionMode
 import com.livecompose.livecapture.core.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,8 +16,8 @@ class SettingsViewModel @Inject constructor(
     private val repository: SettingsRepository
 ) : ViewModel() {
 
-    val detectionMode: StateFlow<String> = repository.detectionMode
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "FAST")
+    val detectionMode: StateFlow<DetectionMode> = repository.detectionMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DetectionMode.FAST)
 
     val autoCapture: StateFlow<Boolean> = repository.autoCapture
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
@@ -30,7 +31,7 @@ class SettingsViewModel @Inject constructor(
     val torchEnabled: StateFlow<Boolean> = repository.torchEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    fun setDetectionMode(mode: String) = viewModelScope.launch {
+    fun setDetectionMode(mode: DetectionMode) = viewModelScope.launch {
         repository.setDetectionMode(mode)
     }
 

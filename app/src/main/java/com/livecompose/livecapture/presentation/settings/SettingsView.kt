@@ -12,11 +12,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.livecompose.livecapture.core.design.TitleTextStyle
+import com.livecompose.livecapture.core.settings.DetectionMode
 
-enum class DetectionMode(val label: String, val key: String) {
-    FAST("快速 (Student 模型, 节电 ~5fps)", "FAST"),
-    PRO("专业 (Teacher 模型, 全帧率高精度)", "PRO")
-}
+private val DetectionMode.label: String
+    get() = when (this) {
+        DetectionMode.FAST -> "快速 (Student 模型, 节电 ~5fps)"
+        DetectionMode.PRO -> "专业 (Teacher 模型, 全帧率高精度)"
+    }
 
 @Composable
 fun SettingsView(
@@ -47,15 +49,15 @@ fun SettingsView(
                         .fillMaxWidth()
                         .height(56.dp)
                         .selectable(
-                            selected = detectionMode == mode.key,
-                            onClick = { viewModel.setDetectionMode(mode.key) },
+                            selected = detectionMode == mode,
+                            onClick = { viewModel.setDetectionMode(mode) },
                             role = Role.RadioButton
                         )
                         .padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(
-                        selected = detectionMode == mode.key,
+                        selected = detectionMode == mode,
                         onClick = null
                     )
                     Text(

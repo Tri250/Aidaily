@@ -24,11 +24,25 @@ android {
 
     signingConfigs {
         create("release") {
-            // Release 签名配置 — 从环境变量读取，避免密钥泄露
-            storeFile = file(System.getenv("KEYSTORE_PATH") ?: "release.keystore")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "livecapture"
-            keyAlias = System.getenv("KEY_ALIAS") ?: "livecapture"
-            keyPassword = System.getenv("KEY_PASSWORD") ?: "livecapture"
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+            val keystorePassword = System.getenv("KEYSTORE_PASSWORD")
+            val keyAlias = System.getenv("KEY_ALIAS")
+            val keyPassword = System.getenv("KEY_PASSWORD")
+
+            if (keystorePath != null && keystorePassword != null && keyAlias != null && keyPassword != null) {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                keyAlias = keyAlias
+                keyPassword = keyPassword
+            } else {
+                // 环境变量未设置时，使用 debug 签名避免构建失败
+                val debugConfig = signingConfigs.getByName("debug")
+                storeFile = debugConfig.storeFile
+                storePassword = debugConfig.storePassword
+                keyAlias = debugConfig.keyAlias
+                keyPassword = debugConfig.keyPassword
+                println("WARNING: Release signing env vars not set, using debug keystore for release build.")
+            }
         }
     }
 

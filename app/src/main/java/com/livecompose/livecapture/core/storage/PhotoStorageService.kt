@@ -235,7 +235,21 @@ class PhotoStorageService @Inject constructor(
         }
     }
 
-    fun getAllRecords(): List<PhotoRecord> {
+    suspend fun getAllRecords(): List<PhotoRecord> {
+        return recordsMutex.withLock {
+            try {
+                if (!recordsFile.exists()) return@withLock emptyList()
+                val json = recordsFile.readText()
+                val array = JSONArray(json)
+                List(array.length()) { parseRecord(array.getJSONObject(it)) }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load records", e)
+                emptyList()
+            }
+        }
+    }
+
+    private suspend fun getAllRecordsUnsafe(): List<PhotoRecord> {
         return try {
             if (!recordsFile.exists()) return emptyList()
             val json = recordsFile.readText()
@@ -247,10 +261,9 @@ class PhotoStorageService @Inject constructor(
         }
     }
 
-    // 互斥保护 records.json 读写，防止快速连拍时后写覆盖先写
     private suspend fun addRecordToIndex(record: PhotoRecord) {
         recordsMutex.withLock {
-            val records = getAllRecords().toMutableList()
+            val records = getAllRecordsUnsafe().toMutableList()
             records.add(0, record)
             saveRecords(records)
         }
@@ -262,16 +275,15 @@ class PhotoStorageService @Inject constructor(
         }
     }
 
-    private fun deleteRecordLocked(record: PhotoRecord) {
+    private suspend fun deleteRecordLocked(record: PhotoRecord) {
         try {
-            // 删除 MediaStore Uri 或文件
             if (record.filePath.startsWith("content://")) {
                 context.contentResolver.delete(Uri.parse(record.filePath), null, null)
             } else {
                 File(record.filePath).delete()
             }
             File(record.thumbPath).delete()
-            val records = getAllRecords().filter { it.id != record.id }
+            val records = getAllRecordsUnsafe().filter { it.id != record.id }
             saveRecords(records)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete record", e)

@@ -27,14 +27,16 @@ class SettingsRepository @Inject constructor(
         val TORCH_ENABLED = booleanPreferencesKey("torch_enabled")
     }
 
-    val detectionMode: Flow<String> = context.dataStore.data.map { it[DETECTION_MODE] ?: "FAST" }
+    val detectionMode: Flow<DetectionMode> = context.dataStore.data.map {
+        DetectionMode.fromValue(it[DETECTION_MODE])
+    }
     val autoCapture: Flow<Boolean> = context.dataStore.data.map { it[AUTO_CAPTURE] ?: true }
     val captureDelay: Flow<Int> = context.dataStore.data.map { it[CAPTURE_DELAY] ?: 0 }
     val darkTheme: Flow<Boolean> = context.dataStore.data.map { it[DARK_THEME] ?: true }
     val torchEnabled: Flow<Boolean> = context.dataStore.data.map { it[TORCH_ENABLED] ?: false }
 
-    suspend fun setDetectionMode(mode: String) {
-        context.dataStore.edit { it[DETECTION_MODE] = mode }
+    suspend fun setDetectionMode(mode: DetectionMode) {
+        context.dataStore.edit { it[DETECTION_MODE] = mode.value }
     }
 
     suspend fun setAutoCapture(enabled: Boolean) {

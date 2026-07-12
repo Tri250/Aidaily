@@ -14,6 +14,8 @@ import com.livecompose.livecapture.core.detection.AdacropInferenceEngine.ModelVa
 import com.livecompose.livecapture.core.detection.CompositionResult
 import com.livecompose.livecapture.core.motion.BoxCenterManager
 import com.livecompose.livecapture.core.motion.MotionStabilityMonitor
+import com.livecompose.livecapture.core.permission.PermissionManager
+import com.livecompose.livecapture.core.settings.DetectionMode
 import com.livecompose.livecapture.core.settings.SettingsRepository
 import com.livecompose.livecapture.core.storage.CropRegion
 import com.livecompose.livecapture.core.storage.ExifData
@@ -27,6 +29,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 
 @HiltViewModel
@@ -36,7 +39,8 @@ class CaptureViewModel @Inject constructor(
     private val motionMonitor: MotionStabilityMonitor,
     private val boxCenterManager: BoxCenterManager,
     private val storageService: PhotoStorageService,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val permissionManager: PermissionManager
 ) : ViewModel() {
 
     companion object {
@@ -112,9 +116,8 @@ class CaptureViewModel @Inject constructor(
     @Volatile
     private var isCapturing = false
     @Volatile
-    private var detectionMode = "FAST"
-    @Volatile
-    private var lastInferenceTimeMs = 0L
+    private var detectionMode = DetectionMode.FAST
+    private val lastInferenceTimeMs = AtomicLong(0L)
     @Volatile
     private var autoCaptureEnabled = true
 
@@ -159,8 +162,10 @@ class CaptureViewModel @Inject constructor(
         modeSettingsJob = viewModelScope.launch {
             settingsRepository.detectionMode.collect { mode ->
                 detectionMode = mode
-                val targetVariant = if (mode == "PRO") ModelVariant.TEACHER else ModelVariant.STUDENT
-                // 切换模型变体 (若与当前一致则内部跳过)
+                val targetVariant = when (mode) {
+                    DetectionMode.PRO -> ModelVariant.TEACHER
+                    DetectionMode.FAST -> ModelVariant.STUDENT
+                }
                 detectionEngine.switchVariant(targetVariant)
             }
         }
@@ -243,13 +248,26 @@ class CaptureViewModel @Inject constructor(
 
         // 推理节流 — FAST 模式限速 ~5fps，PRO 模式每帧处理
         val now = System.currentTimeMillis()
-        val throttleMs = if (detectionMode == "PRO") PRO_MODE_THROTTLE_MS else FAST_MODE_THROTTLE_MS
-        if (throttleMs > 0 && now - lastInferenceTimeMs < throttleMs) {
-            imageProxy.close()
-            cameraManager.onFrameProcessingComplete()
-            return
+        val throttleMs = when (detectionMode) {
+            DetectionMode.PRO -> PRO_MODE_THROTTLE_MS
+            DetectionMode.FAST -> FAST_MODE_THROTTLE_MS
         }
-        lastInferenceTimeMs = now
+        if (throttleMs > 0) {
+            val lastTime = lastInferenceTimeMs.get()
+            if (now - lastTime < throttleMs) {
+                imageProxy.close()
+                cameraManager.onFrameProcessingComplete()
+                return
+            }
+            // CAS 确保只有一个线程能更新时间，避免并发帧同时通过
+            if (!lastInferenceTimeMs.compareAndSet(lastTime, now)) {
+                imageProxy.close()
+                cameraManager.onFrameProcessingComplete()
+                return
+            }
+        } else {
+            lastInferenceTimeMs.set(now)
+        }
 
         val bitmap = try {
             imageProxyToBitmap(imageProxy)
@@ -282,7 +300,7 @@ class CaptureViewModel @Inject constructor(
                 )
 
                 // PRO 模式持续显示动作指引；FAST 模式仅在 TEMPLATE_READY 显示
-                if (detectionMode == "PRO") {
+                if (detectionMode == DetectionMode.PRO) {
                     updateGuidanceByAction(result.action)
                 } else {
                     if (_pipelineStage.value == PipelineStage.TEMPLATE_READY) {
@@ -520,6 +538,13 @@ class CaptureViewModel @Inject constructor(
     fun setScreenSize(width: Float, height: Float) {
         boxCenterManager.setScreenSize(width, height)
     }
+
+    fun hasCameraPermission(): Boolean = permissionManager.hasCameraPermission()
+
+    fun shouldShowCameraRationale(activity: android.app.Activity): Boolean =
+        permissionManager.shouldShowRationale(activity, android.Manifest.permission.CAMERA)
+
+    fun openAppSettings() = permissionManager.openAppSettings()
 
     // Singleton 资源生命周期与 App 进程一致，不在 onCleared 中 shutdown/close
     // 仅停止相机预览和传感器监听

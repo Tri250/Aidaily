@@ -14,13 +14,10 @@ import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * 2026 正式版自检系统
- * 覆盖: 引擎/性能/稳定性/兼容性/权限/安全/传感器 7 大类自检
- */
 @Singleton
 class SelfChecker @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val permissionManager: PermissionManager
 ) {
     companion object {
         private const val TAG = "SelfChecker"
@@ -111,15 +108,11 @@ class SelfChecker @Inject constructor(
         }
 
         // 检查 NNAPI 可用性 (TensorFlow Lite 硬件加速)
-        val nnapiAvailable = try {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && 
-            android.os.SystemProperties.getInt("ro.nnapi.extensions.allow", 0) >= 0
-        } catch (e: Exception) {
-            false
-        }
-        items.add(CheckItem("引擎", "NNAPI 硬件加速", 
-            if (nnapiAvailable || Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) CheckStatus.PASS else CheckStatus.WARN,
-            if (nnapiAvailable) "支持" else "可能不可用，将使用 CPU 回退"))
+        // API 28+ (Android 9+) 系统内置 NNAPI，TFLite 会自动尝试使用
+        val nnapiAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+        items.add(CheckItem("引擎", "NNAPI 硬件加速",
+            if (nnapiAvailable) CheckStatus.PASS else CheckStatus.WARN,
+            if (nnapiAvailable) "系统支持 (TFLite 自动尝试)" else "系统不支持，将使用 CPU"))
 
         return items
     }
@@ -209,14 +202,14 @@ class SelfChecker @Inject constructor(
     private fun checkPermissions(): List<CheckItem> {
         val items = mutableListOf<CheckItem>()
 
-        val missing = PermissionManager.checkRequiredPermissions(context)
-        items.add(CheckItem("权限", "相机权限", 
-            if (PermissionManager.hasCameraPermission(context)) CheckStatus.PASS else CheckStatus.FAIL,
-            if (PermissionManager.hasCameraPermission(context)) "已授予" else "未授予"))
+        val missing = permissionManager.checkRequiredPermissions()
+        items.add(CheckItem("权限", "相机权限",
+            if (permissionManager.hasCameraPermission()) CheckStatus.PASS else CheckStatus.FAIL,
+            if (permissionManager.hasCameraPermission()) "已授予" else "未授予"))
 
-        items.add(CheckItem("权限", "媒体读取权限", 
-            if (PermissionManager.hasMediaPermission(context)) CheckStatus.PASS else CheckStatus.INFO,
-            if (PermissionManager.hasMediaPermission(context)) "已授予" else "未授予 (不影响核心功能)"))
+        items.add(CheckItem("权限", "媒体读取权限",
+            if (permissionManager.hasMediaPermission()) CheckStatus.PASS else CheckStatus.INFO,
+            if (permissionManager.hasMediaPermission()) "已授予" else "未授予 (不影响核心功能)"))
 
         if (missing.isNotEmpty()) {
             items.add(CheckItem("权限", "缺失权限", CheckStatus.FAIL, missing.joinToString(", ")))

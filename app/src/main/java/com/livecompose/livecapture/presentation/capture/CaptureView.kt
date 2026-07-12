@@ -47,7 +47,6 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.livecompose.livecapture.core.design.*
 import com.livecompose.livecapture.core.detection.AdacropInferenceEngine
-import com.livecompose.livecapture.core.permission.PermissionManager
 import com.livecompose.livecapture.presentation.Screen
 import java.io.File
 import kotlin.math.abs
@@ -82,9 +81,9 @@ fun CaptureView(
     // 拍摄成功反馈
     val captureSuccess by viewModel.captureSuccess.collectAsStateWithLifecycle()
 
-    // #7: 权限状态管理 — 使用 PermissionManager 统一管理
+    // 权限状态管理
     var hasCameraPermission by remember {
-        mutableStateOf(PermissionManager.hasCameraPermission(context))
+        mutableStateOf(viewModel.hasCameraPermission())
     }
     var hasBeenDenied by remember { mutableStateOf(false) }
 
@@ -99,10 +98,10 @@ fun CaptureView(
         }
     }
 
-    // #8: 判断是否需要显示 Rationale — 权限状态变化时重新计算
+    // 判断是否需要显示 Rationale — 权限状态变化时重新计算
     val activity = context as? android.app.Activity
     val shouldShowRationale = remember(hasBeenDenied, hasCameraPermission) {
-        activity?.let { PermissionManager.shouldShowRationale(it, Manifest.permission.CAMERA) } ?: false
+        activity?.let { viewModel.shouldShowCameraRationale(it) } ?: false
     }
 
     // #32: 生命周期绑定 — onPause 停止相机，onResume 重启相机
@@ -117,7 +116,7 @@ fun CaptureView(
                 Lifecycle.Event.ON_RESUME -> {
                     isResumed = true
                     // 从系统设置返回后重新检查权限状态，避免权限已授予但 UI 仍显示拒绝
-                    hasCameraPermission = PermissionManager.hasCameraPermission(context)
+                    hasCameraPermission = viewModel.hasCameraPermission()
                 }
                 else -> {}
             }
@@ -155,7 +154,7 @@ fun CaptureView(
                         permissionLauncher.launch(Manifest.permission.CAMERA)
                     },
                     onOpenSettings = {
-                        PermissionManager.openAppSettings(context)
+                        viewModel.openAppSettings()
                     }
                 )
             }

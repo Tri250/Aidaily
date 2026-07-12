@@ -4,6 +4,10 @@ LiveCapture Android - 模型文件目录
   adacrop_student.tflite  - Student 模型 (Fast 模式, MobileNetV3-Small, ~4-6MB)
   adacrop_teacher.tflite  - Teacher 模型 (Pro 模式, MobileNetV3-Large, ~8-12MB)
 
+模型获取方式:
+1. 从 Hugging Face 下载: https://huggingface.co/LiveCompose/adacrop
+2. 或使用 /model_conversion/ 目录下的脚本自行转换 (需 PyTorch 模型权重)
+
 转换方法见 /model_conversion/README.md
 
 注意:

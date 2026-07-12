@@ -11,27 +11,22 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-// 使用 Robolectric 运行，因为 DataStore 需要 Android Context
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class SettingsRepositoryTest {
 
-    // 被测试的仓库实例
     private lateinit var repository: SettingsRepository
 
     @Before
     fun setUp() {
-        // 通过 ApplicationProvider 获取 Context，直接构造 SettingsRepository
         val context = ApplicationProvider.getApplicationContext<Context>()
         repository = SettingsRepository(context)
     }
 
-    // ========== 默认值测试 ==========
-
     @Test
     fun `detectionMode 默认值为 FAST`() = runTest {
         val result = repository.detectionMode.first()
-        assertEquals("FAST", result)
+        assertEquals(DetectionMode.FAST, result)
     }
 
     @Test
@@ -58,13 +53,11 @@ class SettingsRepositoryTest {
         assertEquals(false, result)
     }
 
-    // ========== 设置并读取测试 ==========
-
     @Test
     fun `设置 detectionMode 后可以正确读取`() = runTest {
-        repository.setDetectionMode("ACCURATE")
+        repository.setDetectionMode(DetectionMode.PRO)
         val result = repository.detectionMode.first()
-        assertEquals("ACCURATE", result)
+        assertEquals(DetectionMode.PRO, result)
     }
 
     @Test
@@ -95,15 +88,12 @@ class SettingsRepositoryTest {
         assertEquals(true, result)
     }
 
-    // ========== 多次顺序写入测试 ==========
-
     @Test
     fun `detectionMode 多次顺序写入后读取最终值`() = runTest {
-        repository.setDetectionMode("ACCURATE")
-        repository.setDetectionMode("BALANCED")
-        repository.setDetectionMode("FAST")
+        repository.setDetectionMode(DetectionMode.PRO)
+        repository.setDetectionMode(DetectionMode.FAST)
         val result = repository.detectionMode.first()
-        assertEquals("FAST", result)
+        assertEquals(DetectionMode.FAST, result)
     }
 
     @Test
@@ -142,20 +132,15 @@ class SettingsRepositoryTest {
         assertEquals(true, result)
     }
 
-    // ========== 持久化验证：设置后再读取确保值已持久化 ==========
-
     @Test
     fun `detectionMode 设置后持久化并可重新读取`() = runTest {
-        // 先设置一个非默认值
-        repository.setDetectionMode("ACCURATE")
-        // 重新读取确认持久化
+        repository.setDetectionMode(DetectionMode.PRO)
         val result = repository.detectionMode.first()
-        assertEquals("ACCURATE", result)
+        assertEquals(DetectionMode.PRO, result)
     }
 
     @Test
     fun `autoCapture 从默认值变更后持久化并可重新读取`() = runTest {
-        // 默认值为 true，改为 false
         repository.setAutoCapture(false)
         val result = repository.autoCapture.first()
         assertEquals(false, result)
@@ -163,7 +148,6 @@ class SettingsRepositoryTest {
 
     @Test
     fun `captureDelay 从默认值变更后持久化并可重新读取`() = runTest {
-        // 默认值为 0，改为 1000
         repository.setCaptureDelay(1000)
         val result = repository.captureDelay.first()
         assertEquals(1000, result)
@@ -171,7 +155,6 @@ class SettingsRepositoryTest {
 
     @Test
     fun `darkTheme 从默认值变更后持久化并可重新读取`() = runTest {
-        // 默认值为 true，改为 false
         repository.setDarkTheme(false)
         val result = repository.darkTheme.first()
         assertEquals(false, result)
@@ -179,19 +162,9 @@ class SettingsRepositoryTest {
 
     @Test
     fun `torchEnabled 从默认值变更后持久化并可重新读取`() = runTest {
-        // 默认值为 false，改为 true
         repository.setTorchEnabled(true)
         val result = repository.torchEnabled.first()
         assertEquals(true, result)
-    }
-
-    // ========== 边界值与特殊值测试 ==========
-
-    @Test
-    fun `detectionMode 设置为空字符串后可以正确读取`() = runTest {
-        repository.setDetectionMode("")
-        val result = repository.detectionMode.first()
-        assertEquals("", result)
     }
 
     @Test

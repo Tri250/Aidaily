@@ -24,6 +24,7 @@ class BoxCenterManager @Inject constructor(
         private const val MAGNETIC_SNAP_THRESHOLD_DP = 40f
         private const val LOCK_DURATION_MS = 800L
         private const val SNAP_LERP_FACTOR = 0.3f
+        private const val GYRO_TO_PIXEL_SCALE = 50f
     }
 
     // #69: 协程中访问的字段加 @Volatile 保证跨线程可见性
@@ -74,9 +75,10 @@ class BoxCenterManager @Inject constructor(
             }
         }
 
-        // 计算姿态变化带来的屏幕坐标偏移
-        val offsetX = motionData.gyroY * 50f
-        val offsetY = motionData.gyroX * 50f
+        // 陀螺仪角速度 (rad/s) 到屏幕像素偏移的换算
+        // 系数为经验值，控制物理转动与追踪点移动的灵敏度比例
+        val offsetX = motionData.gyroY * GYRO_TO_PIXEL_SCALE
+        val offsetY = motionData.gyroX * GYRO_TO_PIXEL_SCALE
 
         val ref = synchronized(centerLock) { referenceCenter } ?: return
 
