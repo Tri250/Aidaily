@@ -8,6 +8,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.nnapi.NnApiDelegate
@@ -16,7 +18,6 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.ReentrantLock
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -75,8 +76,8 @@ class AdacropInferenceEngine @Inject constructor(
     @Volatile
     private var loadedVariant: ModelVariant? = null
 
-    // 模型加载状态跟踪，防止重复加载
-    private val isLoadStarted = AtomicBoolean(false)
+    // 模型加载互斥锁，防止并发加载
+    private val loadMutex = Mutex()
 
     private val inferenceLock = ReentrantLock()
 
@@ -115,52 +116,52 @@ class AdacropInferenceEngine @Inject constructor(
     }
 
     /**
-     * 异步加载指定变体模型，必须在后台线程调用。
-     * 线程安全：使用 AtomicBoolean 防止重复加载。
-     * 失败时重置 isLoadStarted 允许重试。
+     * 异步加载指定变体模型。
+     * 线程安全：使用 Mutex 防止并发加载。
      *
      * @param variant 模型变体, 默认 STUDENT (Fast 模式)
      */
     suspend fun loadModelAsync(variant: ModelVariant = ModelVariant.STUDENT) {
-        // 若已加载相同变体则跳过
-        if (loadedVariant == variant && _isReady.value) {
-            Log.d(TAG, "$variant already loaded, skipping")
-            return
-        }
-        if (!isLoadStarted.compareAndSet(false, true)) {
-            Log.d(TAG, "Model load already started, skipping")
-            return
-        }
-        _isLoading.value = true
-        try {
-            withContext(Dispatchers.IO) {
-                // 切换变体时先释放旧 interpreter
-                if (interpreter != null) {
-                    releaseInterpreter()
-                }
-                loadModel(variant)
+        loadMutex.withLock {
+            if (loadedVariant == variant && _isReady.value) {
+                Log.d(TAG, "$variant already loaded, skipping")
+                return@withLock
             }
-        } finally {
-            // try-finally 确保取消/异常时 isLoading 不卡死
-            _isLoading.value = false
+            _isLoading.value = true
+            try {
+                withContext(Dispatchers.IO) {
+                    if (interpreter != null) {
+                        releaseInterpreter()
+                    }
+                    loadModel(variant)
+                }
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
     /**
      * 切换模型变体 (Fast <-> Pro)。
      * 若目标变体与当前一致则不操作; 否则释放旧模型并加载新变体。
+     * 线程安全：通过 Mutex 与 loadModelAsync 互斥。
      */
     suspend fun switchVariant(variant: ModelVariant) {
-        if (loadedVariant == variant && _isReady.value) {
-            Log.d(TAG, "Already on $variant, no switch needed")
-            return
+        loadMutex.withLock {
+            if (loadedVariant == variant && _isReady.value) {
+                Log.d(TAG, "Already on $variant, no switch needed")
+                return@withLock
+            }
+            Log.d(TAG, "Switching from $loadedVariant to $variant")
+            _loadFailed.value = false
+            _isReady.value = false
+            withContext(Dispatchers.IO) {
+                if (interpreter != null) {
+                    releaseInterpreter()
+                }
+                loadModel(variant)
+            }
         }
-        Log.d(TAG, "Switching from $loadedVariant to $variant")
-        // 重置加载锁以允许重新加载
-        isLoadStarted.set(false)
-        _loadFailed.value = false
-        _isReady.value = false
-        loadModelAsync(variant)
     }
 
     private fun loadModel(variant: ModelVariant) {
@@ -207,8 +208,6 @@ class AdacropInferenceEngine @Inject constructor(
             Log.e(TAG, "Failed to load $variant model: ${e.message}. Running in fallback mode.", e)
             _isReady.value = false
             _loadFailed.value = true
-            // 加载失败时重置 isLoadStarted，允许后续重试
-            isLoadStarted.set(false)
             // 清理可能已创建的 delegate
             nnApiDelegate?.close()
             nnApiDelegate = null
@@ -421,6 +420,5 @@ class AdacropInferenceEngine @Inject constructor(
         releaseInterpreter()
         loadedVariant = null
         _activeVariant.value = null
-        isLoadStarted.set(false)
     }
 }

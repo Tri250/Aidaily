@@ -118,14 +118,14 @@ class MotionStabilityMonitor @Inject constructor(
 
     private fun evaluateStability() {
         val (gx, gy, gz, ax, ay, az) = synchronized(sensorLock) {
-            arrayOf(
+            floatArrayOf(
                 gyroReadings[0], gyroReadings[1], gyroReadings[2],
                 accelReadings[0], accelReadings[1], accelReadings[2]
             )
         }
 
-        val gyroMagnitude = sqrt(gx as Float * gx + gy as Float * gy + gz as Float * gz)
-        val accelMagnitude = sqrt(ax as Float * ax + ay as Float * ay + az as Float * az)
+        val gyroMagnitude = sqrt(gx * gx + gy * gy + gz * gz)
+        val accelMagnitude = sqrt(ax * ax + ay * ay + az * az)
         val accelDeviation = abs(accelMagnitude - 9.8f)
 
         val isCurrentlyStable = gyroMagnitude < GYROSCOPE_THRESHOLD &&

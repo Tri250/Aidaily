@@ -236,20 +236,10 @@ class PhotoStorageService @Inject constructor(
     }
 
     suspend fun getAllRecords(): List<PhotoRecord> {
-        return recordsMutex.withLock {
-            try {
-                if (!recordsFile.exists()) return@withLock emptyList()
-                val json = recordsFile.readText()
-                val array = JSONArray(json)
-                List(array.length()) { parseRecord(array.getJSONObject(it)) }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to load records", e)
-                emptyList()
-            }
-        }
+        return recordsMutex.withLock { readRecordsLocked() }
     }
 
-    private suspend fun getAllRecordsUnsafe(): List<PhotoRecord> {
+    private fun readRecordsLocked(): List<PhotoRecord> {
         return try {
             if (!recordsFile.exists()) return emptyList()
             val json = recordsFile.readText()
@@ -263,9 +253,9 @@ class PhotoStorageService @Inject constructor(
 
     private suspend fun addRecordToIndex(record: PhotoRecord) {
         recordsMutex.withLock {
-            val records = getAllRecordsUnsafe().toMutableList()
+            val records = readRecordsLocked().toMutableList()
             records.add(0, record)
-            saveRecords(records)
+            saveRecordsLocked(records)
         }
     }
 
@@ -275,7 +265,7 @@ class PhotoStorageService @Inject constructor(
         }
     }
 
-    private suspend fun deleteRecordLocked(record: PhotoRecord) {
+    private fun deleteRecordLocked(record: PhotoRecord) {
         try {
             if (record.filePath.startsWith("content://")) {
                 context.contentResolver.delete(Uri.parse(record.filePath), null, null)
@@ -283,14 +273,14 @@ class PhotoStorageService @Inject constructor(
                 File(record.filePath).delete()
             }
             File(record.thumbPath).delete()
-            val records = getAllRecordsUnsafe().filter { it.id != record.id }
-            saveRecords(records)
+            val records = readRecordsLocked().filter { it.id != record.id }
+            saveRecordsLocked(records)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete record", e)
         }
     }
 
-    private fun saveRecords(records: List<PhotoRecord>) {
+    private fun saveRecordsLocked(records: List<PhotoRecord>) {
         try {
             val array = JSONArray()
             records.forEach { record ->

@@ -132,24 +132,27 @@ class CaptureViewModel @Inject constructor(
     fun startCamera(lifecycleOwner: LifecycleOwner, previewView: PreviewView) {
         if (isPipelineActive) return
         isPipelineActive = true
+        _captureSuccess.value = false
         _isCameraStarting.value = true
         _pipelineStage.value = PipelineStage.STARTING_CAMERA
         updateGuidanceText(PipelineStage.STARTING_CAMERA)
 
         cameraManager.setOnFrameAnalyzed { imageProxy ->
-            if (!isPipelineActive) return@setOnFrameAnalyzed
+            if (!isPipelineActive) {
+                imageProxy.close()
+                cameraManager.onFrameProcessingComplete()
+                return@setOnFrameAnalyzed
+            }
             processFrame(imageProxy)
         }
 
         cameraManager.startCamera(lifecycleOwner, previewView)
         motionMonitor.startMonitoring()
 
-        // 异步加载 Student 模型 (Fast 模式默认), 避免主线程 ANR
         viewModelScope.launch {
             detectionEngine.loadModelAsync(ModelVariant.STUDENT)
         }
 
-        // 实时监听闪光灯设置变更并应用
         torchSettingsJob?.cancel()
         torchSettingsJob = viewModelScope.launch {
             settingsRepository.torchEnabled.collect { enabled ->
@@ -157,7 +160,6 @@ class CaptureViewModel @Inject constructor(
             }
         }
 
-        // 实时监听检测模式变更: PRO 切换到 Teacher 模型, FAST 切换回 Student
         modeSettingsJob?.cancel()
         modeSettingsJob = viewModelScope.launch {
             settingsRepository.detectionMode.collect { mode ->
@@ -170,14 +172,12 @@ class CaptureViewModel @Inject constructor(
             }
         }
 
-        // 缓存 autoCapture 设置，避免状态机每次 collect 都 first()
         viewModelScope.launch {
             settingsRepository.autoCapture.collect { enabled ->
                 autoCaptureEnabled = enabled
             }
         }
 
-        // 相机就绪后清除加载状态（等待 isCameraReady 变为 true）
         viewModelScope.launch {
             cameraManager.isCameraReady.first { it }
             _isCameraStarting.value = false
@@ -514,6 +514,7 @@ class CaptureViewModel @Inject constructor(
     fun resetPipeline() {
         _pipelineStage.value = PipelineStage.WAITING_FOR_STABILITY
         _isDetectionReady.value = false
+        _captureSuccess.value = false
         boxCenterManager.reset()
         isCapturing = false
         updateGuidanceText(PipelineStage.WAITING_FOR_STABILITY)
