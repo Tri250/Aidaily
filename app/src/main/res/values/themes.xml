@@ -1,8 +1,16 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+        Android 15/16 兼容主题。
+        使用 android:Theme.Material.NoActionBar 作为 splash 主题 (系统内置，API 21+ 始终可用)。
+        Compose 在 setContent 后接管渲染，此主题仅用于 Activity 启动过渡期。
+        Android 15+ edge-to-edge 强制模式：通过 enableEdgeToEdge() 在代码中处理。
+    -->
     <style name="Theme.LiveCapture" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
+        <!-- Android 15+ 不退出 edge-to-edge 强制模式，由 Compose WindowInsets 处理 -->
+        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">false</item>
     </style>
 </resources>

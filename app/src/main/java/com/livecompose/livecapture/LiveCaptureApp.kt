@@ -30,11 +30,22 @@ class LiveCaptureApp : Application() {
         super.onCreate()
 
         // 注册全局崩溃处理器，确保所有未捕获异常都被记录
-        val crashLogDir = File(filesDir, "crash_logs")
-        CrashHandler.register(crashLogDir)
+        try {
+            val crashLogDir = File(filesDir, "crash_logs")
+            CrashHandler.register(crashLogDir)
+        } catch (e: Exception) {
+            // CrashHandler 注册失败不应阻止 App 启动
+            android.util.Log.e("LiveCaptureApp", "Failed to register CrashHandler", e)
+        }
 
         // 启动时执行全量自检，输出诊断日志
-        selfChecker.runFullCheck()
+        // try-catch 保护：自检过程涉及 CameraManager/SensorManager 等系统服务，
+        // 在部分设备上可能抛异常，绝不应阻塞 App 正常启动
+        try {
+            selfChecker.runFullCheck()
+        } catch (e: Exception) {
+            android.util.Log.e("LiveCaptureApp", "SelfChecker failed, app continues", e)
+        }
     }
 
     override fun onTerminate() {
