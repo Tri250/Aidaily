@@ -399,7 +399,7 @@ class CaptureViewModel @Inject constructor(
                         if (!isPipelineActive) {
                             // ViewModel 已 cleared，直接关闭 imageProxy
                             imageProxy.close()
-                            return@onSuccess
+                            return@capturePhoto
                         }
                         viewModelScope.launch {
                             try {

@@ -81,7 +81,9 @@ class AdacropInferenceEngine @Inject constructor(
 
     private val inferenceLock = ReentrantLock()
 
-    private val inputBuffer: ByteBuffer
+    private val inputBuffer: ByteBuffer = ByteBuffer.allocateDirect(INPUT_SIZE * INPUT_SIZE * 3 * BYTES_PER_CHANNEL).also {
+        it.order(ByteOrder.nativeOrder())
+    }
     // 复用 IntArray，避免每帧分配
     private val pixelBuffer: IntArray = IntArray(INPUT_SIZE * INPUT_SIZE)
     // 复用输出数组，避免每帧分配
@@ -107,13 +109,6 @@ class AdacropInferenceEngine @Inject constructor(
     // 当前活跃变体 (供 UI 显示当前模式)
     private val _activeVariant = MutableStateFlow<ModelVariant?>(null)
     val activeVariant: StateFlow<ModelVariant?> = _activeVariant
-
-    init {
-        // init 仅分配 ByteBuffer，不在主线程加载模型
-        val numPixels = INPUT_SIZE * INPUT_SIZE * 3
-        inputBuffer = ByteBuffer.allocateDirect(numPixels * BYTES_PER_CHANNEL)
-        inputBuffer.order(ByteOrder.nativeOrder())
-    }
 
     /**
      * 异步加载指定变体模型。
@@ -182,21 +177,19 @@ class AdacropInferenceEngine @Inject constructor(
 
             interpreter = Interpreter(modelBuffer, options)
 
-            val inputDetails = interpreter?.getInputDetails()
-            val outputDetails = interpreter?.getOutputDetails()
-
-            if (outputDetails != null && outputDetails.size >= 2) {
-                isDualOutput = true
-                Log.d(TAG, "${variant}: single-input dual-output (bbox + action_probs)")
-            } else {
-                isDualOutput = false
-                Log.d(TAG, "${variant}: requires two-stage inference")
-            }
+            val outputCount = try { interpreter?.outputTensorCount ?: 0 } catch (_: Exception) { 0 }
+            isDualOutput = outputCount >= 2
+            Log.d(TAG, "${variant}: ${if (isDualOutput) "single-input dual-output (bbox + action_probs)" else "requires two-stage inference"}")
 
             // 检查输入数据类型，用于预处理分支
-            if (inputDetails != null && inputDetails.isNotEmpty()) {
-                inputDataType = inputDetails[0].dataType()
-                Log.d(TAG, "${variant}: input data type ${if (inputDataType == 0) "float32" else "uint8/other"}")
+            try {
+                val inputTensor = interpreter?.getInputTensor(0)
+                if (inputTensor != null) {
+                    inputDataType = if (inputTensor.dataType() == org.tensorflow.lite.DataType.FLOAT32) 0 else 1
+                    Log.d(TAG, "${variant}: input data type ${if (inputDataType == 0) "float32" else "uint8/other"}")
+                }
+            } catch (_: Exception) {
+                inputDataType = 0 // default to float32
             }
 
             loadedVariant = variant
@@ -248,7 +241,8 @@ class AdacropInferenceEngine @Inject constructor(
     }
 
     suspend fun analyze(bitmap: Bitmap): CompositionResult = withContext(Dispatchers.Default) {
-        inferenceLock.withLock {
+        inferenceLock.lock()
+        try {
             val startTime = System.currentTimeMillis()
 
             val interp = interpreter ?: return@withContext defaultResult()
@@ -304,6 +298,8 @@ class AdacropInferenceEngine @Inject constructor(
                 resizedBitmap?.recycle()
                 croppedBitmap?.recycle()
             }
+        } finally {
+            inferenceLock.unlock()
         }
     }
 

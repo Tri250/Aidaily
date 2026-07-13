@@ -9,6 +9,7 @@ import androidx.camera.view.PreviewView
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -180,7 +181,7 @@ fun CaptureView(
                     modifier = Modifier
                         .fillMaxSize()
                         .pointerInput(Unit) {
-                            androidx.compose.foundation.gestures.detectTapGestures(
+                            detectTapGestures(
                                 onTap = { offset ->
                                     viewModel.focusAndMeter(
                                         x = offset.x,

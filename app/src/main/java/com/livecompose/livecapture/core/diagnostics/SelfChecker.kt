@@ -25,7 +25,7 @@ class SelfChecker @Inject constructor(
         private const val TAG = "SelfChecker"
         private const val MIN_STORAGE_MB = 100L
         private const val MIN_GPU_GL_VERSION = 3.0
-        private const val TFLITE_MODEL_NAMES = listOf("adacrop_student.tflite", "adacrop_teacher.tflite")
+        private val TFLITE_MODEL_NAMES = listOf("adacrop_student.tflite", "adacrop_teacher.tflite")
     }
 
     private val _checkResults = MutableStateFlow<List<CheckItem>>(emptyList())

@@ -11,7 +11,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.abs
 import kotlin.math.hypot
-import kotlin.math.lerp
 
 @Singleton
 class BoxCenterManager @Inject constructor(
@@ -24,6 +23,8 @@ class BoxCenterManager @Inject constructor(
         private const val MAGNETIC_SNAP_THRESHOLD_DP = 40f
         private const val LOCK_DURATION_MS = 800L
         private const val SNAP_LERP_FACTOR = 0.3f
+
+        private fun lerp(start: Float, stop: Float, fraction: Float): Float = start + fraction * (stop - start)
         private const val GYRO_TO_PIXEL_SCALE = 50f
     }
 

@@ -235,7 +235,7 @@ class CameraManager @Inject constructor(
             // 曝光补偿范围
             val exposureState = cam.cameraInfo.exposureState
             if (exposureState.isExposureCompensationSupported) {
-                _exposureRange.value = exposureState.exposureCompensationRange.lower()..exposureState.exposureCompensationRange.upper()
+                _exposureRange.value = exposureState.exposureCompensationRange.lower..exposureState.exposureCompensationRange.upper
             } else {
                 _exposureRange.value = 0..0
             }

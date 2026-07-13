@@ -13,8 +13,8 @@ android {
         applicationId = "com.livecompose.livecapture"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 9
+        versionName = "1.5.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -26,14 +26,14 @@ android {
         create("release") {
             val keystorePath = System.getenv("KEYSTORE_PATH")
             val keystorePassword = System.getenv("KEYSTORE_PASSWORD")
-            val keyAlias = System.getenv("KEY_ALIAS")
-            val keyPassword = System.getenv("KEY_PASSWORD")
+            val envKeyAlias = System.getenv("KEY_ALIAS")
+            val envKeyPassword = System.getenv("KEY_PASSWORD")
 
-            if (keystorePath != null && keystorePassword != null && keyAlias != null && keyPassword != null) {
+            if (keystorePath != null && keystorePassword != null && envKeyAlias != null && envKeyPassword != null) {
                 storeFile = file(keystorePath)
                 storePassword = keystorePassword
-                keyAlias = keyAlias
-                keyPassword = keyPassword
+                keyAlias = envKeyAlias
+                keyPassword = envKeyPassword
             } else {
                 // 环境变量未设置时，使用 debug 签名避免构建失败
                 val debugConfig = signingConfigs.getByName("debug")
@@ -115,7 +115,6 @@ dependencies {
 
     // TensorFlow Lite
     implementation("org.tensorflow:tensorflow-lite:2.16.1")
-    implementation("org.tensorflow:tensorflow-lite-nnapi:2.16.1")
     implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
 
     // Hilt DI

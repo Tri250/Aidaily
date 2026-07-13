@@ -117,12 +117,14 @@ class MotionStabilityMonitor @Inject constructor(
     }
 
     private fun evaluateStability() {
-        val (gx, gy, gz, ax, ay, az) = synchronized(sensorLock) {
+        val values = synchronized(sensorLock) {
             floatArrayOf(
                 gyroReadings[0], gyroReadings[1], gyroReadings[2],
                 accelReadings[0], accelReadings[1], accelReadings[2]
             )
         }
+        val gx = values[0]; val gy = values[1]; val gz = values[2]
+        val ax = values[3]; val ay = values[4]; val az = values[5]
 
         val gyroMagnitude = sqrt(gx * gx + gy * gy + gz * gz)
         val accelMagnitude = sqrt(ax * ax + ay * ay + az * az)
