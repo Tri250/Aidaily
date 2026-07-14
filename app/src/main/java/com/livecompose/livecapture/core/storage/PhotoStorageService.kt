@@ -331,10 +331,10 @@ class PhotoStorageService @Inject constructor(
             width = json.getInt("width"),
             height = json.getInt("height"),
             timestamp = json.getLong("timestamp"),
-            iso = json.optString("iso", null),
-            shutterSpeed = json.optString("shutterSpeed", null),
-            aperture = json.optString("aperture", null),
-            focalLength = json.optString("focalLength", null),
+            iso = json.optString("iso", "").takeIf { it.isNotEmpty() },
+            shutterSpeed = json.optString("shutterSpeed", "").takeIf { it.isNotEmpty() },
+            aperture = json.optString("aperture", "").takeIf { it.isNotEmpty() },
+            focalLength = json.optString("focalLength", "").takeIf { it.isNotEmpty() },
             cropRegion = cropRegion,
             aestheticScore = json.optDouble("aestheticScore", Double.NaN).let {
                 if (it.isNaN()) null else it.toFloat()

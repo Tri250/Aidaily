@@ -1,7 +1,9 @@
 package com.livecompose.livecapture.presentation.capture
 
+import android.graphics.Bitmap
 import android.graphics.PointF
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.compose.ui.geometry.Offset
 import androidx.camera.core.ImageProxy
 import androidx.camera.view.PreviewView
 import androidx.lifecycle.LifecycleOwner
@@ -13,6 +15,7 @@ import com.livecompose.livecapture.core.motion.MotionStabilityMonitor
 import com.livecompose.livecapture.core.permission.PermissionManager
 import com.livecompose.livecapture.core.settings.DetectionMode
 import com.livecompose.livecapture.core.settings.SettingsRepository
+import com.livecompose.livecapture.core.storage.ExifData
 import com.livecompose.livecapture.core.storage.PhotoRecord
 import com.livecompose.livecapture.core.storage.PhotoStorageService
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,6 +39,7 @@ import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.robolectric.RobolectricTestRunner
@@ -243,7 +247,7 @@ class CaptureViewModelTest {
     fun `startCamera 设置帧回调`() {
         viewModel.startCamera(lifecycleOwner, previewView)
 
-        verify(cameraManager).setOnFrameAnalyzed(any())
+        verify(cameraManager).setOnFrameAnalyzed(any<(ImageProxy) -> Unit>())
     }
 
     @Test
@@ -252,7 +256,7 @@ class CaptureViewModelTest {
         viewModel.startCamera(lifecycleOwner, previewView)
 
         // CameraManager.startCamera 仅应被调用一次
-        verify(cameraManager, org.mockito.verificationTimes(1)).startCamera(
+        verify(cameraManager, times(1)).startCamera(
             lifecycleOwner, previewView
         )
     }
@@ -354,7 +358,7 @@ class CaptureViewModelTest {
         viewModel.startCamera(lifecycleOwner, previewView)
 
         // 第二次 startCamera 应再次调用 CameraManager.startCamera，总共2次
-        verify(cameraManager, org.mockito.verificationTimes(2)).startCamera(
+        verify(cameraManager, times(2)).startCamera(
             lifecycleOwner, previewView
         )
     }
@@ -569,7 +573,7 @@ class CaptureViewModelTest {
             action = CompositionResult.ActionType.STOP,
             actionProbabilities = FloatArray(7) { 0.1f }.also { it[6] = 0.4f }
         )
-        whenever(detectionEngine.analyze(any())).thenReturn(compositionResult)
+        whenever(detectionEngine.analyze(any<Bitmap>())).thenReturn(compositionResult)
         whenever(detectionEngine.inferenceTime).thenReturn(MutableStateFlow(50L))
 
         val frameCallback = setupFrameCallback()
@@ -577,7 +581,7 @@ class CaptureViewModelTest {
 
         advanceUntilIdleWithDelay()
 
-        verify(detectionEngine).analyze(any())
+        verify(detectionEngine).analyze(any<Bitmap>())
         assertTrue(viewModel.isDetectionReady.value)
     }
 
@@ -609,7 +613,7 @@ class CaptureViewModelTest {
             action = CompositionResult.ActionType.STOP,
             actionProbabilities = FloatArray(7) { 0.1f }.also { it[6] = 0.4f }
         )
-        whenever(detectionEngine.analyze(any())).thenReturn(compositionResult)
+        whenever(detectionEngine.analyze(any<Bitmap>())).thenReturn(compositionResult)
         whenever(detectionEngine.inferenceTime).thenReturn(MutableStateFlow(30L))
 
         val frameCallback = setupFrameCallback()
@@ -617,7 +621,7 @@ class CaptureViewModelTest {
 
         advanceUntilIdleWithDelay()
 
-        verify(detectionEngine).analyze(any())
+        verify(detectionEngine).analyze(any<Bitmap>())
     }
 
     @Test
@@ -635,7 +639,7 @@ class CaptureViewModelTest {
             ruleOfThirdsScore = 0.6f,
             safetyMarginScore = 0.9f
         )
-        whenever(detectionEngine.analyze(any())).thenReturn(compositionResult)
+        whenever(detectionEngine.analyze(any<Bitmap>())).thenReturn(compositionResult)
         whenever(detectionEngine.inferenceTime).thenReturn(MutableStateFlow(30L))
 
         val frameCallback = setupFrameCallback()
@@ -658,7 +662,7 @@ class CaptureViewModelTest {
             action = CompositionResult.ActionType.LEFT,
             actionProbabilities = FloatArray(7) { 0.1f }.also { it[0] = 0.7f }
         )
-        whenever(detectionEngine.analyze(any())).thenReturn(compositionResult)
+        whenever(detectionEngine.analyze(any<Bitmap>())).thenReturn(compositionResult)
         whenever(detectionEngine.inferenceTime).thenReturn(MutableStateFlow(20L))
 
         val frameCallback = setupFrameCallback()
@@ -667,7 +671,7 @@ class CaptureViewModelTest {
         advanceUntilIdleWithDelay()
 
         verify(boxCenterManager).updateFromDetection(
-            anyOrNull(), anyOrNull(), any()
+            any<Float>(), any<Float>(), any<MotionStabilityMonitor.MotionData>()
         )
     }
 
@@ -682,7 +686,7 @@ class CaptureViewModelTest {
             action = CompositionResult.ActionType.LEFT,
             actionProbabilities = FloatArray(7) { 0.1f }.also { it[0] = 0.7f }
         )
-        whenever(detectionEngine.analyze(any())).thenReturn(compositionResult)
+        whenever(detectionEngine.analyze(any<Bitmap>())).thenReturn(compositionResult)
         whenever(detectionEngine.inferenceTime).thenReturn(MutableStateFlow(20L))
 
         // 设置当前阶段为 TEMPLATE_READY
@@ -755,9 +759,9 @@ class CaptureViewModelTest {
         advanceUntilIdleWithDelay()
 
         // 验证 capturePhoto 被调用（autoCaptureEnabled=true 时）
-        verify(cameraManager, org.mockito.verificationTimes(1)).capturePhoto(
-            onSuccess = any(),
-            onError = any()
+        verify(cameraManager, times(1)).capturePhoto(
+            onSuccess = any<(ImageProxy) -> Unit>(),
+            onError = any<(Throwable) -> Unit>()
         )
     }
 
@@ -771,7 +775,7 @@ class CaptureViewModelTest {
         // 捕获 onError 回调并调用
         val onErrorCaptor = argumentCaptor<(Throwable) -> Unit>()
         verify(cameraManager).capturePhoto(
-            onSuccess = any(),
+            onSuccess = any<(ImageProxy) -> Unit>(),
             onError = onErrorCaptor.capture()
         )
 
@@ -792,11 +796,11 @@ class CaptureViewModelTest {
         val onSuccessCaptor = argumentCaptor<(ImageProxy) -> Unit>()
         verify(cameraManager).capturePhoto(
             onSuccess = onSuccessCaptor.capture(),
-            onError = any()
+            onError = any<(Throwable) -> Unit>()
         )
 
         // 模拟保存成功
-        whenever(storageService.savePhoto(any(), anyOrNull(), any(), anyOrNull())).thenReturn(
+        whenever(storageService.savePhoto(any<ImageProxy>(), anyOrNull(), any<ExifData>(), anyOrNull())).thenReturn(
             PhotoRecord(
                 id = "test-id",
                 filePath = "/test/photo.jpg",
@@ -831,11 +835,11 @@ class CaptureViewModelTest {
         val onSuccessCaptor = argumentCaptor<(ImageProxy) -> Unit>()
         verify(cameraManager).capturePhoto(
             onSuccess = onSuccessCaptor.capture(),
-            onError = any()
+            onError = any<(Throwable) -> Unit>()
         )
 
         // 模拟保存异常
-        whenever(storageService.savePhoto(any(), anyOrNull(), any(), anyOrNull())).thenThrow(
+        whenever(storageService.savePhoto(any<ImageProxy>(), anyOrNull(), any<ExifData>(), anyOrNull())).thenThrow(
             RuntimeException("保存失败")
         )
 
@@ -860,8 +864,8 @@ class CaptureViewModelTest {
 
         // 验证 capturePhoto 被调用
         verify(cameraManager).capturePhoto(
-            onSuccess = any(),
-            onError = any()
+            onSuccess = any<(ImageProxy) -> Unit>(),
+            onError = any<(Throwable) -> Unit>()
         )
     }
 
@@ -874,8 +878,8 @@ class CaptureViewModelTest {
         advanceUntilIdleWithDelay()
 
         verify(cameraManager).capturePhoto(
-            onSuccess = any(),
-            onError = any()
+            onSuccess = any<(ImageProxy) -> Unit>(),
+            onError = any<(Throwable) -> Unit>()
         )
     }
 
@@ -884,7 +888,7 @@ class CaptureViewModelTest {
         // 初始阶段为 IDLE
         viewModel.manualCapture()
 
-        verify(cameraManager, never()).capturePhoto(any(), any())
+        verify(cameraManager, never()).capturePhoto(any<(ImageProxy) -> Unit>(), any<(Throwable) -> Unit>())
     }
 
     @Test
@@ -900,14 +904,14 @@ class CaptureViewModelTest {
         advanceUntilIdleWithDelay()
 
         // 验证 capturePhoto 被调用（立即拍摄）
-        verify(cameraManager).capturePhoto(any(), any())
+        verify(cameraManager).capturePhoto(any<(ImageProxy) -> Unit>(), any<(Throwable) -> Unit>())
     }
 
     @Test
     fun `manualCapture 在 IDLE 阶段不执行`() {
         assertEquals(CaptureViewModel.PipelineStage.IDLE, viewModel.pipelineStage.value)
         viewModel.manualCapture()
-        verify(cameraManager, never()).capturePhoto(any(), any())
+        verify(cameraManager, never()).capturePhoto(any<(ImageProxy) -> Unit>(), any<(Throwable) -> Unit>())
     }
 
     @Test
@@ -1025,7 +1029,7 @@ class CaptureViewModelTest {
     fun `focusAndMeter 委托给 CameraManager`() {
         viewModel.focusAndMeter(100f, 200f, 1080f, 1920f)
 
-        verify(cameraManager).focusAndMeter(any(), eq(1080f), eq(1920f))
+        verify(cameraManager).focusAndMeter(any<Offset>(), eq(1080f), eq(1920f))
     }
 
     // ================================
@@ -1192,7 +1196,7 @@ class CaptureViewModelTest {
 
         // 触发捕获错误
         val onErrorCaptor = argumentCaptor<(Throwable) -> Unit>()
-        verify(cameraManager).capturePhoto(any(), onErrorCaptor.capture())
+        verify(cameraManager).capturePhoto(any<(ImageProxy) -> Unit>(), onErrorCaptor.capture())
         onErrorCaptor.lastValue(RuntimeException("测试错误"))
 
         assertEquals("发生错误，请重试", viewModel.guidanceText.value)
@@ -1206,7 +1210,7 @@ class CaptureViewModelTest {
 
         // 触发捕获成功回调
         val onSuccessCaptor = argumentCaptor<(ImageProxy) -> Unit>()
-        verify(cameraManager).capturePhoto(onSuccessCaptor.capture(), any())
+        verify(cameraManager).capturePhoto(onSuccessCaptor.capture(), any<(Throwable) -> Unit>())
 
         onSuccessCaptor.lastValue(imageProxy)
 
@@ -1260,14 +1264,18 @@ class CaptureViewModelTest {
 
     @Test
     fun `onCleared 停止相机`() {
-        viewModel.onCleared()
+        val method = CaptureViewModel::class.java.getDeclaredMethod("onCleared")
+        method.isAccessible = true
+        method.invoke(viewModel)
 
         verify(cameraManager).stopCamera()
     }
 
     @Test
     fun `onCleared 停止运动监测`() {
-        viewModel.onCleared()
+        val method = CaptureViewModel::class.java.getDeclaredMethod("onCleared")
+        method.isAccessible = true
+        method.invoke(viewModel)
 
         verify(motionMonitor).stopMonitoring()
     }
@@ -1289,10 +1297,10 @@ class CaptureViewModelTest {
 
         // 捕获 onSuccess 回调
         val onSuccessCaptor = argumentCaptor<(ImageProxy) -> Unit>()
-        verify(cameraManager).capturePhoto(onSuccessCaptor.capture(), any())
+        verify(cameraManager).capturePhoto(onSuccessCaptor.capture(), any<(Throwable) -> Unit>())
 
         // 模拟保存成功
-        whenever(storageService.savePhoto(any(), anyOrNull(), any(), anyOrNull())).thenReturn(
+        whenever(storageService.savePhoto(any<ImageProxy>(), anyOrNull(), any<ExifData>(), anyOrNull())).thenReturn(
             PhotoRecord(
                 id = "test-id",
                 filePath = "/test/photo.jpg",
@@ -1318,9 +1326,9 @@ class CaptureViewModelTest {
         advanceUntilIdleWithDelay()
 
         val onSuccessCaptor = argumentCaptor<(ImageProxy) -> Unit>()
-        verify(cameraManager).capturePhoto(onSuccessCaptor.capture(), any())
+        verify(cameraManager).capturePhoto(onSuccessCaptor.capture(), any<(Throwable) -> Unit>())
 
-        whenever(storageService.savePhoto(any(), anyOrNull(), any(), anyOrNull())).thenReturn(
+        whenever(storageService.savePhoto(any<ImageProxy>(), anyOrNull(), any<ExifData>(), anyOrNull())).thenReturn(
             PhotoRecord(
                 id = "test-id",
                 filePath = "/test/photo.jpg",
@@ -1503,13 +1511,8 @@ class CaptureViewModelTest {
         isModelReadyFlow.value = true   // 检测就绪 → TEMPLATE_READY
         isAlignedFlow.value = false     // 未对齐 → 保持 TEMPLATE_READY
 
-        // 模拟 SettingsRepository captureDelay.first()
+        // 模拟 SettingsRepository captureDelay
         whenever(settingsRepository.captureDelay).thenReturn(captureDelayFlow)
-        try {
-            whenever(settingsRepository.captureDelay.first()).thenReturn(0)
-        } catch (_: Exception) {
-            // 忽略 mock 异常
-        }
 
         advanceUntilIdleWithDelay()
     }
@@ -1523,13 +1526,6 @@ class CaptureViewModelTest {
         // 设置对齐 → READY_TO_CAPTURE
         isAlignedFlow.value = true
 
-        // 模拟 captureDelay
-        try {
-            whenever(settingsRepository.captureDelay.first()).thenReturn(0)
-        } catch (_: Exception) {
-            // 忽略
-        }
-
         advanceUntilIdleWithDelay()
     }
 
@@ -1539,8 +1535,9 @@ class CaptureViewModelTest {
      */
     private fun setupFrameCallback(): (ImageProxy) -> Unit {
         var callback: ((ImageProxy) -> Unit)? = null
-        whenever(cameraManager.setOnFrameAnalyzed(any())).thenAnswer {
+        whenever(cameraManager.setOnFrameAnalyzed(any<(ImageProxy) -> Unit>())).thenAnswer {
             callback = it.getArgument(0)
+            null
         }
 
         viewModel.startCamera(lifecycleOwner, previewView)
@@ -1600,7 +1597,7 @@ class CaptureViewModelTest {
             action = action,
             actionProbabilities = probs
         )
-        whenever(detectionEngine.analyze(any())).thenReturn(compositionResult)
+        whenever(detectionEngine.analyze(any<Bitmap>())).thenReturn(compositionResult)
         whenever(detectionEngine.inferenceTime).thenReturn(MutableStateFlow(20L))
 
         // 设置为 TEMPLATE_READY 阶段以触发 FAST 模式的动作指引更新

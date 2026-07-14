@@ -430,7 +430,7 @@ class CameraManagerTest {
         // 此处验证 switchCamera 不抛出未捕获的异常
         cameraManager.switchCamera(
             lifecycleOwner = FakeLifecycleOwner(),
-            previewView = FakePreviewView()
+            previewView = Mockito.mock(androidx.camera.view.PreviewView::class.java)
         )
         // 不抛异常即通过
     }
@@ -958,12 +958,4 @@ private class FakeLifecycleOwner : LifecycleOwner {
     override val lifecycle: Lifecycle = lifecycleRegistry
 }
 
-/**
- * 简单的 PreviewView 占位，用于 switchCamera 等需要 PreviewView 参数的测试。
- * 由于 Robolectric 环境下无法创建真实的 PreviewView（需要 Surface），
- * 此类仅用于方法签名兼容。实际使用时需要注意 startCamera 在
- * ProcessCameraProvider 不可用的环境下会走错误路径。
- */
-private class FakePreviewView : androidx.camera.view.PreviewView(
-    ApplicationProvider.getApplicationContext<Context>()
-)
+

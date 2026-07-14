@@ -152,7 +152,7 @@ fun SettingsView(
         // About
         SettingsSection(title = "关于") {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("构妙 LiveCapture v1.1.0")
+                Text("构妙 LiveCapture v1.5.9")
                 Text(
                     "基于强化学习的 AI 端侧智能构图辅助",
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)

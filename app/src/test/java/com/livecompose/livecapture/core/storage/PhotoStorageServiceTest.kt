@@ -18,6 +18,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
 import java.lang.reflect.Method
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.EmptyCoroutineContext
 
 /**
  * PhotoStorageService 综合单元测试
@@ -149,6 +151,23 @@ class PhotoStorageServiceTest {
     }
 
     /**
+     * 通过反射调用私有 suspend 方法 addRecordToIndex
+     */
+    private fun invokeAddRecordToIndex(record: PhotoRecord) {
+        val method: Method = PhotoStorageService::class.java.getDeclaredMethod(
+            "addRecordToIndex", PhotoRecord::class.java, Continuation::class.java
+        )
+        method.isAccessible = true
+        method.invoke(
+            service, record,
+            object : Continuation<Unit> {
+                override val context = EmptyCoroutineContext
+                override fun resumeWith(result: Result<Unit>) {}
+            }
+        )
+    }
+
+    /**
      * 创建一个测试用的 PhotoRecord，所有字段均填充
      */
     private fun createTestRecord(
@@ -191,7 +210,7 @@ class PhotoStorageServiceTest {
     // =====================================================
 
     @Test
-    fun `getAllRecords - 文件不存在时返回空列表`() {
+    fun `getAllRecords - 文件不存在时返回空列表`() = runTest {
         // records.json 尚未被创建
         val records = service.getAllRecords()
 
@@ -199,7 +218,7 @@ class PhotoStorageServiceTest {
     }
 
     @Test
-    fun `getAllRecords - 空文件返回空列表`() {
+    fun `getAllRecords - 空文件返回空列表`() = runTest {
         val recordsFile = getRecordsFile()
         recordsFile.parentFile?.mkdirs()
         recordsFile.writeText("")
@@ -210,7 +229,7 @@ class PhotoStorageServiceTest {
     }
 
     @Test
-    fun `getAllRecords - 有效JSON返回正确记录列表`() {
+    fun `getAllRecords - 有效JSON返回正确记录列表`() = runTest {
         val recordsFile = getRecordsFile()
         recordsFile.parentFile?.mkdirs()
         val array = JSONArray()
@@ -241,7 +260,7 @@ class PhotoStorageServiceTest {
     }
 
     @Test
-    fun `getAllRecords - 损坏的JSON返回空列表`() {
+    fun `getAllRecords - 损坏的JSON返回空列表`() = runTest {
         val recordsFile = getRecordsFile()
         recordsFile.parentFile?.mkdirs()
         recordsFile.writeText("this is not valid json {{{{")
@@ -252,7 +271,7 @@ class PhotoStorageServiceTest {
     }
 
     @Test
-    fun `getAllRecords - 空JSON数组返回空列表`() {
+    fun `getAllRecords - 空JSON数组返回空列表`() = runTest {
         val recordsFile = getRecordsFile()
         recordsFile.parentFile?.mkdirs()
         recordsFile.writeText("[]")
@@ -272,8 +291,8 @@ class PhotoStorageServiceTest {
         val record2 = createTestRecord(id = "second")
 
         // 先添加第一条，再添加第二条
-        service.addRecordToIndex(record1)
-        service.addRecordToIndex(record2)
+        invokeAddRecordToIndex(record1)
+        invokeAddRecordToIndex(record2)
 
         val records = service.getAllRecords()
 
@@ -290,7 +309,7 @@ class PhotoStorageServiceTest {
         val deferreds = (0 until count).map { index ->
             async {
                 val record = createTestRecord(id = "record-$index")
-                service.addRecordToIndex(record)
+                invokeAddRecordToIndex(record)
             }
         }
         deferreds.awaitAll()
@@ -323,7 +342,7 @@ class PhotoStorageServiceTest {
             filePath = photoFile.absolutePath,
             thumbPath = thumbFile.absolutePath
         )
-        service.addRecordToIndex(record)
+        invokeAddRecordToIndex(record)
 
         // 确认记录已添加
         assertEquals("添加后应有1条记录", 1, service.getAllRecords().size)
@@ -354,7 +373,7 @@ class PhotoStorageServiceTest {
             filePath = "content://media/external/images/media/123",
             thumbPath = thumbFile.absolutePath
         )
-        service.addRecordToIndex(record)
+        invokeAddRecordToIndex(record)
 
         // 执行删除，content:// URI 删除可能失败，但不应抛异常
         service.deleteRecordAsync(record)
@@ -373,7 +392,7 @@ class PhotoStorageServiceTest {
             filePath = "/nonexistent/path/photo.jpg",
             thumbPath = "/nonexistent/path/thumb.jpg"
         )
-        service.addRecordToIndex(record)
+        invokeAddRecordToIndex(record)
 
         // 删除不存在的文件不应崩溃
         service.deleteRecordAsync(record)
@@ -410,8 +429,8 @@ class PhotoStorageServiceTest {
             thumbPath = thumb2.absolutePath
         )
 
-        service.addRecordToIndex(recordKeep)
-        service.addRecordToIndex(recordDelete)
+        invokeAddRecordToIndex(recordKeep)
+        invokeAddRecordToIndex(recordDelete)
 
         // 删除第二条记录
         service.deleteRecordAsync(recordDelete)
@@ -675,7 +694,7 @@ class PhotoStorageServiceTest {
             aestheticScore = 0.99f
         )
 
-        service.addRecordToIndex(original)
+        invokeAddRecordToIndex(original)
         val loaded = service.getAllRecords()
 
         assertEquals("应包含1条记录", 1, loaded.size)
@@ -695,7 +714,7 @@ class PhotoStorageServiceTest {
         assertEquals(original.cropRegion!!.centerY, record.cropRegion!!.centerY, 0.001f)
         assertEquals(original.cropRegion!!.width, record.cropRegion!!.width, 0.001f)
         assertEquals(original.cropRegion!!.height, record.cropRegion!!.height, 0.001f)
-        assertEquals(original.aestheticScore, record.aestheticScore, 0.001f)
+        assertEquals(original.aestheticScore!!, record.aestheticScore!!, 0.001f)
     }
 
     @Test
@@ -704,9 +723,9 @@ class PhotoStorageServiceTest {
         val r2 = createTestRecord(id = "r2")
         val r3 = createTestRecord(id = "r3")
 
-        service.addRecordToIndex(r1)
-        service.addRecordToIndex(r2)
-        service.addRecordToIndex(r3)
+        invokeAddRecordToIndex(r1)
+        invokeAddRecordToIndex(r2)
+        invokeAddRecordToIndex(r3)
 
         assertEquals(3, service.getAllRecords().size)
 
@@ -1050,7 +1069,7 @@ class PhotoStorageServiceTest {
         }
 
         // 逐条添加
-        records.forEach { service.addRecordToIndex(it) }
+        records.forEach { invokeAddRecordToIndex(it) }
         assertEquals("添加5条记录后应为5条", 5, service.getAllRecords().size)
 
         // 逐条删除
@@ -1092,8 +1111,8 @@ class PhotoStorageServiceTest {
         val r2 = createTestRecord(id = "json-2")
 
         // 添加两条
-        service.addRecordToIndex(r1)
-        service.addRecordToIndex(r2)
+        invokeAddRecordToIndex(r1)
+        invokeAddRecordToIndex(r2)
 
         // 验证文件内容是有效JSON
         val recordsFile = getRecordsFile()
