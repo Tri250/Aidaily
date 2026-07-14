@@ -5,6 +5,7 @@ import com.livecompose.livecapture.core.camera.CameraManager
 import com.livecompose.livecapture.core.detection.AdacropInferenceEngine
 import com.livecompose.livecapture.core.diagnostics.CrashHandler
 import com.livecompose.livecapture.core.diagnostics.SelfChecker
+import com.livecompose.livecapture.core.settings.FirstRunRepository
 import dagger.hilt.android.HiltAndroidApp
 import java.io.File
 import javax.inject.Inject
@@ -20,6 +21,9 @@ class LiveCaptureApp : Application() {
 
     @Inject
     lateinit var selfChecker: SelfChecker
+
+    @Inject
+    lateinit var firstRunRepository: FirstRunRepository
 
     companion object {
         @Volatile

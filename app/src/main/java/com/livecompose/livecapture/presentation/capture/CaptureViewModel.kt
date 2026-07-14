@@ -43,7 +43,8 @@ class CaptureViewModel @Inject constructor(
     private val boxCenterManager: BoxCenterManager,
     private val storageService: PhotoStorageService,
     private val settingsRepository: SettingsRepository,
-    private val permissionManager: PermissionManager
+    private val permissionManager: PermissionManager,
+    private val voiceCaptureService: com.livecompose.livecapture.core.voice.VoiceCaptureService
 ) : ViewModel() {
 
     companion object {
@@ -59,6 +60,7 @@ class CaptureViewModel @Inject constructor(
         DETECTING_REGION,
         TEMPLATE_READY,
         READY_TO_CAPTURE,
+        COUNTDOWN,          // 新增：倒计时阶段
         CAPTURING_PHOTO,
         SAVING_PHOTO,
         ERROR
@@ -66,6 +68,19 @@ class CaptureViewModel @Inject constructor(
 
     private val _pipelineStage = MutableStateFlow(PipelineStage.IDLE)
     val pipelineStage: StateFlow<PipelineStage> = _pipelineStage
+
+    // 倒计时状态
+    private val _countdown = MutableStateFlow(0)
+    val countdown: StateFlow<Int> = _countdown
+
+    // 庆祝动画触发状态
+    private val _showCelebration = MutableStateFlow(false)
+    val showCelebration: StateFlow<Boolean> = _showCelebration
+
+    // 声控拍照状态
+    val voiceCaptureTriggered: StateFlow<Boolean> = voiceCaptureService.captureTriggered
+    val voiceCaptureReady: StateFlow<Boolean> = voiceCaptureService.isReady
+    val voiceCaptureHeardText: StateFlow<String> = voiceCaptureService.lastHeardText
 
     private val _guidanceText = MutableStateFlow("准备拍摄")
     val guidanceText: StateFlow<String> = _guidanceText
@@ -198,6 +213,17 @@ class CaptureViewModel @Inject constructor(
         viewModelScope.launch {
             cameraManager.isCameraReady.first { it }
             _isCameraStarting.value = false
+        }
+
+        // 声控拍照触发监听
+        viewModelScope.launch {
+            voiceCaptureService.captureTriggered.collect { triggered ->
+                if (triggered && _pipelineStage.value == PipelineStage.READY_TO_CAPTURE) {
+                    Log.i(TAG, "声控触发拍摄")
+                    autoCapture(0) // 立即拍摄，无延迟
+                    voiceCaptureService.resetTrigger()
+                }
+            }
         }
 
         observeStateTransitions()
@@ -378,6 +404,7 @@ class CaptureViewModel @Inject constructor(
                 // 根据 autoCapture 设置显示不同文案
                 if (autoCaptureEnabled) "即将自动拍摄" else "对齐完美，点击拍摄"
             }
+            PipelineStage.COUNTDOWN -> "即将拍摄"
             PipelineStage.CAPTURING_PHOTO -> "拍摄中..."
             PipelineStage.SAVING_PHOTO -> "保存中..."
             PipelineStage.ERROR -> "发生错误，请重试"
@@ -404,8 +431,17 @@ class CaptureViewModel @Inject constructor(
         autoCaptureJob = viewModelScope.launch {
             try {
                 if (delaySeconds > 0) {
-                    _guidanceText.value = "${delaySeconds} 秒后拍摄..."
-                    delay(delaySeconds * 1000L)
+                    // 倒计时阶段
+                    _pipelineStage.value = PipelineStage.COUNTDOWN
+                    updateGuidanceText(PipelineStage.COUNTDOWN)
+
+                    for (i in delaySeconds downTo 1) {
+                        _countdown.value = i
+                        _guidanceText.value = "${i} 秒后拍摄..."
+                        delay(1000)
+                    }
+
+                    _countdown.value = 0
                 }
 
                 // delay 后重新校验状态，避免用户移开后仍拍摄
@@ -443,8 +479,17 @@ class CaptureViewModel @Inject constructor(
 
                                 _lastSavedPhotoPath.value = record.filePath
                                 _lastSavedThumbPath.value = record.thumbPath
-                                // 触发拍摄成功闪白动画
+                                
+                                // 触发拍摄成功反馈
                                 _captureSuccess.value = true
+                                
+                                // 触发庆祝动画
+                                _showCelebration.value = true
+                                launch {
+                                    delay(2000) // 2秒后关闭庆祝动画
+                                    _showCelebration.value = false
+                                }
+                                
                                 resetPipeline()
                             } catch (e: CancellationException) {
                                 throw e
@@ -515,6 +560,15 @@ class CaptureViewModel @Inject constructor(
             previewWidth,
             previewHeight
         )
+    }
+
+    // 声控拍照控制
+    fun startVoiceCapture() {
+        voiceCaptureService.startListening()
+    }
+
+    fun stopVoiceCapture() {
+        voiceCaptureService.stopListening()
     }
 
     // ERROR 状态重试 — 完整重置所有状态

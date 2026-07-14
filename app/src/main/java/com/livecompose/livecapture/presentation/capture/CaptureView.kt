@@ -28,6 +28,8 @@ import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.GridOff
 import androidx.compose.material.icons.filled.GridOn
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -60,6 +62,7 @@ import com.livecompose.livecapture.core.detection.AdacropInferenceEngine
 import com.livecompose.livecapture.core.detection.CompositionResult
 import com.livecompose.livecapture.core.detection.SceneAnalysisResult
 import com.livecompose.livecapture.presentation.Screen
+import com.livecompose.livecapture.presentation.components.CountdownNumber
 import java.io.File
 import kotlin.math.abs
 
@@ -95,6 +98,14 @@ fun CaptureView(
     val captureSuccess by viewModel.captureSuccess.collectAsStateWithLifecycle()
     // 智能场景识别
     val sceneAnalysis by viewModel.sceneAnalysis.collectAsStateWithLifecycle()
+    // 倒计时状态
+    val countdown by viewModel.countdown.collectAsStateWithLifecycle()
+    // 庆祝动画状态
+    val showCelebration by viewModel.showCelebration.collectAsStateWithLifecycle()
+    // 声控拍照状态
+    val voiceCaptureTriggered by viewModel.voiceCaptureTriggered.collectAsStateWithLifecycle()
+    val voiceCaptureReady by viewModel.voiceCaptureReady.collectAsStateWithLifecycle()
+    var isVoiceCaptureEnabled by remember { mutableStateOf(false) }
 
     // 权限状态管理
     var hasCameraPermission by remember {
@@ -269,6 +280,16 @@ fun CaptureView(
                     currentScore = currentScore,
                     showGrid = showGrid,
                     onGridToggle = { showGrid = !showGrid },
+                    isVoiceCaptureEnabled = isVoiceCaptureEnabled,
+                    voiceCaptureReady = voiceCaptureReady,
+                    onVoiceCaptureToggle = {
+                        isVoiceCaptureEnabled = !isVoiceCaptureEnabled
+                        if (isVoiceCaptureEnabled) {
+                            viewModel.startVoiceCapture()
+                        } else {
+                            viewModel.stopVoiceCapture()
+                        }
+                    },
                     onSettingsClick = onSettingsClick,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
@@ -313,6 +334,28 @@ fun CaptureView(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(Color.White.copy(alpha = 0.3f))
+                    )
+                }
+
+                // 倒计时大数字覆盖层
+                if (countdown > 0) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.6f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CountdownNumber(currentCount = countdown)
+                    }
+                }
+
+                // 庆祝动画覆盖层
+                if (showCelebration) {
+                    com.livecompose.livecapture.presentation.components.CombinedCelebration(
+                        modifier = Modifier.fillMaxSize(),
+                        trigger = true,
+                        showConfetti = true,
+                        showRipple = true
                     )
                 }
 
@@ -573,6 +616,9 @@ private fun TopControlBar(
     showGrid: Boolean,
     onGridToggle: () -> Unit,
     onSettingsClick: () -> Unit,
+    isVoiceCaptureEnabled: Boolean = false,
+    voiceCaptureReady: Boolean = false,
+    onVoiceCaptureToggle: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -585,6 +631,19 @@ private fun TopControlBar(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
         ) {
+            // 声控拍照开关
+            IconButton(onClick = onVoiceCaptureToggle) {
+                Icon(
+                    imageVector = if (isVoiceCaptureEnabled) Icons.Default.Mic else Icons.Default.MicOff,
+                    contentDescription = if (isVoiceCaptureEnabled) "关闭声控" else "开启声控",
+                    tint = when {
+                        isVoiceCaptureEnabled && voiceCaptureReady -> Color(0xFF4CAF50) // 绿色：正在监听
+                        isVoiceCaptureEnabled -> Color(0xFFFFD700) // 金色：已开启但未就绪
+                        else -> Color.White.copy(alpha = 0.4f)
+                    },
+                    modifier = Modifier.size(22.dp)
+                )
+            }
             // 网格线开关
             IconButton(onClick = onGridToggle) {
                 Icon(
