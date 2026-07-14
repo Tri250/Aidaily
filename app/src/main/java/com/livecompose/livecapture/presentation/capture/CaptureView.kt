@@ -3,6 +3,11 @@ package com.livecompose.livecapture.presentation.capture
 import android.Manifest
 import android.graphics.PointF
 import android.net.Uri
+import android.os.Build
+import android.os.VibrationEffect
+import android.content.Context
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.view.PreviewView
@@ -10,6 +15,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,6 +26,8 @@ import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.Exposure
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.GridOff
+import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -49,6 +57,8 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.livecompose.livecapture.core.design.*
 import com.livecompose.livecapture.core.detection.AdacropInferenceEngine
+import com.livecompose.livecapture.core.detection.CompositionResult
+import com.livecompose.livecapture.core.detection.SceneAnalysisResult
 import com.livecompose.livecapture.presentation.Screen
 import java.io.File
 import kotlin.math.abs
@@ -83,6 +93,8 @@ fun CaptureView(
     val cameraError by viewModel.cameraError.collectAsStateWithLifecycle()
     // 拍摄成功反馈
     val captureSuccess by viewModel.captureSuccess.collectAsStateWithLifecycle()
+    // 智能场景识别
+    val sceneAnalysis by viewModel.sceneAnalysis.collectAsStateWithLifecycle()
 
     // 权限状态管理
     var hasCameraPermission by remember {
@@ -91,6 +103,31 @@ fun CaptureView(
     var hasBeenDenied by remember { mutableStateOf(false) }
 
     var showExposureSlider by remember { mutableStateOf(false) }
+    var showGrid by remember { mutableStateOf(true) } // 三分法网格线开关
+
+    // 触觉反馈工具
+    val vibrator = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        }
+    }
+
+    // 对齐成功时触觉反馈
+    LaunchedEffect(isAligned) {
+        if (isAligned) {
+            vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+        }
+    }
+
+    // 拍摄成功触觉反馈
+    LaunchedEffect(captureSuccess) {
+        if (captureSuccess) {
+            vibrator?.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
+        }
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -177,11 +214,19 @@ fun CaptureView(
             }
 
             else -> {
-                // Camera Preview — 点击对焦
+                // Camera Preview — 点击对焦 + 捏合缩放
                 AndroidView(
                     factory = { previewView },
                     modifier = Modifier
                         .fillMaxSize()
+                        .pointerInput(zoomRange) {
+                            detectTransformGestures { _, _, zoom, _ ->
+                                if (zoom != 1f) {
+                                    val newRatio = (zoomRatio * zoom).coerceIn(zoomRange.start, zoomRange.endInclusive)
+                                    viewModel.setZoom(newRatio)
+                                }
+                            }
+                        }
                         .pointerInput(Unit) {
                             detectTapGestures(
                                 onTap = { offset ->
@@ -196,8 +241,13 @@ fun CaptureView(
                         }
                 )
 
-                // Composition Grid Overlay
-                CompositionGridOverlay()
+                // Composition Grid Overlay — 可开关
+                if (showGrid) {
+                    CompositionGridOverlay()
+                }
+
+                // 智能场景识别信息栏
+                sceneAnalysis?.let { SceneInfoOverlay(it) }
 
                 // Tracking Dot
                 trackPoint?.let { point ->
@@ -217,6 +267,8 @@ fun CaptureView(
                     activeVariant = activeModelVariant,
                     inferenceTime = inferenceTime,
                     currentScore = currentScore,
+                    showGrid = showGrid,
+                    onGridToggle = { showGrid = !showGrid },
                     onSettingsClick = onSettingsClick,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
@@ -518,6 +570,8 @@ private fun TopControlBar(
     activeVariant: AdacropInferenceEngine.ModelVariant?,
     inferenceTime: Long,
     currentScore: Float,
+    showGrid: Boolean,
+    onGridToggle: () -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -531,6 +585,15 @@ private fun TopControlBar(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
         ) {
+            // 网格线开关
+            IconButton(onClick = onGridToggle) {
+                Icon(
+                    imageVector = if (showGrid) Icons.Default.GridOn else Icons.Default.GridOff,
+                    contentDescription = if (showGrid) "关闭网格" else "显示网格",
+                    tint = if (showGrid) Color.White else Color.White.copy(alpha = 0.4f),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
             IconButton(onClick = onSettingsClick) {
                 Icon(
                     imageVector = Icons.Default.Settings,
@@ -822,6 +885,178 @@ private fun LastPhotoThumbnail(
     }
 }
 
+/**
+ * 智能场景识别信息覆盖层
+ * 显示: 场景类型标签 + 光照质量指示 + 拍摄指导提示
+ */
+@Composable
+private fun SceneInfoOverlay(
+    result: SceneAnalysisResult,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp)
+            .windowInsetsPadding(WindowInsets.statusBars),
+        horizontalAlignment = Alignment.Start
+    ) {
+        // 场景类型标签 + 光照质量
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // 场景类型标签
+            Surface(
+                color = Color.Black.copy(alpha = 0.6f),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // 场景图标点 — 颜色跟随场景变化动画
+                    val dotColor by animateColorAsState(
+                        targetValue = sceneTypeColor(result.sceneType),
+                        animationSpec = tween(400),
+                        label = "sceneDotColor"
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .background(dotColor, CircleShape)
+                    )
+                    // 场景标签切换动画
+                    AnimatedContent(
+                        targetState = result.sceneType.label,
+                        transitionSpec = {
+                            (fadeIn(tween(300)) + slideInVertically { -it }) togetherWith
+                                    (fadeOut(tween(200)) + slideOutVertically { it })
+                        },
+                        label = "sceneLabel"
+                    ) { label ->
+                        Text(
+                            text = label,
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+            // 光照质量指示
+            if (result.lightingQuality != CompositionResult.LightingQuality.GOOD) {
+                Surface(
+                    color = lightingQualityColor(result.lightingQuality).copy(alpha = 0.25f),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(lightingQualityColor(result.lightingQuality), CircleShape)
+                        )
+                        Text(
+                            text = lightingQualityLabel(result.lightingQuality),
+                            color = lightingQualityColor(result.lightingQuality),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+
+        // 拍摄指导提示条 (仅在有提示时显示)
+        if (result.shootingTip.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(6.dp))
+            AnimatedVisibility(
+                visible = result.shootingTip.isNotEmpty(),
+                enter = fadeIn(tween(300)) + expandVertically(tween(200)),
+                exit = fadeOut(tween(200)) + shrinkVertically(tween(150))
+            ) {
+                Surface(
+                    color = Color.Black.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = result.shootingTip,
+                            color = Color.White.copy(alpha = 0.9f),
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        // 拍摄参数建议 (场景识别推荐参数)
+        val params = result.sceneType.shootingParams
+        Row(
+            modifier = Modifier.padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            ParamChip("f/${params.aperture.removePrefix("F")}")
+            ParamChip(params.shutter)
+            ParamChip("ISO ${params.iso}")
+        }
+    }
+}
+
+@Composable
+private fun ParamChip(text: String) {
+    Surface(
+        color = Color.White.copy(alpha = 0.12f),
+        shape = RoundedCornerShape(4.dp)
+    ) {
+        Text(
+            text = text,
+            color = Color.White.copy(alpha = 0.7f),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        )
+    }
+}
+
+private fun sceneTypeColor(sceneType: CompositionResult.SceneType): Color = when (sceneType) {
+    CompositionResult.SceneType.PORTRAIT_STANDING,
+    CompositionResult.SceneType.PORTRAIT_SITTING -> Color(0xFFFF8A80) // 暖粉红
+    CompositionResult.SceneType.LANDSCAPE_SUNSET,
+    CompositionResult.SceneType.LANDSCAPE_NATURE -> Color(0xFF69F0AE) // 自然绿
+    CompositionResult.SceneType.NIGHT_SCENE -> Color(0xFFB388FF)       // 夜紫
+    CompositionResult.SceneType.FOOD_STYLING -> Color(0xFFFFD54F)      // 美食金
+    CompositionResult.SceneType.PRODUCT_WHITE -> Color(0xFFE0E0E0)     // 产品灰
+    CompositionResult.SceneType.CITY_URBAN -> Color(0xFF40C4FF)        // 城市蓝
+    CompositionResult.SceneType.GENERAL -> Color(0xFFB0BEC5)           // 通用灰蓝
+}
+
+private fun lightingQualityColor(quality: CompositionResult.LightingQuality): Color = when (quality) {
+    CompositionResult.LightingQuality.GOOD -> Color(0xFF69F0AE)
+    CompositionResult.LightingQuality.TOO_DARK -> Color(0xFFFF8A65)
+    CompositionResult.LightingQuality.TOO_BRIGHT -> Color(0xFFFFD54F)
+    CompositionResult.LightingQuality.BACKLIT -> Color(0xFFFFAB40)
+    CompositionResult.LightingQuality.LOW_CONTRAST -> Color(0xFFB0BEC5)
+}
+
+private fun lightingQualityLabel(quality: CompositionResult.LightingQuality): String = when (quality) {
+    CompositionResult.LightingQuality.GOOD -> "光照良好"
+    CompositionResult.LightingQuality.TOO_DARK -> "光线不足"
+    CompositionResult.LightingQuality.TOO_BRIGHT -> "光线过强"
+    CompositionResult.LightingQuality.BACKLIT -> "逆光"
+    CompositionResult.LightingQuality.LOW_CONTRAST -> "对比度低"
+}
+
 @Composable
 private fun ZoomButton(label: String, isSelected: Boolean, onClick: () -> Unit) {
     TextButton(onClick = onClick) {
@@ -846,25 +1081,34 @@ private fun CaptureButton(
         else -> Color.White
     }
 
-    // 移除 IDLE 例外：IDLE 状态拍摄按钮应灰显，仅 TEMPLATE_READY/READY_TO_CAPTURE 时高亮
     val alpha by animateFloatAsState(
         targetValue = if (enabled) 1f else 0.4f,
         animationSpec = tween(200),
         label = "captureAlpha"
     )
 
-    // 拍摄中环动画缩放
+    // 拍摄中弹簧缩放动画 — 按下时弹跳效果
     val ringScale by animateFloatAsState(
-        targetValue = if (stage == CaptureViewModel.PipelineStage.CAPTURING_PHOTO) 0.9f else 1f,
-        animationSpec = tween(150),
+        targetValue = if (stage == CaptureViewModel.PipelineStage.CAPTURING_PHOTO) 0.85f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
         label = "ringScale"
+    )
+
+    // 外圈颜色动画
+    val animatedRingColor by animateColorAsState(
+        targetValue = ringColor,
+        animationSpec = tween(300),
+        label = "ringColor"
     )
 
     Box(
         modifier = Modifier
             .size(80.dp)
             .scale(ringScale)
-            .background(ringColor, CircleShape)
+            .background(animatedRingColor, CircleShape)
             .padding(4.dp)
             .alpha(alpha)
             .clickable(enabled = enabled) { onClick() },

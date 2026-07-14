@@ -1,5 +1,6 @@
 package com.livecompose.livecapture.presentation.home
 
+import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,15 +20,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.livecompose.livecapture.core.design.Primary
 import com.livecompose.livecapture.core.design.TitleTextStyle
 import com.livecompose.livecapture.core.storage.PhotoRecord
+import com.livecompose.livecapture.presentation.Screen
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -83,10 +88,28 @@ fun HomeView(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "暂无照片\n开始拍摄你的第一张照片吧",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "暂无照片",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        textAlign = TextAlign.Center,
+                        fontSize = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "开始拍摄你的第一张照片吧",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        textAlign = TextAlign.Center,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(
+                        onClick = { navController?.navigate(Screen.Capture.route) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                    ) {
+                        Text("去拍摄", color = androidx.compose.ui.graphics.Color.White)
+                    }
+                }
             }
         } else {
             LazyVerticalGrid(
@@ -199,6 +222,18 @@ private fun PhotoDetailDialog(
             }
         },
         confirmButton = {
+            // 分享按钮
+            TextButton(onClick = {
+                val shareIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_STREAM, Uri.parse(record.filePath))
+                    type = "image/jpeg"
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(Intent.createChooser(shareIntent, "分享照片"))
+            }) {
+                Text("分享", color = Primary)
+            }
             TextButton(onClick = onDismiss) {
                 Text("关闭")
             }

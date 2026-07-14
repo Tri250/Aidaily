@@ -12,6 +12,8 @@ import com.livecompose.livecapture.core.camera.CameraManager
 import com.livecompose.livecapture.core.detection.AdacropInferenceEngine
 import com.livecompose.livecapture.core.detection.AdacropInferenceEngine.ModelVariant
 import com.livecompose.livecapture.core.detection.CompositionResult
+import com.livecompose.livecapture.core.detection.SceneAnalyzer
+import com.livecompose.livecapture.core.detection.SceneAnalysisResult
 import com.livecompose.livecapture.core.motion.BoxCenterManager
 import com.livecompose.livecapture.core.motion.MotionStabilityMonitor
 import com.livecompose.livecapture.core.permission.PermissionManager
@@ -36,6 +38,7 @@ import javax.inject.Inject
 class CaptureViewModel @Inject constructor(
     private val cameraManager: CameraManager,
     private val detectionEngine: AdacropInferenceEngine,
+    private val sceneAnalyzer: SceneAnalyzer,
     private val motionMonitor: MotionStabilityMonitor,
     private val boxCenterManager: BoxCenterManager,
     private val storageService: PhotoStorageService,
@@ -92,6 +95,10 @@ class CaptureViewModel @Inject constructor(
     private val _currentScore = MutableStateFlow(0f)
     val currentScore: StateFlow<Float> = _currentScore
 
+    // 智能场景识别
+    private val _sceneAnalysis = MutableStateFlow<SceneAnalysisResult?>(null)
+    val sceneAnalysis: StateFlow<SceneAnalysisResult?> = _sceneAnalysis
+
     // 加载状态指示
     private val _isCameraStarting = MutableStateFlow(false)
     val isCameraStarting: StateFlow<Boolean> = _isCameraStarting
@@ -122,6 +129,8 @@ class CaptureViewModel @Inject constructor(
     private var autoCaptureEnabled = true
     @Volatile
     private var currentCaptureDelay = 0
+
+    private val frameCount = AtomicLong(0L)
 
     private var lastDetectionResult: CompositionResult? = null
 
@@ -293,11 +302,18 @@ class CaptureViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
+                frameCount.incrementAndGet()
                 val result = detectionEngine.analyze(bitmap)
                 lastDetectionResult = result
                 _isDetectionReady.value = true
                 _inferenceTime.value = detectionEngine.inferenceTime.value
                 _currentScore.value = result.overallScore
+
+                // 智能场景识别 (每3帧执行一次，降低 CPU 开销)
+                if (frameCount.get() % 3 == 0L) {
+                    val sceneResult = sceneAnalyzer.analyzeScene(bitmap)
+                    _sceneAnalysis.value = sceneResult
+                }
 
                 val motionData = motionMonitor.motionData.value
                 boxCenterManager.updateFromDetection(
