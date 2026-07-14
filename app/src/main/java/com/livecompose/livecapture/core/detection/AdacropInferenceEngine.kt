@@ -12,7 +12,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.tensorflow.lite.Interpreter
-import org.tensorflow.lite.nnapi.NnApiDelegate
 import java.io.FileInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -66,11 +65,16 @@ class AdacropInferenceEngine @Inject constructor(
     }
 
     private var interpreter: Interpreter? = null
-    private var nnApiDelegate: NnApiDelegate? = null
     @Volatile
     private var isDualOutput = false
     @Volatile
     private var inputDataType: Int = 0 // 0 = float32, 1 = uint8
+
+    // 动态识别后的输出索引 (bbox / action)
+    @Volatile
+    private var bboxOutputIndex: Int = 0
+    @Volatile
+    private var actionOutputIndex: Int = 1
 
     // 当前已加载的变体, 用于判断是否需要切换重载
     @Volatile
@@ -89,7 +93,6 @@ class AdacropInferenceEngine @Inject constructor(
     // 复用输出数组，避免每帧分配
     private val bboxOutput: Array<FloatArray> = Array(1) { FloatArray(NUM_BBOX_PARAMS) }
     private val actionOutput: Array<FloatArray> = Array(1) { FloatArray(NUM_ACTIONS) }
-    private val outputMap: Map<Int, Any> = mapOf(0 to bboxOutput, 1 to actionOutput)
     private val dualInputs: Array<Any> = arrayOf(inputBuffer)
 
     private val _isReady = MutableStateFlow(false)
@@ -163,14 +166,6 @@ class AdacropInferenceEngine @Inject constructor(
         try {
             val modelBuffer = loadModelFile(variant.assetFile)
             val options = Interpreter.Options()
-            // 跟踪 NnApiDelegate 以便后续 close
-            try {
-                val delegate = NnApiDelegate()
-                nnApiDelegate = delegate
-                options.addDelegate(delegate)
-            } catch (e: Exception) {
-                Log.w(TAG, "NNAPI not available, falling back to CPU")
-            }
             // 根据设备 CPU 核数动态设置线程数，保留一个核心给 UI
             val numThreads = (Runtime.getRuntime().availableProcessors() - 1).coerceIn(1, 4)
             options.setNumThreads(numThreads)
@@ -180,6 +175,34 @@ class AdacropInferenceEngine @Inject constructor(
             val outputCount = try { interpreter?.outputTensorCount ?: 0 } catch (_: Exception) { 0 }
             isDualOutput = outputCount >= 2
             Log.d(TAG, "${variant}: ${if (isDualOutput) "single-input dual-output (bbox + action_probs)" else "requires two-stage inference"}")
+
+            // 动态识别 bbox / action 输出索引 (根据形状匹配，兼容不同输出顺序)
+            if (isDualOutput) {
+                try {
+                    val outCount = interpreter?.outputTensorCount ?: 0
+                    if (outCount >= 2) {
+                        var foundBBox = -1
+                        var foundAction = -1
+                        for (i in 0 until outCount) {
+                            val tensor = interpreter?.getOutputTensor(i)
+                            val shape = tensor?.shape()
+                            if (shape != null && shape.size == 2 && shape[0] == 1) {
+                                when (shape[1]) {
+                                    NUM_BBOX_PARAMS -> foundBBox = i
+                                    NUM_ACTIONS -> foundAction = i
+                                }
+                            }
+                        }
+                        if (foundBBox >= 0 && foundAction >= 0) {
+                            bboxOutputIndex = foundBBox
+                            actionOutputIndex = foundAction
+                            Log.d(TAG, "Output mapping resolved: bbox=$bboxOutputIndex, action=$actionOutputIndex")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to resolve output indices, using defaults: ${e.message}")
+                }
+            }
 
             // 检查输入数据类型，用于预处理分支
             try {
@@ -201,9 +224,6 @@ class AdacropInferenceEngine @Inject constructor(
             Log.e(TAG, "Failed to load $variant model: ${e.message}. Running in fallback mode.", e)
             _isReady.value = false
             _loadFailed.value = true
-            // 清理可能已创建的 delegate
-            nnApiDelegate?.close()
-            nnApiDelegate = null
         }
     }
 
@@ -226,7 +246,7 @@ class AdacropInferenceEngine @Inject constructor(
     }
 
     /**
-     * 释放当前 interpreter 与 delegate, 不重置加载状态 (供 switchVariant 复用)
+     * 释放当前 interpreter, 不重置加载状态 (供 switchVariant 复用)
      */
     private fun releaseInterpreter() {
         try {
@@ -235,8 +255,6 @@ class AdacropInferenceEngine @Inject constructor(
             Log.w(TAG, "Error closing interpreter", e)
         }
         interpreter = null
-        nnApiDelegate?.close()
-        nnApiDelegate = null
         _isReady.value = false
     }
 
@@ -257,8 +275,12 @@ class AdacropInferenceEngine @Inject constructor(
                 val actionProbs: FloatArray
 
                 if (isDualOutput) {
-                    // 复用输出数组，避免每帧分配
-                    interp.runForMultipleInputsOutputs(dualInputs, outputMap)
+                    // 根据动态识别的索引构建 outputMap，兼容不同 TFLite 输出顺序
+                    val dynamicOutputMap = mapOf(
+                        bboxOutputIndex to bboxOutput,
+                        actionOutputIndex to actionOutput
+                    )
+                    interp.runForMultipleInputsOutputs(dualInputs, dynamicOutputMap)
                     bbox = bboxOutput[0]
                     actionProbs = actionOutput[0]
                 } else {
