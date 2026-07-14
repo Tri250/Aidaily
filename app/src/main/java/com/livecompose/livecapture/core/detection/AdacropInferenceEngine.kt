@@ -164,7 +164,24 @@ class AdacropInferenceEngine @Inject constructor(
 
     private fun loadModel(variant: ModelVariant) {
         try {
+            // 模型加载前完整性校验
+            val assetFileDescriptor = try {
+                context.assets.openFd(variant.assetFile)
+            } catch (e: Exception) {
+                throw IllegalStateException("Model file ${variant.assetFile} not found in assets", e)
+            }
+            assetFileDescriptor.use { afd ->
+                if (afd.declaredLength <= 0) {
+                    throw IllegalStateException("Model file ${variant.assetFile} is empty or invalid (length=${afd.declaredLength})")
+                }
+                Log.d(TAG, "${variant}: asset file verified, size=${afd.declaredLength} bytes")
+            }
+
             val modelBuffer = loadModelFile(variant.assetFile)
+            if (modelBuffer.capacity() == 0) {
+                throw IllegalStateException("Model buffer is empty after loading ${variant.assetFile}")
+            }
+
             val options = Interpreter.Options()
             // 根据设备 CPU 核数动态设置线程数，保留一个核心给 UI
             val numThreads = (Runtime.getRuntime().availableProcessors() - 1).coerceIn(1, 4)
