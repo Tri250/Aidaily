@@ -33,6 +33,10 @@ class PermissionManager @Inject constructor(
         }
     }
 
+    fun hasMicrophonePermission(): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+                PackageManager.PERMISSION_GRANTED
+
     fun shouldShowRationale(activity: Activity, permission: String): Boolean =
         activity.shouldShowRequestPermissionRationale(permission)
 
@@ -47,6 +51,10 @@ class PermissionManager @Inject constructor(
             Manifest.permission.READ_EXTERNAL_STORAGE
         }
         launcher.launch(permission)
+    }
+
+    fun requestMicrophonePermission(launcher: ActivityResultLauncher<String>) {
+        launcher.launch(Manifest.permission.RECORD_AUDIO)
     }
 
     fun openAppSettings() {

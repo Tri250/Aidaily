@@ -28,7 +28,8 @@ import javax.inject.Singleton
 
 @Singleton
 class PhotoStorageService @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val watermarkService: WatermarkService
 ) {
 
     companion object {
@@ -81,13 +82,17 @@ class PhotoStorageService @Inject constructor(
             // degrees==0 时 rotatedBitmap === croppedBitmap，需追踪所有权避免双重 recycle
             val rotatedIsNew = rotatedBitmap !== croppedBitmap
 
+            // 添加水印 — 在旋转校正后、JPEG 压缩前
+            val watermarkedBitmap = watermarkService.addWatermarkSimple(rotatedBitmap)
+            val watermarkedIsNew = watermarkedBitmap !== rotatedBitmap
+
             val fileName = "${UUID.randomUUID()}.jpg"
 
             // 一次性压缩为 JPEG 字节，写入临时文件，再写 EXIF（避免重复压缩）
             val tempFile = File(context.cacheDir, "capture_${System.currentTimeMillis()}.jpg")
             try {
                 FileOutputStream(tempFile).use { out ->
-                    rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                    watermarkedBitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
                 }
                 writeExif(tempFile, exifData)
 
@@ -95,7 +100,7 @@ class PhotoStorageService @Inject constructor(
                 val savedPath = saveJpegToStorage(tempFile, fileName)
 
                 // 生成缩略图
-                val thumbBitmap = ThumbnailUtils.extractThumbnail(rotatedBitmap, MAX_THUMB_SIZE, MAX_THUMB_SIZE)
+                val thumbBitmap = ThumbnailUtils.extractThumbnail(watermarkedBitmap, MAX_THUMB_SIZE, MAX_THUMB_SIZE)
                 val thumbFile = File(thumbsDir, "thumb_$fileName")
                 FileOutputStream(thumbFile).use { out ->
                     thumbBitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
@@ -106,8 +111,8 @@ class PhotoStorageService @Inject constructor(
                     id = UUID.randomUUID().toString(),
                     filePath = savedPath,
                     thumbPath = thumbFile.absolutePath,
-                    width = rotatedBitmap.width,
-                    height = rotatedBitmap.height,
+                    width = watermarkedBitmap.width,
+                    height = watermarkedBitmap.height,
                     timestamp = System.currentTimeMillis(),
                     iso = exifData.iso,
                     shutterSpeed = exifData.shutterSpeed,
@@ -120,6 +125,7 @@ class PhotoStorageService @Inject constructor(
                 addRecordToIndex(record)
 
                 // 安全回收，避免双重 recycle
+                if (watermarkedIsNew) watermarkedBitmap.recycle()
                 if (rotatedIsNew) rotatedBitmap.recycle()
                 croppedBitmap.recycle()
                 bitmap.recycle()

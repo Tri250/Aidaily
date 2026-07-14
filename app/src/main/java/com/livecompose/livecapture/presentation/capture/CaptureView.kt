@@ -1,6 +1,7 @@
 package com.livecompose.livecapture.presentation.capture
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.PointF
 import android.net.Uri
 import android.os.Build
@@ -20,6 +21,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cameraswitch
@@ -112,6 +114,24 @@ fun CaptureView(
         mutableStateOf(viewModel.hasCameraPermission())
     }
     var hasBeenDenied by remember { mutableStateOf(false) }
+
+    // 麦克风权限（声控拍照）
+    var hasMicrophonePermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasMicrophonePermission = granted
+        if (granted && isVoiceCaptureEnabled) {
+            viewModel.startVoiceCapture()
+        } else if (!granted) {
+            isVoiceCaptureEnabled = false
+        }
+    }
 
     var showExposureSlider by remember { mutableStateOf(false) }
     var showGrid by remember { mutableStateOf(true) } // 三分法网格线开关
@@ -283,10 +303,17 @@ fun CaptureView(
                     isVoiceCaptureEnabled = isVoiceCaptureEnabled,
                     voiceCaptureReady = voiceCaptureReady,
                     onVoiceCaptureToggle = {
-                        isVoiceCaptureEnabled = !isVoiceCaptureEnabled
-                        if (isVoiceCaptureEnabled) {
-                            viewModel.startVoiceCapture()
+                        if (!isVoiceCaptureEnabled) {
+                            // 开启前检查麦克风权限
+                            if (hasMicrophonePermission) {
+                                isVoiceCaptureEnabled = true
+                                viewModel.startVoiceCapture()
+                            } else {
+                                isVoiceCaptureEnabled = true // 预设为开启，权限回调后启动
+                                micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
                         } else {
+                            isVoiceCaptureEnabled = false
                             viewModel.stopVoiceCapture()
                         }
                     },
