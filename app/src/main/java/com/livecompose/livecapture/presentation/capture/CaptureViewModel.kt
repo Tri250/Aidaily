@@ -104,7 +104,6 @@ class CaptureViewModel @Inject constructor(
 
     val isModelReady: StateFlow<Boolean> = detectionEngine.isReady
     val isModelLoading: StateFlow<Boolean> = detectionEngine.isLoading
-    val modelLoadFailed: StateFlow<Boolean> = detectionEngine.loadFailed
     val activeModelVariant: StateFlow<AdacropInferenceEngine.ModelVariant?> = detectionEngine.activeVariant
 
     private val _currentScore = MutableStateFlow(0f)
@@ -117,6 +116,10 @@ class CaptureViewModel @Inject constructor(
     // 加载状态指示
     private val _isCameraStarting = MutableStateFlow(false)
     val isCameraStarting: StateFlow<Boolean> = _isCameraStarting
+
+    // 模型加载失败状态 — 用于 pipeline 降级推进
+    private val _modelLoadFailed = MutableStateFlow(false)
+    val modelLoadFailed: StateFlow<Boolean> = _modelLoadFailed
 
     // 相机错误状态
     val cameraError: StateFlow<String?> = cameraManager.errorMessage
@@ -179,6 +182,17 @@ class CaptureViewModel @Inject constructor(
             detectionEngine.loadModelAsync(ModelVariant.STUDENT)
         }
 
+        // 监听模型加载失败状态，同步到 pipeline 降级分支
+        viewModelScope.launch {
+            detectionEngine.loadFailed.collect { failed ->
+                _modelLoadFailed.value = failed
+                if (failed) {
+                    Log.w(TAG, "TFLite 模型加载失败，pipeline 将使用降级模式")
+                    _guidanceText.value = "模型不可用，手动拍摄模式"
+                }
+            }
+        }
+
         torchSettingsJob?.cancel()
         torchSettingsJob = viewModelScope.launch {
             settingsRepository.torchEnabled.collect { enabled ->
@@ -235,10 +249,11 @@ class CaptureViewModel @Inject constructor(
             combine(
                 motionMonitor.isStable,
                 isDetectionReady,
-                isAligned
-            ) { stable, detectionReady, aligned ->
-                Triple(stable, detectionReady, aligned)
-            }.collect { (stable, detectionReady, aligned) ->
+                isAligned,
+                _modelLoadFailed
+            ) { stable, detectionReady, aligned, modelFailed ->
+                Quadruple(stable, detectionReady, aligned, modelFailed)
+            }.collect { (stable, detectionReady, aligned, modelFailed) ->
                 if (!isPipelineActive) return@collect
 
                 val current = _pipelineStage.value
@@ -254,7 +269,9 @@ class CaptureViewModel @Inject constructor(
                         else PipelineStage.DETECTING_REGION
                     }
                     PipelineStage.TEMPLATE_READY -> {
-                        if (aligned) PipelineStage.READY_TO_CAPTURE
+                        // 正常路径：对齐成功 → 准备拍摄
+                        // 降级路径：模型不可用 → 跳过对齐，直接进入手动拍摄
+                        if (aligned || modelFailed) PipelineStage.READY_TO_CAPTURE
                         else PipelineStage.TEMPLATE_READY
                     }
                     PipelineStage.READY_TO_CAPTURE -> {
@@ -268,20 +285,27 @@ class CaptureViewModel @Inject constructor(
                     updateGuidanceText(newStage)
                 }
 
-                if (newStage == PipelineStage.READY_TO_CAPTURE && !isCapturing && autoCaptureEnabled) {
+                // 仅模型正常时触发自动拍摄；模型失败时由用户手动拍摄
+                if (newStage == PipelineStage.READY_TO_CAPTURE && !isCapturing && autoCaptureEnabled && !modelFailed) {
                     autoCapture(currentCaptureDelay)
                 }
             }
         }
     }
 
+    // 4-tuple helper (Kotlin stdlib 仅提供 Pair/Triple)
+    private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+
     private fun processFrame(imageProxy: ImageProxy) {
         // 模型未就绪时：若加载失败则用默认结果推进状态机，否则跳过等待加载
         if (!detectionEngine.isReady.value) {
             if (detectionEngine.loadFailed.value) {
-                // 模型加载失败，用默认结果推进检测就绪状态
-                _isDetectionReady.value = true
-                _currentScore.value = 0.5f
+                // 模型加载失败，仅首次设置检测就绪标志，避免每帧重复操作
+                if (!_isDetectionReady.value) {
+                    _isDetectionReady.value = true
+                    _currentScore.value = 0.5f
+                    Log.i(TAG, "模型加载失败，降级为手动拍摄模式")
+                }
             }
             imageProxy.close()
             cameraManager.onFrameProcessingComplete()
@@ -399,10 +423,14 @@ class CaptureViewModel @Inject constructor(
             PipelineStage.STARTING_CAMERA -> "启动相机中..."
             PipelineStage.WAITING_FOR_STABILITY -> "请保持手机稳定"
             PipelineStage.DETECTING_REGION -> "AI 分析画面中..."
-            PipelineStage.TEMPLATE_READY -> "跟随指引移动手机"
+            PipelineStage.TEMPLATE_READY -> {
+                if (_modelLoadFailed.value) "模型不可用，请手动拍摄"
+                else "跟随指引移动手机"
+            }
             PipelineStage.READY_TO_CAPTURE -> {
-                // 根据 autoCapture 设置显示不同文案
-                if (autoCaptureEnabled) "即将自动拍摄" else "对齐完美，点击拍摄"
+                if (_modelLoadFailed.value) "点击拍摄按钮拍照"
+                else if (autoCaptureEnabled) "即将自动拍摄"
+                else "对齐完美，点击拍摄"
             }
             PipelineStage.COUNTDOWN -> "即将拍摄"
             PipelineStage.CAPTURING_PHOTO -> "拍摄中..."
@@ -445,7 +473,10 @@ class CaptureViewModel @Inject constructor(
                 }
 
                 // delay 后重新校验状态，避免用户移开后仍拍摄
-                if (!isPipelineActive || _pipelineStage.value != PipelineStage.READY_TO_CAPTURE) {
+                // 模型失败降级时，同时接受 TEMPLATE_READY 和 READY_TO_CAPTURE
+                val validStage = _pipelineStage.value == PipelineStage.READY_TO_CAPTURE ||
+                        (_modelLoadFailed.value && _pipelineStage.value == PipelineStage.TEMPLATE_READY)
+                if (!isPipelineActive || !validStage) {
                     isCapturing = false
                     return@launch
                 }

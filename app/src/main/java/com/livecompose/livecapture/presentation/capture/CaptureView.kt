@@ -667,14 +667,24 @@ private fun TopControlBar(
         // 模型状态指示: 加载中 / 加载失败降级 / 正常显示当前变体
         if (modelLoadFailed) {
             Surface(
-                color = ErrorColor.copy(alpha = 0.8f),
+                color = Color(0xFFFF7043).copy(alpha = 0.85f),
                 shape = RoundedCornerShape(CornerMedium)
             ) {
-                Text(
-                    text = "AI 模型加载失败，使用默认构图",
-                    style = GuidanceTextStyle.copy(fontSize = 12.sp),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                )
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "⚠",
+                        color = Color.White,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = "AI 模型不可用，手动拍摄模式",
+                        style = GuidanceTextStyle.copy(fontSize = 12.sp, color = Color.White)
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(4.dp))
         } else if (!isModelReady) {
@@ -693,7 +703,7 @@ private fun TopControlBar(
 
         if (guidanceText.isNotEmpty()) {
             Surface(
-                color = GuidanceBg,
+                color = if (modelLoadFailed) Color(0xFFFF7043).copy(alpha = 0.25f) else GuidanceBg,
                 shape = RoundedCornerShape(CornerMedium)
             ) {
                 Row(
