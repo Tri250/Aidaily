@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -55,7 +56,8 @@ import kotlin.math.abs
 @Composable
 fun CaptureView(
     viewModel: CaptureViewModel = hiltViewModel(),
-    navController: NavController? = null
+    navController: NavController? = null,
+    onSettingsClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -215,6 +217,7 @@ fun CaptureView(
                     activeVariant = activeModelVariant,
                     inferenceTime = inferenceTime,
                     currentScore = currentScore,
+                    onSettingsClick = onSettingsClick,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .windowInsetsPadding(WindowInsets.statusBars)
@@ -515,6 +518,7 @@ private fun TopControlBar(
     activeVariant: AdacropInferenceEngine.ModelVariant?,
     inferenceTime: Long,
     currentScore: Float,
+    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -523,6 +527,21 @@ private fun TopControlBar(
             .padding(top = 8.dp, start = 16.dp, end = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            IconButton(onClick = onSettingsClick) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "设置",
+                    tint = Color.White.copy(alpha = 0.8f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+
         // 模型状态指示: 加载中 / 加载失败降级 / 正常显示当前变体
         if (modelLoadFailed) {
             Surface(

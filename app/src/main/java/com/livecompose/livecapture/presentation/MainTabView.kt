@@ -1,20 +1,21 @@
 package com.livecompose.livecapture.presentation
 
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -30,7 +31,6 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     data object LiveCompose : Screen("compose", "构妙", Icons.Default.Palette)
     data object Home : Screen("home", "图库", Icons.Default.Home)
     data object Capture : Screen("capture", "拍摄", Icons.Default.CameraAlt)
-    data object Settings : Screen("settings", "设置", Icons.Default.Settings)
 }
 
 @Composable
@@ -39,9 +39,10 @@ fun MainTabView() {
     val items = listOf(
         Screen.LiveCompose,
         Screen.Home,
-        Screen.Capture,
-        Screen.Settings
+        Screen.Capture
     )
+
+    var showSettingsDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = {
@@ -73,10 +74,30 @@ fun MainTabView() {
             startDestination = Screen.Capture.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.LiveCompose.route) { LiveComposeView() }
-            composable(Screen.Home.route) { HomeView(navController = navController) }
-            composable(Screen.Capture.route) { CaptureView(navController = navController) }
-            composable(Screen.Settings.route) { SettingsView() }
+            composable(Screen.LiveCompose.route) {
+                LiveComposeView(onSettingsClick = { showSettingsDialog = true })
+            }
+            composable(Screen.Home.route) {
+                HomeView(navController = navController, onSettingsClick = { showSettingsDialog = true })
+            }
+            composable(Screen.Capture.route) {
+                CaptureView(navController = navController, onSettingsClick = { showSettingsDialog = true })
+            }
+        }
+    }
+
+    if (showSettingsDialog) {
+        Dialog(
+            onDismissRequest = { showSettingsDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                SettingsView(onDismiss = { showSettingsDialog = false })
+            }
         }
     }
 }

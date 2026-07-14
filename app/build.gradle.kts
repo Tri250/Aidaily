@@ -63,6 +63,7 @@ android {
     }
     kotlinOptions {
         jvmTarget = "17"
+        freeCompilerArgs += "-Xskip-prerelease-check"
     }
     buildFeatures {
         compose = true

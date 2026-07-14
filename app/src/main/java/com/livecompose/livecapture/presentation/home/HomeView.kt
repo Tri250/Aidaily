@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,7 +35,8 @@ import java.util.*
 @Composable
 fun HomeView(
     viewModel: HomeViewModel = hiltViewModel(),
-    navController: NavController? = null
+    navController: NavController? = null,
+    onSettingsClick: () -> Unit = {}
 ) {
     val records by viewModel.records.collectAsStateWithLifecycle()
     var selectedRecord by remember { mutableStateOf<PhotoRecord?>(null) }
@@ -57,11 +60,23 @@ fun HomeView(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = "图库",
-            style = TitleTextStyle,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "图库",
+                style = TitleTextStyle
+            )
+            IconButton(onClick = onSettingsClick) {
+                androidx.compose.material3.Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Default.Settings,
+                    contentDescription = "设置"
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
 
         if (records.isEmpty()) {
             Box(

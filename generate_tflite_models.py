@@ -32,7 +32,6 @@ def build_teacher_model():
     x = layers.Conv2D(128, 3, strides=2, activation="relu", padding="same")(x)
     x = layers.GlobalAveragePooling2D()(x)
     x = layers.Dense(256, activation="relu")(x)
-    x = layers.Dropout(0.1)(x)
 
     bbox = layers.Dense(4, activation="sigmoid", name="bbox")(x)
     action = layers.Dense(7, name="action_probs")(x)
@@ -43,13 +42,13 @@ def convert_and_verify(model, output_path, name):
     print(f"Converting {name} -> {output_path}")
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS]
     tflite_model = converter.convert()
     with open(output_path, "wb") as f:
         f.write(tflite_model)
     size_kb = os.path.getsize(output_path) / 1024
     print(f"Saved {output_path} ({size_kb:.1f} KB)")
 
-    # Verify
     interpreter = tf.lite.Interpreter(model_path=output_path)
     interpreter.allocate_tensors()
     inp = interpreter.get_input_details()
@@ -58,7 +57,6 @@ def convert_and_verify(model, output_path, name):
     for i, o in enumerate(out):
         print(f"  Output[{i}]: {o['shape']} {o['dtype']}")
 
-    # Quick inference test
     test_data = np.random.rand(1, 224, 224, 3).astype(np.float32)
     interpreter.set_tensor(inp[0]['index'], test_data)
     interpreter.invoke()

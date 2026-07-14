@@ -3,6 +3,8 @@ package com.livecompose.livecapture.presentation.settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,7 +24,8 @@ private val DetectionMode.label: String
 
 @Composable
 fun SettingsView(
-    viewModel: SettingsViewModel = hiltViewModel()
+    viewModel: SettingsViewModel = hiltViewModel(),
+    onDismiss: () -> Unit = {}
 ) {
     val detectionMode by viewModel.detectionMode.collectAsStateWithLifecycle()
     val autoCaptureEnabled by viewModel.autoCapture.collectAsStateWithLifecycle()
@@ -35,11 +38,23 @@ fun SettingsView(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = "设置",
-            style = TitleTextStyle,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "设置",
+                style = TitleTextStyle
+            )
+            androidx.compose.material3.IconButton(onClick = onDismiss) {
+                androidx.compose.material3.Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Default.Close,
+                    contentDescription = "关闭"
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Detection Mode
         SettingsSection(title = "检测模式") {
