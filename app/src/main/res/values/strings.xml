@@ -1,17 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- App -->
     <string name="app_name">构妙 LiveCapture</string>
+
+    <!-- Tabs -->
     <string name="tab_compose">构妙</string>
     <string name="tab_home">图库</string>
     <string name="tab_capture">拍摄</string>
     <string name="tab_settings">设置</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title_compose">智能构图</string>
+    <string name="onboarding_desc_compose">AI实时分析取景画面\n提供专业级构图建议</string>
+    <string name="onboarding_title_scene">智能场景识别</string>
+    <string name="onboarding_desc_scene">自动识别9种场景\n并提供拍摄指导</string>
+    <string name="onboarding_title_capture">一键拍摄</string>
+    <string name="onboarding_desc_capture">对齐后自动拍摄\n轻松捕捉精彩瞬间</string>
+    <string name="onboarding_skip">跳过</string>
+    <string name="onboarding_next">下一步</string>
+    <string name="onboarding_start">开始使用</string>
+
+    <!-- Capture - Pipeline Guidance -->
     <string name="guidance_idle">准备拍摄</string>
-    <string name="guidance_starting">启动相机中...</string>
+    <string name="guidance_starting">启动相机中…</string>
     <string name="guidance_wait_stability">请保持手机稳定</string>
-    <string name="guidance_detecting">AI 分析画面中...</string>
+    <string name="guidance_detecting">AI 分析画面中…</string>
     <string name="guidance_template_ready">跟随指引移动手机</string>
-    <string name="guidance_ready_capture">即将自动拍摄</string>
-    <string name="guidance_capturing">拍摄中...</string>
-    <string name="guidance_saving">保存中...</string>
+    <string name="guidance_template_ready_fallback">模型不可用，请手动拍摄</string>
+    <string name="guidance_ready_capture_auto">即将自动拍摄</string>
+    <string name="guidance_ready_capture_manual">对齐完美，点击拍摄</string>
+    <string name="guidance_ready_capture_fallback">点击拍摄按钮拍照</string>
+    <string name="guidance_countdown">即将拍摄</string>
+    <string name="guidance_countdown_format">%d 秒后拍摄…</string>
+    <string name="guidance_capturing">拍摄中…</string>
+    <string name="guidance_saving">保存中…</string>
+    <string name="guidance_error">发生错误，请重试</string>
+    <string name="guidance_aligned">对齐完美！</string>
+    <string name="guidance_model_unavailable">模型不可用，手动拍摄模式</string>
+
+    <!-- Capture - Directional -->
     <string name="guidance_move_left">向左移动</string>
     <string name="guidance_move_right">向右移动</string>
     <string name="guidance_move_up">向上移动</string>
@@ -19,11 +46,143 @@
     <string name="guidance_zoom_in">靠近一些</string>
     <string name="guidance_zoom_out">远离一些</string>
     <string name="guidance_hold">保持不动</string>
-    <string name="setting_detection_mode">检测模式</string>
-    <string name="setting_detection_fast">快速 (MobileNetV3)</string>
-    <string name="setting_detection_pro">专业 (MobileNetV3-Large)</string>
-    <string name="setting_theme">主题</string>
-    <string name="setting_auto_capture">自动拍摄</string>
-    <string name="setting_capture_delay">拍摄延迟</string>
-    <string name="setting_color_scheme">色彩方案</string>
+
+    <!-- Capture - UI Labels -->
+    <string name="capture_settings">设置</string>
+    <string name="capture_voice_on">关闭声控</string>
+    <string name="capture_voice_off">开启声控</string>
+    <string name="capture_grid_on">关闭网格</string>
+    <string name="capture_grid_off">显示网格</string>
+    <string name="capture_model_loading">AI 模型加载中…</string>
+    <string name="capture_model_failed">AI 模型不可用，手动拍摄模式</string>
+    <string name="capture_model_variant_fast">FAST</string>
+    <string name="capture_model_variant_pro">PRO</string>
+    <string name="capture_score_label">评分 %1$.2f</string>
+    <string name="capture_inference_time">%dms</string>
+    <string name="capture_camera_loading">启动相机中…</string>
+    <string name="capture_switch_camera">Switch Camera</string>
+    <string name="capture_torch_on">Flash On</string>
+    <string name="capture_torch_off">Flash Off</string>
+    <string name="capture_exposure">Exposure</string>
+    <string name="capture_gallery">Gallery</string>
+    <string name="capture_shutter">Shutter</string>
+    <string name="capture_zoom_05">0.5x</string>
+    <string name="capture_zoom_1x">1x</string>
+    <string name="capture_zoom_2x">2x</string>
+
+    <!-- Capture - Permission -->
+    <string name="permission_camera_title">需要相机权限</string>
+    <string name="permission_camera_rationale">构妙 LiveCapture 需要相机权限来实现实时构图辅助拍摄，请授权使用相机。</string>
+    <string name="permission_camera_denied">相机权限已被永久拒绝，请在设置中手动开启权限后返回。</string>
+    <string name="permission_grant">授予权限</string>
+    <string name="permission_open_settings">打开设置</string>
+
+    <!-- Capture - Error -->
+    <string name="capture_error_title">发生错误</string>
+    <string name="capture_error_message">拍摄流程发生错误</string>
+    <string name="capture_error_camera_init">相机启动失败</string>
+    <string name="capture_error_camera_bind">相机绑定失败</string>
+    <string name="capture_error_retry">重试</string>
+
+    <!-- Scene Types -->
+    <string name="scene_portrait_standing">人像·站姿</string>
+    <string name="scene_portrait_sitting">人像·坐姿</string>
+    <string name="scene_landscape_sunset">风景·日落</string>
+    <string name="scene_landscape_nature">风景·自然</string>
+    <string name="scene_night">夜景</string>
+    <string name="scene_food">美食·摆盘</string>
+    <string name="scene_product">产品·白底</string>
+    <string name="scene_city">城市·街拍</string>
+    <string name="scene_general">通用场景</string>
+
+    <!-- Lighting Quality -->
+    <string name="lighting_good">光照良好</string>
+    <string name="lighting_dark">光线不足</string>
+    <string name="lighting_bright">光线过强</string>
+    <string name="lighting_backlit">逆光</string>
+    <string name="lighting_low_contrast">对比度低</string>
+
+    <!-- Home / Gallery -->
+    <string name="gallery_title">图库</string>
+    <string name="gallery_empty_title">暂无照片</string>
+    <string name="gallery_empty_desc">开始拍摄你的第一张照片吧</string>
+    <string name="gallery_go_capture">去拍摄</string>
+    <string name="gallery_photo_detail">照片详情</string>
+    <string name="gallery_share">分享</string>
+    <string name="gallery_delete">删除</string>
+    <string name="gallery_close">关闭</string>
+    <string name="gallery_detail_time">时间</string>
+    <string name="gallery_detail_size">尺寸</string>
+    <string name="gallery_detail_iso">ISO</string>
+    <string name="gallery_detail_shutter">快门</string>
+    <string name="gallery_detail_aperture">光圈</string>
+    <string name="gallery_detail_focal">焦距</string>
+    <string name="gallery_detail_score">美学评分</string>
+    <string name="gallery_detail_crop">裁切区域</string>
+    <string name="gallery_share_chooser">分享照片</string>
+
+    <!-- Settings -->
+    <string name="settings_title">设置</string>
+    <string name="settings_close">关闭</string>
+    <string name="settings_section_detection">检测模式</string>
+    <string name="settings_detection_fast">快速 (Student 模型, 节电 ~5fps)</string>
+    <string name="settings_detection_pro">专业 (Teacher 模型, 全帧率高精度)</string>
+    <string name="settings_section_auto_capture">自动拍摄</string>
+    <string name="settings_auto_capture_label">对齐后自动拍摄</string>
+    <string name="settings_section_delay">拍摄延迟</string>
+    <string name="settings_delay_format">%d 秒</string>
+    <string name="settings_section_theme">主题</string>
+    <string name="settings_dark_theme">深色模式</string>
+    <string name="settings_section_torch">闪光灯</string>
+    <string name="settings_torch_default">默认开启闪光灯</string>
+    <string name="settings_section_watermark">水印</string>
+    <string name="settings_watermark_enable">启用照片水印</string>
+    <string name="settings_watermark_timestamp">显示时间戳</string>
+    <string name="settings_section_grid">网格线</string>
+    <string name="settings_grid_enable">默认显示构图网格</string>
+    <string name="settings_section_voice">声控拍照</string>
+    <string name="settings_voice_default">默认开启声控拍照</string>
+    <string name="settings_section_haptic">触觉反馈</string>
+    <string name="settings_haptic_enable">拍摄时振动反馈</string>
+    <string name="settings_section_scene">场景识别</string>
+    <string name="settings_scene_enable">启用 AI 场景识别</string>
+    <string name="settings_section_about">关于</string>
+    <string name="settings_app_name_version">构妙 LiveCapture v1.5.9</string>
+    <string name="settings_about_desc">基于强化学习的 AI 端侧智能构图辅助</string>
+    <string name="settings_model_info">模型: MobileNetV3-Small (蒸馏)</string>
+    <string name="settings_framework_info">框架: TensorFlow Lite (端侧推理)</string>
+    <string name="settings_section_self_check">设备自检</string>
+    <string name="settings_self_check_run">运行自检</string>
+    <string name="settings_self_check_result">通过: %1$d | 警告: %2$d | 失败: %3$d</string>
+
+    <!-- LiveCompose Dashboard -->
+    <string name="dashboard_title">构妙</string>
+    <string name="dashboard_subtitle">LiveCapture</string>
+    <string name="dashboard_tagline">你的 AI 摄影师</string>
+    <string name="dashboard_offline">端侧 AI 离线运行，无需联网</string>
+    <string name="dashboard_model_info">模型: MobileNetV3-Small | 框架: TensorFlow Lite</string>
+    <string name="dashboard_feature_ai_title">AI 实时构图分析</string>
+    <string name="dashboard_feature_ai_desc">基于强化学习模型，实时分析取景画面，计算最佳构图位置</string>
+    <string name="dashboard_feature_track_title">智能追踪引导</string>
+    <string name="dashboard_feature_track_desc">结合陀螺仪与磁性吸附，物理级流畅追踪引导</string>
+    <string name="dashboard_start_capture">开始拍摄</string>
+    <string name="dashboard_stats_today">今日拍摄</string>
+    <string name="dashboard_stats_total">累计拍摄</string>
+    <string name="dashboard_stats_score">平均评分</string>
+    <string name="dashboard_stats_unit">张</string>
+    <string name="dashboard_recent_photos">最近拍摄</string>
+    <string name="dashboard_model_status">模型状态</string>
+    <string name="dashboard_model_student">Student (轻量)</string>
+    <string name="dashboard_model_teacher">Teacher (专业)</string>
+    <string name="dashboard_inference_speed">推理速度</string>
+    <string name="dashboard_fps">%.1f FPS</string>
+
+    <!-- Countdown -->
+    <string name="countdown_ready">拍摄!</string>
+
+    <!-- Misc -->
+    <string name="content_desc_logo">Logo</string>
+    <string name="content_desc_last_photo">Last photo</string>
+    <string name="content_desc_photo">Photo</string>
+    <string name="content_desc_photo_detail">Photo detail</string>
 </resources>

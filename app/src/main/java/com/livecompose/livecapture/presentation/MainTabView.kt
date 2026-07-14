@@ -87,7 +87,7 @@ fun MainTabView() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.LiveCompose.route) {
-                LiveComposeView(onSettingsClick = { showSettingsDialog = true })
+                LiveComposeView(navController = navController, onSettingsClick = { showSettingsDialog = true })
             }
             composable(Screen.Home.route) {
                 HomeView(navController = navController, onSettingsClick = { showSettingsDialog = true })

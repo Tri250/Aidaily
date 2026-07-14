@@ -1,8 +1,10 @@
 package com.livecompose.livecapture.presentation.capture
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.PointF
 import android.util.Log
+import com.livecompose.livecapture.R
 import androidx.camera.core.ImageProxy
 import androidx.camera.view.PreviewView
 import androidx.lifecycle.LifecycleOwner
@@ -23,19 +25,25 @@ import com.livecompose.livecapture.core.storage.CropRegion
 import com.livecompose.livecapture.core.storage.ExifData
 import com.livecompose.livecapture.core.storage.PhotoStorageService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 
 @HiltViewModel
 class CaptureViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val cameraManager: CameraManager,
     private val detectionEngine: AdacropInferenceEngine,
     private val sceneAnalyzer: SceneAnalyzer,
@@ -82,7 +90,7 @@ class CaptureViewModel @Inject constructor(
     val voiceCaptureReady: StateFlow<Boolean> = voiceCaptureService.isReady
     val voiceCaptureHeardText: StateFlow<String> = voiceCaptureService.lastHeardText
 
-    private val _guidanceText = MutableStateFlow("准备拍摄")
+    private val _guidanceText = MutableStateFlow(context.getString(R.string.guidance_idle))
     val guidanceText: StateFlow<String> = _guidanceText
 
     private val _isDetectionReady = MutableStateFlow(false)
@@ -121,8 +129,21 @@ class CaptureViewModel @Inject constructor(
     private val _modelLoadFailed = MutableStateFlow(false)
     val modelLoadFailed: StateFlow<Boolean> = _modelLoadFailed
 
+    // 连拍状态
+    private val _isBurstCapturing = MutableStateFlow(false)
+    val isBurstCapturing: StateFlow<Boolean> = _isBurstCapturing
+
     // 相机错误状态
     val cameraError: StateFlow<String?> = cameraManager.errorMessage
+
+    val gridEnabledFlow: StateFlow<Boolean> = settingsRepository.gridEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+    val voiceCaptureDefaultFlow: StateFlow<Boolean> = settingsRepository.voiceCaptureDefault
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val hapticEnabledFlow: StateFlow<Boolean> = settingsRepository.hapticEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+    val sceneRecognitionEnabledFlow: StateFlow<Boolean> = settingsRepository.sceneRecognitionEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     val trackPoint: StateFlow<PointF?> = boxCenterManager.trackPoint
     val isAligned: StateFlow<Boolean> = boxCenterManager.isAligned
@@ -134,6 +155,11 @@ class CaptureViewModel @Inject constructor(
     val hasTorchUnit: StateFlow<Boolean> = cameraManager.hasTorchUnit
     val exposureCompensation: StateFlow<Int> = cameraManager.exposureCompensation
     val exposureRange: StateFlow<IntRange> = cameraManager.exposureRange
+
+    // 水平仪：从加速度计计算绕 X 轴的 roll 角度（平放时约为 0°）
+    val rollAngle: StateFlow<Float> = motionMonitor.motionData.map { data ->
+        kotlin.math.atan2(data.accelY, data.accelZ) * (180f / kotlin.math.PI.toFloat())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
 
     // @Volatile 保证跨线程可见性（processFrame 在 analysisExecutor 线程读写）
     @Volatile
@@ -147,6 +173,18 @@ class CaptureViewModel @Inject constructor(
     private var autoCaptureEnabled = true
     @Volatile
     private var currentCaptureDelay = 0
+    @Volatile
+    private var watermarkEnabled = true
+    @Volatile
+    private var aspectRatio = "3:4"
+    @Volatile
+    private var gridEnabled = true
+    @Volatile
+    private var voiceCaptureDefault = false
+    @Volatile
+    private var hapticEnabled = true
+    @Volatile
+    private var sceneRecognitionEnabled = true
 
     private val frameCount = AtomicLong(0L)
 
@@ -157,6 +195,7 @@ class CaptureViewModel @Inject constructor(
     private var torchSettingsJob: Job? = null
     private var modeSettingsJob: Job? = null
     private var autoCaptureJob: Job? = null
+    private var burstJob: Job? = null
 
     fun startCamera(lifecycleOwner: LifecycleOwner, previewView: PreviewView) {
         if (isPipelineActive) return
@@ -187,8 +226,8 @@ class CaptureViewModel @Inject constructor(
             detectionEngine.loadFailed.collect { failed ->
                 _modelLoadFailed.value = failed
                 if (failed) {
-                    Log.w(TAG, "TFLite 模型加载失败，pipeline 将使用降级模式")
-                    _guidanceText.value = "模型不可用，手动拍摄模式"
+                    Log.w(TAG, "TFLite model load failed, pipeline will use fallback mode")
+                    _guidanceText.value = context.getString(R.string.guidance_model_unavailable)
                 }
             }
         }
@@ -225,6 +264,42 @@ class CaptureViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            settingsRepository.watermarkEnabled.collect { enabled ->
+                watermarkEnabled = enabled
+            }
+        }
+
+        viewModelScope.launch {
+            settingsRepository.aspectRatio.collect { ratio ->
+                aspectRatio = ratio
+            }
+        }
+
+        viewModelScope.launch {
+            settingsRepository.gridEnabled.collect { enabled ->
+                gridEnabled = enabled
+            }
+        }
+
+        viewModelScope.launch {
+            settingsRepository.voiceCaptureDefault.collect { enabled ->
+                voiceCaptureDefault = enabled
+            }
+        }
+
+        viewModelScope.launch {
+            settingsRepository.hapticEnabled.collect { enabled ->
+                hapticEnabled = enabled
+            }
+        }
+
+        viewModelScope.launch {
+            settingsRepository.sceneRecognitionEnabled.collect { enabled ->
+                sceneRecognitionEnabled = enabled
+            }
+        }
+
+        viewModelScope.launch {
             cameraManager.isCameraReady.first { it }
             _isCameraStarting.value = false
         }
@@ -233,7 +308,7 @@ class CaptureViewModel @Inject constructor(
         viewModelScope.launch {
             voiceCaptureService.captureTriggered.collect { triggered ->
                 if (triggered && _pipelineStage.value == PipelineStage.READY_TO_CAPTURE) {
-                    Log.i(TAG, "声控触发拍摄")
+                    Log.i(TAG, "Voice trigger capture")
                     autoCapture(0) // 立即拍摄，无延迟
                     voiceCaptureService.resetTrigger()
                 }
@@ -304,7 +379,7 @@ class CaptureViewModel @Inject constructor(
                 if (!_isDetectionReady.value) {
                     _isDetectionReady.value = true
                     _currentScore.value = 0.5f
-                    Log.i(TAG, "模型加载失败，降级为手动拍摄模式")
+                    Log.i(TAG, "Model load failed, fallback to manual capture mode")
                 }
             }
             imageProxy.close()
@@ -419,35 +494,35 @@ class CaptureViewModel @Inject constructor(
 
     private fun updateGuidanceText(stage: PipelineStage) {
         _guidanceText.value = when (stage) {
-            PipelineStage.IDLE -> "准备拍摄"
-            PipelineStage.STARTING_CAMERA -> "启动相机中..."
-            PipelineStage.WAITING_FOR_STABILITY -> "请保持手机稳定"
-            PipelineStage.DETECTING_REGION -> "AI 分析画面中..."
+            PipelineStage.IDLE -> context.getString(R.string.guidance_idle)
+            PipelineStage.STARTING_CAMERA -> context.getString(R.string.guidance_starting)
+            PipelineStage.WAITING_FOR_STABILITY -> context.getString(R.string.guidance_wait_stability)
+            PipelineStage.DETECTING_REGION -> context.getString(R.string.guidance_detecting)
             PipelineStage.TEMPLATE_READY -> {
-                if (_modelLoadFailed.value) "模型不可用，请手动拍摄"
-                else "跟随指引移动手机"
+                if (_modelLoadFailed.value) context.getString(R.string.guidance_template_ready_fallback)
+                else context.getString(R.string.guidance_template_ready)
             }
             PipelineStage.READY_TO_CAPTURE -> {
-                if (_modelLoadFailed.value) "点击拍摄按钮拍照"
-                else if (autoCaptureEnabled) "即将自动拍摄"
-                else "对齐完美，点击拍摄"
+                if (_modelLoadFailed.value) context.getString(R.string.guidance_ready_capture_fallback)
+                else if (autoCaptureEnabled) context.getString(R.string.guidance_ready_capture_auto)
+                else context.getString(R.string.guidance_ready_capture_manual)
             }
-            PipelineStage.COUNTDOWN -> "即将拍摄"
-            PipelineStage.CAPTURING_PHOTO -> "拍摄中..."
-            PipelineStage.SAVING_PHOTO -> "保存中..."
-            PipelineStage.ERROR -> "发生错误，请重试"
+            PipelineStage.COUNTDOWN -> context.getString(R.string.guidance_countdown)
+            PipelineStage.CAPTURING_PHOTO -> context.getString(R.string.guidance_capturing)
+            PipelineStage.SAVING_PHOTO -> context.getString(R.string.guidance_saving)
+            PipelineStage.ERROR -> context.getString(R.string.guidance_error)
         }
     }
 
     private fun updateGuidanceByAction(action: CompositionResult.ActionType) {
         _guidanceText.value = when (action) {
-            CompositionResult.ActionType.LEFT -> "向左移动"
-            CompositionResult.ActionType.RIGHT -> "向右移动"
-            CompositionResult.ActionType.UP -> "向上移动"
-            CompositionResult.ActionType.DOWN -> "向下移动"
-            CompositionResult.ActionType.ZOOM_IN -> "靠近一些"
-            CompositionResult.ActionType.ZOOM_OUT -> "远离一些"
-            CompositionResult.ActionType.STOP -> "保持不动"
+            CompositionResult.ActionType.LEFT -> context.getString(R.string.guidance_move_left)
+            CompositionResult.ActionType.RIGHT -> context.getString(R.string.guidance_move_right)
+            CompositionResult.ActionType.UP -> context.getString(R.string.guidance_move_up)
+            CompositionResult.ActionType.DOWN -> context.getString(R.string.guidance_move_down)
+            CompositionResult.ActionType.ZOOM_IN -> context.getString(R.string.guidance_zoom_in)
+            CompositionResult.ActionType.ZOOM_OUT -> context.getString(R.string.guidance_zoom_out)
+            CompositionResult.ActionType.STOP -> context.getString(R.string.guidance_hold)
         }
     }
 
@@ -465,7 +540,7 @@ class CaptureViewModel @Inject constructor(
 
                     for (i in delaySeconds downTo 1) {
                         _countdown.value = i
-                        _guidanceText.value = "${i} 秒后拍摄..."
+                        _guidanceText.value = context.getString(R.string.guidance_countdown_format, i)
                         delay(1000)
                     }
 
@@ -505,7 +580,9 @@ class CaptureViewModel @Inject constructor(
                                     imageProxy = imageProxy,
                                     cropRegion = cropRegion,
                                     exifData = ExifData(),
-                                    aestheticScore = aestheticScore
+                                    aestheticScore = aestheticScore,
+                                    watermarkEnabled = watermarkEnabled,
+                                    aspectRatio = aspectRatio
                                 )
 
                                 _lastSavedPhotoPath.value = record.filePath
@@ -564,6 +641,31 @@ class CaptureViewModel @Inject constructor(
         }
     }
 
+    fun burstCapture() {
+        if (burstJob?.isActive == true) return
+        _isBurstCapturing.value = true
+        burstJob = viewModelScope.launch {
+            try {
+                var count = 0
+                while (count < 10 && isActive && isPipelineActive) {
+                    if (!isCapturing) {
+                        manualCapture()
+                        count++
+                    }
+                    delay(500)
+                }
+            } finally {
+                _isBurstCapturing.value = false
+            }
+        }
+    }
+
+    fun stopBurstCapture() {
+        burstJob?.cancel()
+        burstJob = null
+        _isBurstCapturing.value = false
+    }
+
     fun switchCamera(lifecycleOwner: LifecycleOwner, previewView: PreviewView) {
         cameraManager.switchCamera(lifecycleOwner, previewView)
         resetPipeline()
@@ -605,6 +707,9 @@ class CaptureViewModel @Inject constructor(
     // ERROR 状态重试 — 完整重置所有状态
     fun retry() {
         autoCaptureJob?.cancel()
+        burstJob?.cancel()
+        burstJob = null
+        _isBurstCapturing.value = false
         isCapturing = false
         isPipelineActive = false
         _isDetectionReady.value = false
@@ -638,6 +743,9 @@ class CaptureViewModel @Inject constructor(
         modeSettingsJob = null
         autoCaptureJob?.cancel()
         autoCaptureJob = null
+        burstJob?.cancel()
+        burstJob = null
+        _isBurstCapturing.value = false
         cameraManager.stopCamera()
         motionMonitor.stopMonitoring()
         _pipelineStage.value = PipelineStage.IDLE
@@ -664,6 +772,7 @@ class CaptureViewModel @Inject constructor(
         torchSettingsJob?.cancel()
         modeSettingsJob?.cancel()
         autoCaptureJob?.cancel()
+        burstJob?.cancel()
         cameraManager.stopCamera()
         motionMonitor.stopMonitoring()
     }

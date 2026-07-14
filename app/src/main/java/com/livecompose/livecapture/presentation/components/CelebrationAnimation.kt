@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.livecompose.livecapture.core.design.*
 import kotlinx.coroutines.delay
 import kotlin.math.sin
 import kotlin.random.Random

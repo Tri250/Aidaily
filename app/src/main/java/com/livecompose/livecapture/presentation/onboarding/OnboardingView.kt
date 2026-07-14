@@ -36,9 +36,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.livecompose.livecapture.R
 import com.livecompose.livecapture.core.design.Primary
+import com.livecompose.livecapture.core.design.*
 import kotlinx.coroutines.launch
 
 /**
@@ -48,27 +51,6 @@ private data class OnboardingPage(
     val icon: ImageVector,
     val title: String,
     val description: String
-)
-
-/**
- * 引导页面列表
- */
-private val onboardingPages = listOf(
-    OnboardingPage(
-        icon = Icons.Default.AutoAwesome,
-        title = "智能构图",
-        description = "AI实时分析取景画面\n提供专业级构图建议"
-    ),
-    OnboardingPage(
-        icon = Icons.Default.Image,
-        title = "智能场景识别",
-        description = "自动识别9种场景\n并提供拍摄指导"
-    ),
-    OnboardingPage(
-        icon = Icons.Default.CameraAlt,
-        title = "一键拍摄",
-        description = "对齐后自动拍摄\n轻松捕捉精彩瞬间"
-    )
 )
 
 /**
@@ -83,6 +65,23 @@ fun OnboardingView(
     onComplete: () -> Unit = {},
     onSkip: () -> Unit = {}
 ) {
+    val onboardingPages = listOf(
+        OnboardingPage(
+            icon = Icons.Default.AutoAwesome,
+            title = stringResource(R.string.onboarding_title_compose),
+            description = stringResource(R.string.onboarding_desc_compose)
+        ),
+        OnboardingPage(
+            icon = Icons.Default.Image,
+            title = stringResource(R.string.onboarding_title_scene),
+            description = stringResource(R.string.onboarding_desc_scene)
+        ),
+        OnboardingPage(
+            icon = Icons.Default.CameraAlt,
+            title = stringResource(R.string.onboarding_title_capture),
+            description = stringResource(R.string.onboarding_desc_capture)
+        )
+    )
     val pagerState = rememberPagerState(pageCount = { onboardingPages.size })
     val isLastPage = pagerState.currentPage == onboardingPages.lastIndex
     val scope = rememberCoroutineScope()
@@ -94,7 +93,7 @@ fun OnboardingView(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(Spacing.Huge),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 跳过按钮（最后一页隐藏）
@@ -105,9 +104,9 @@ fun OnboardingView(
                 if (!isLastPage) {
                     TextButton(onClick = onSkip) {
                         Text(
-                            text = "跳过",
+                            text = stringResource(R.string.onboarding_skip),
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                            fontSize = 16.sp
+                            fontSize = FontSize.TitleMedium
                         )
                     }
                 }
@@ -135,7 +134,7 @@ fun OnboardingView(
                     currentPage = pagerState.currentPage
                 )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(Spacing.Massive))
 
                 // 底部按钮
                 if (isLastPage) {
@@ -151,8 +150,8 @@ fun OnboardingView(
                         shape = MaterialTheme.shapes.large
                     ) {
                         Text(
-                            text = "开始使用",
-                            fontSize = 18.sp,
+                            text = stringResource(R.string.onboarding_start),
+                            fontSize = FontSize.TitleLarge,
                             fontWeight = FontWeight.Medium,
                             color = Color.White
                         )
@@ -174,15 +173,15 @@ fun OnboardingView(
                         shape = MaterialTheme.shapes.large
                     ) {
                         Text(
-                            text = "下一步",
-                            fontSize = 18.sp,
+                            text = stringResource(R.string.onboarding_next),
+                            fontSize = FontSize.TitleLarge,
                             fontWeight = FontWeight.Medium,
                             color = Color.White
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(Spacing.Huge))
             }
         }
     }
@@ -198,7 +197,7 @@ private fun OnboardingPageContent(page: OnboardingPage) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = Spacing.ExtraLarge),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // 顶部大图标
@@ -225,17 +224,17 @@ private fun OnboardingPageContent(page: OnboardingPage) {
         // 标题
         Text(
             text = page.title,
-            fontSize = 28.sp,
+            fontSize = FontSize.DisplayMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Spacing.ExtraLarge))
 
         // 描述文本
         Text(
             text = page.description,
-            fontSize = 16.sp,
+            fontSize = FontSize.TitleMedium,
             fontWeight = FontWeight.Normal,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
             textAlign = TextAlign.Center,
@@ -256,7 +255,7 @@ private fun PageIndicator(
     currentPage: Int
 ) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.Medium),
         verticalAlignment = Alignment.CenterVertically
     ) {
         repeat(pageCount) { index ->

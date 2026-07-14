@@ -33,6 +33,24 @@ class SettingsViewModel @Inject constructor(
     val torchEnabled: StateFlow<Boolean> = repository.torchEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val watermarkEnabled: StateFlow<Boolean> = repository.watermarkEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val gridEnabled: StateFlow<Boolean> = repository.gridEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val voiceCaptureDefault: StateFlow<Boolean> = repository.voiceCaptureDefault
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val hapticEnabled: StateFlow<Boolean> = repository.hapticEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val sceneRecognitionEnabled: StateFlow<Boolean> = repository.sceneRecognitionEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val aspectRatio: StateFlow<String> = repository.aspectRatio
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "3:4")
+
     val selfCheckResults: StateFlow<List<SelfChecker.CheckItem>> = selfChecker.checkResults
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -54,6 +72,30 @@ class SettingsViewModel @Inject constructor(
 
     fun setTorchEnabled(enabled: Boolean) = viewModelScope.launch {
         repository.setTorchEnabled(enabled)
+    }
+
+    fun setWatermarkEnabled(enabled: Boolean) = viewModelScope.launch {
+        repository.setWatermarkEnabled(enabled)
+    }
+
+    fun setGridEnabled(enabled: Boolean) = viewModelScope.launch {
+        repository.setGridEnabled(enabled)
+    }
+
+    fun setVoiceCaptureDefault(enabled: Boolean) = viewModelScope.launch {
+        repository.setVoiceCaptureDefault(enabled)
+    }
+
+    fun setHapticEnabled(enabled: Boolean) = viewModelScope.launch {
+        repository.setHapticEnabled(enabled)
+    }
+
+    fun setSceneRecognitionEnabled(enabled: Boolean) = viewModelScope.launch {
+        repository.setSceneRecognitionEnabled(enabled)
+    }
+
+    fun setAspectRatio(ratio: String) = viewModelScope.launch {
+        repository.setAspectRatio(ratio)
     }
 
     fun runSelfCheck() = viewModelScope.launch {

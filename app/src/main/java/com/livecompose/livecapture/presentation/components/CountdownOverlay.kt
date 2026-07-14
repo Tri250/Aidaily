@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.livecompose.livecapture.core.design.FontSize
+import com.livecompose.livecapture.core.design.*
 import kotlinx.coroutines.delay
 
 /**
@@ -53,7 +54,7 @@ fun CountdownOverlay(
     var previousCount by remember { mutableIntStateOf(countdownSeconds) }
     val animatedAlpha by animateFloatAsState(
         targetValue = if (isCountingDown && currentCount > 0) 1f else 0f,
-        animationSpec = tween(200),
+        animationSpec = tween(AnimationDuration.DURATION_FAST),
         label = "countdown_alpha"
     )
     val animatedScale by animateFloatAsState(

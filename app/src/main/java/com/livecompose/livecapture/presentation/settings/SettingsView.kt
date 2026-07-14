@@ -11,11 +11,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.livecompose.livecapture.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.livecompose.livecapture.core.design.TitleTextStyle
+import com.livecompose.livecapture.core.design.*
 import com.livecompose.livecapture.core.diagnostics.SelfChecker
 import com.livecompose.livecapture.core.settings.DetectionMode
 
@@ -35,12 +38,18 @@ fun SettingsView(
     val captureDelay by viewModel.captureDelay.collectAsStateWithLifecycle()
     val isDarkTheme by viewModel.darkTheme.collectAsStateWithLifecycle()
     val torchEnabled by viewModel.torchEnabled.collectAsStateWithLifecycle()
+    val watermarkEnabled by viewModel.watermarkEnabled.collectAsStateWithLifecycle()
+    val gridEnabled by viewModel.gridEnabled.collectAsStateWithLifecycle()
+    val voiceCaptureDefault by viewModel.voiceCaptureDefault.collectAsStateWithLifecycle()
+    val hapticEnabled by viewModel.hapticEnabled.collectAsStateWithLifecycle()
+    val sceneRecognitionEnabled by viewModel.sceneRecognitionEnabled.collectAsStateWithLifecycle()
+    val aspectRatio by viewModel.aspectRatio.collectAsStateWithLifecycle()
     val selfCheckResults by viewModel.selfCheckResults.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(Spacing.ExtraLarge)
             .verticalScroll(rememberScrollState())
     ) {
         Row(
@@ -49,20 +58,20 @@ fun SettingsView(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "设置",
+                text = stringResource(R.string.settings_title),
                 style = TitleTextStyle
             )
             androidx.compose.material3.IconButton(onClick = onDismiss) {
                 androidx.compose.material3.Icon(
                     imageVector = androidx.compose.material.icons.Icons.Default.Close,
-                    contentDescription = "关闭"
+                    contentDescription = stringResource(R.string.settings_close)
                 )
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Spacing.ExtraLarge))
 
         // Detection Mode
-        SettingsSection(title = "检测模式") {
+        SettingsSection(title = stringResource(R.string.settings_section_detection)) {
             DetectionMode.entries.forEach { mode ->
                 Row(
                     modifier = Modifier
@@ -73,7 +82,7 @@ fun SettingsView(
                             onClick = { viewModel.setDetectionMode(mode) },
                             role = Role.RadioButton
                         )
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = Spacing.ExtraLarge),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(
@@ -82,24 +91,24 @@ fun SettingsView(
                     )
                     Text(
                         text = mode.label,
-                        modifier = Modifier.padding(start = 16.dp)
+                        modifier = Modifier.padding(start = Spacing.ExtraLarge)
                     )
                 }
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Medium))
 
         // Auto Capture
-        SettingsSection(title = "自动拍摄") {
+        SettingsSection(title = stringResource(R.string.settings_section_auto_capture)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = Spacing.ExtraLarge, vertical = Spacing.Large),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("对齐后自动拍摄")
+                Text(stringResource(R.string.settings_auto_capture_label))
                 Switch(
                     checked = autoCaptureEnabled,
                     onCheckedChange = { viewModel.setAutoCapture(it) }
@@ -107,14 +116,14 @@ fun SettingsView(
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Medium))
 
         // Capture Delay
-        SettingsSection(title = "拍摄延迟") {
+        SettingsSection(title = stringResource(R.string.settings_section_delay)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = Spacing.ExtraLarge, vertical = Spacing.Large),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -129,18 +138,50 @@ fun SettingsView(
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Medium))
+
+        // Aspect Ratio
+        val aspectRatioOptions = listOf("3:4", "1:1", "16:9", "Full")
+        SettingsSection(title = "照片比例") {
+            Column(modifier = Modifier.selectableGroup()) {
+                aspectRatioOptions.forEach { option ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .selectable(
+                                selected = aspectRatio == option,
+                                onClick = { viewModel.setAspectRatio(option) },
+                                role = Role.RadioButton
+                            )
+                            .padding(horizontal = Spacing.ExtraLarge),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = aspectRatio == option,
+                            onClick = null
+                        )
+                        Text(
+                            text = option,
+                            modifier = Modifier.padding(start = Spacing.ExtraLarge)
+                        )
+                    }
+                }
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Medium))
 
         // Theme
-        SettingsSection(title = "主题") {
+        SettingsSection(title = stringResource(R.string.settings_section_theme)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = Spacing.ExtraLarge, vertical = Spacing.Large),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("深色模式")
+                Text(stringResource(R.string.settings_dark_theme))
                 Switch(
                     checked = isDarkTheme,
                     onCheckedChange = { viewModel.setDarkTheme(it) }
@@ -148,18 +189,18 @@ fun SettingsView(
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Medium))
 
         // Torch
-        SettingsSection(title = "闪光灯") {
+        SettingsSection(title = stringResource(R.string.settings_section_torch)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = Spacing.ExtraLarge, vertical = Spacing.Large),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("默认开启闪光灯")
+                Text(stringResource(R.string.settings_torch_default))
                 Switch(
                     checked = torchEnabled,
                     onCheckedChange = { viewModel.setTorchEnabled(it) }
@@ -167,52 +208,147 @@ fun SettingsView(
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Medium))
+
+        // Grid
+        SettingsSection(title = stringResource(R.string.settings_section_grid)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.ExtraLarge, vertical = Spacing.Large),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(stringResource(R.string.settings_grid_enable))
+                Switch(
+                    checked = gridEnabled,
+                    onCheckedChange = { viewModel.setGridEnabled(it) }
+                )
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Medium))
+
+        // Watermark
+        SettingsSection(title = stringResource(R.string.settings_section_watermark)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.ExtraLarge, vertical = Spacing.Large),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(stringResource(R.string.settings_watermark_enable))
+                Switch(
+                    checked = watermarkEnabled,
+                    onCheckedChange = { viewModel.setWatermarkEnabled(it) }
+                )
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Medium))
+
+        // Voice Capture
+        SettingsSection(title = stringResource(R.string.settings_section_voice)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.ExtraLarge, vertical = Spacing.Large),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(stringResource(R.string.settings_voice_default))
+                Switch(
+                    checked = voiceCaptureDefault,
+                    onCheckedChange = { viewModel.setVoiceCaptureDefault(it) }
+                )
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Medium))
+
+        // Haptic
+        SettingsSection(title = stringResource(R.string.settings_section_haptic)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.ExtraLarge, vertical = Spacing.Large),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(stringResource(R.string.settings_haptic_enable))
+                Switch(
+                    checked = hapticEnabled,
+                    onCheckedChange = { viewModel.setHapticEnabled(it) }
+                )
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Medium))
+
+        // Scene Recognition
+        SettingsSection(title = stringResource(R.string.settings_section_scene)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.ExtraLarge, vertical = Spacing.Large),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(stringResource(R.string.settings_scene_enable))
+                Switch(
+                    checked = sceneRecognitionEnabled,
+                    onCheckedChange = { viewModel.setSceneRecognitionEnabled(it) }
+                )
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Medium))
 
         // About
-        SettingsSection(title = "关于") {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("构妙 LiveCapture v1.5.9")
+        SettingsSection(title = stringResource(R.string.settings_section_about)) {
+            Column(modifier = Modifier.padding(Spacing.ExtraLarge)) {
+                Text(stringResource(R.string.settings_app_name_version))
                 Text(
-                    "基于强化学习的 AI 端侧智能构图辅助",
+                    stringResource(R.string.settings_about_desc),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Spacing.Medium))
                 Text(
-                    "模型: MobileNetV3-Small (蒸馏)",
+                    stringResource(R.string.settings_model_info),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
                 Text(
-                    "框架: TensorFlow Lite (端侧推理)",
+                    stringResource(R.string.settings_framework_info),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.Medium))
 
         // Self Check
-        SettingsSection(title = "设备自检") {
-            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        SettingsSection(title = stringResource(R.string.settings_section_self_check)) {
+            Column(modifier = Modifier.padding(horizontal = Spacing.ExtraLarge)) {
                 Button(
                     onClick = { viewModel.runSelfCheck() },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("运行自检")
+                    Text(stringResource(R.string.settings_self_check_run))
                 }
                 if (selfCheckResults.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(Spacing.Large))
                     val passCount = selfCheckResults.count { it.status == SelfChecker.CheckStatus.PASS }
                     val warnCount = selfCheckResults.count { it.status == SelfChecker.CheckStatus.WARN }
                     val failCount = selfCheckResults.count { it.status == SelfChecker.CheckStatus.FAIL }
                     Text(
-                        "通过: $passCount | 警告: $warnCount | 失败: $failCount",
+                        stringResource(R.string.settings_self_check_result, passCount, warnCount, failCount),
                         style = MaterialTheme.typography.labelMedium,
                         color = if (failCount > 0) MaterialTheme.colorScheme.error
                         else if (warnCount > 0) MaterialTheme.colorScheme.tertiary
                         else MaterialTheme.colorScheme.primary
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(Spacing.Medium))
                     selfCheckResults.forEach { item ->
                         val icon = when (item.status) {
                             SelfChecker.CheckStatus.PASS -> "✓"
@@ -230,7 +366,7 @@ fun SettingsView(
                             text = "$icon [${item.category}] ${item.name}: ${item.detail}",
                             style = MaterialTheme.typography.bodySmall,
                             color = color,
-                            modifier = Modifier.padding(vertical = 2.dp)
+                            modifier = Modifier.padding(vertical = Spacing.ExtraSmall)
                         )
                     }
                 }
@@ -249,7 +385,7 @@ private fun SettingsSection(
             text = title,
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            modifier = Modifier.padding(horizontal = Spacing.ExtraLarge, vertical = Spacing.Medium)
         )
         content()
     }

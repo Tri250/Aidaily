@@ -66,24 +66,29 @@ class PhotoStorageService @Inject constructor(
         imageProxy: ImageProxy,
         cropRegion: CropRegion? = null,
         exifData: ExifData = ExifData(),
-        aestheticScore: Float? = null
+        aestheticScore: Float? = null,
+        watermarkEnabled: Boolean = true,
+        aspectRatio: String = "3:4"
     ): PhotoRecord = withContext(Dispatchers.IO) {
         try {
             // decodeByteArray 可能返回 null，必须检查
             val bitmap = imageProxyToBitmap(imageProxy)
                 ?: throw IllegalStateException("Failed to decode JPEG from ImageProxy")
 
-            // 3:4 裁切
-            val targetAspect = 3f / 4f
-            val croppedBitmap = cropToAspectRatio(bitmap, targetAspect)
+            // 按设置比例裁切
+            val croppedBitmap = cropToAspectRatio(bitmap, aspectRatio)
 
             // 旋转校正
             val rotatedBitmap = rotateBitmap(croppedBitmap, imageProxy.imageInfo.rotationDegrees.toFloat())
             // degrees==0 时 rotatedBitmap === croppedBitmap，需追踪所有权避免双重 recycle
             val rotatedIsNew = rotatedBitmap !== croppedBitmap
 
-            // 添加水印 — 在旋转校正后、JPEG 压缩前
-            val watermarkedBitmap = watermarkService.addWatermarkSimple(rotatedBitmap)
+            // 添加水印 — 在旋转校正后、JPEG 压缩前（根据设置决定是否添加）
+            val watermarkedBitmap = if (watermarkEnabled) {
+                watermarkService.addWatermarkSimple(rotatedBitmap)
+            } else {
+                rotatedBitmap
+            }
             val watermarkedIsNew = watermarkedBitmap !== rotatedBitmap
 
             val fileName = "${UUID.randomUUID()}.jpg"
@@ -149,19 +154,28 @@ class PhotoStorageService @Inject constructor(
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
     }
 
-    private fun cropToAspectRatio(bitmap: Bitmap, aspectRatio: Float): Bitmap {
+    private fun cropToAspectRatio(bitmap: Bitmap, aspectRatio: String): Bitmap {
+        if (aspectRatio == "Full") return bitmap
+
+        val targetAspect = when (aspectRatio) {
+            "3:4" -> 3f / 4f
+            "1:1" -> 1f
+            "16:9" -> 16f / 9f
+            else -> 3f / 4f
+        }
+
         val width = bitmap.width
         val height = bitmap.height
         if (width <= 0 || height <= 0) return bitmap
         val currentAspect = width.toFloat() / height
 
-        return if (currentAspect > aspectRatio) {
+        return if (currentAspect > targetAspect) {
             // 防止 newWidth 计算为 0 导致 createBitmap 崩溃
-            val newWidth = maxOf(1, (height * aspectRatio).toInt()).coerceAtMost(width)
+            val newWidth = maxOf(1, (height * targetAspect).toInt()).coerceAtMost(width)
             val xOffset = (width - newWidth) / 2
             Bitmap.createBitmap(bitmap, xOffset, 0, newWidth, height)
         } else {
-            val newHeight = maxOf(1, (width / aspectRatio).toInt()).coerceAtMost(height)
+            val newHeight = maxOf(1, (width / targetAspect).toInt()).coerceAtMost(height)
             val yOffset = (height - newHeight) / 2
             Bitmap.createBitmap(bitmap, 0, yOffset, width, newHeight)
         }
