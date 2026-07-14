@@ -120,6 +120,8 @@ class CaptureViewModel @Inject constructor(
     private val lastInferenceTimeMs = AtomicLong(0L)
     @Volatile
     private var autoCaptureEnabled = true
+    @Volatile
+    private var currentCaptureDelay = 0
 
     private var lastDetectionResult: CompositionResult? = null
 
@@ -179,6 +181,12 @@ class CaptureViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            settingsRepository.captureDelay.collect { delay ->
+                currentCaptureDelay = delay
+            }
+        }
+
+        viewModelScope.launch {
             cameraManager.isCameraReady.first { it }
             _isCameraStarting.value = false
         }
@@ -226,8 +234,7 @@ class CaptureViewModel @Inject constructor(
                 }
 
                 if (newStage == PipelineStage.READY_TO_CAPTURE && !isCapturing && autoCaptureEnabled) {
-                    val delaySec = settingsRepository.captureDelay.first()
-                    autoCapture(delaySec)
+                    autoCapture(currentCaptureDelay)
                 }
             }
         }

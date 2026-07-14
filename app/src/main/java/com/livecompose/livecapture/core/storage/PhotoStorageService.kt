@@ -221,14 +221,22 @@ class PhotoStorageService @Inject constructor(
     private fun writeExif(file: File, exifData: ExifData) {
         try {
             val exif = ExifInterface(file.absolutePath)
+            // 写入设备信息（始终可用）
+            exif.setAttribute(ExifInterface.TAG_MAKE, exifData.make)
+            exif.setAttribute(ExifInterface.TAG_MODEL, exifData.model)
+
+            // 如果调用方提供了 EXIF 数据则写入（CameraX JPEG 输出通常已包含拍摄参数）
+            // 此处补充未由 CameraX 自动写入的字段
             exifData.iso?.let { exif.setAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY, it) }
             exifData.aperture?.let { exif.setAttribute(ExifInterface.TAG_F_NUMBER, it) }
             exifData.focalLength?.let { exif.setAttribute(ExifInterface.TAG_FOCAL_LENGTH, it) }
             exifData.shutterSpeed?.let {
                 exif.setAttribute(ExifInterface.TAG_EXPOSURE_TIME, it)
             }
-            exif.setAttribute(ExifInterface.TAG_MAKE, exifData.make)
-            exif.setAttribute(ExifInterface.TAG_MODEL, exifData.model)
+
+            // 添加软件标识
+            exif.setAttribute(ExifInterface.TAG_SOFTWARE, "LiveCapture v1.5.9")
+
             exif.saveAttributes()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to write EXIF", e)
