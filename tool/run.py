@@ -5,7 +5,8 @@
   python3 tool/run.py -s 序列号 check              只读：锁屏、机型脚本匹配、广告包挂起状态
   python3 tool/run.py -s 序列号 ui-check           只读：检查手机读屏服务，不点击任何开关
   python3 tool/run.py -s 序列号 backup             改动前快照，存到 backups/<型号>-<时间>/
-  python3 tool/run.py -s 序列号 recipe [段名 …]     跑本机型机型脚本（不带段名=全跑）
+  python3 tool/run.py -s 序列号 recipe [段名 …]     跑本机型机型脚本（不带段名=全跑；--dry 预览将要改动的开关，不修改）
+  python3 tool/run.py -s 序列号 score              只读：干净度估算分（营销通知候选、未挂起广告包、未关闭快应用）
   python3 tool/run.py -s 序列号 adapt explore [包名 …]  只读：探路新机型 → 探路-<型号>.tsv（末列供人工勾选）
   python3 tool/run.py adapt gen 探路-<型号>.tsv      把人工勾选的开关生成 recipe 草稿（不碰手机；草稿≠适配）
   python3 tool/run.py -s 序列号 adapt check 草稿.py  安全模式自检草稿，输出适配报告（找不到就如实说找不到）
@@ -830,9 +831,47 @@ def cmd_dev_off(serial, rest):
     return 0
 
 
+# 干净度估算（2.0）的权重：营销候选按个轻减、封顶 40，广告组件最重，快应用次之。改分值先改这里。
+SCORE_WEIGHTS = {"chan": 2, "chan_cap": 40, "ad_pkg": 15, "quickapp": 10}
+
+
+def cmd_score(serial, rest):
+    """只读：把广告暴露面折成一个 0-100 的估算分，给执行前后对比。
+
+    只计 adb 读得到的三块：营销通知候选（关键词圈出，不全是广告）、未挂起的广告组件、
+    未关闭的快应用。机型脚本里的 App 内开关不参与计分——跑完 recipe 分数不变，不代表
+    没关成，这一句要原样告诉用户。"""
+    i = info(serial)
+    open_ads = [p for p in ad_packages(i["brand"])
+                if installed(serial, p) and not suspended(serial, p)]
+    open_qa = [q["name"] for q in quickapps(serial, with_usage=False)
+               if not q["closed"] and not q["keep"]]
+    scan = subprocess.run(script_cmd("chan_fast.py", "-s", serial, "scan"),
+                          capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if scan.returncode:
+        cut_chan = 0
+        why = scan.stderr.strip().splitlines()[-1] if scan.stderr.strip() else ""
+        print("营销通知候选：扫描未完成，本项不计分" + (f"（{why}）" if why else ""))
+    else:
+        n_chan = sum(1 for l in scan.stdout.splitlines() if l.strip())
+        cut_chan = min(SCORE_WEIGHTS["chan_cap"], SCORE_WEIGHTS["chan"] * n_chan)
+        print(f"营销通知候选：{n_chan} 个（-{cut_chan}，上限 {SCORE_WEIGHTS['chan_cap']}；"
+              "候选不全是广告，chan-scan 后人工核对）")
+    cut_ads = SCORE_WEIGHTS["ad_pkg"] * len(open_ads)
+    cut_qa = SCORE_WEIGHTS["quickapp"] * len(open_qa)
+    print(f"广告组件未挂起：{len(open_ads)} 个（-{cut_ads}）"
+          + ("：" + "、".join(open_ads) if open_ads else ""))
+    print(f"快应用未关闭：{len(open_qa)} 个（-{cut_qa}）"
+          + ("：" + "、".join(open_qa) if open_qa else ""))
+    score = max(0, 100 - cut_chan - cut_ads - cut_qa)
+    print(f"\n干净度评分（估算）：{score} / 100。App 内开关不参与计分，跑完 recipe 分数不变。")
+    return 0
+
+
 COMMANDS = {
     "ui-check": cmd_ui_check,
     "check": cmd_check,
+    "score": cmd_score,
     "backup": cmd_backup,
     "recipe": cmd_recipe,
     "chan-scan": cmd_chan_scan,

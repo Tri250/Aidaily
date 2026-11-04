@@ -45,7 +45,7 @@ BACKUP_DIR = "M154FF-20260101-0000"
 
 # 这几条会真的起子进程，输出取决于本机 adb 服务，不放进逐字节对拍；
 # 它们的转发语义由 tests/test_run_commands.py 的 HandlerInterfaceTests 替身化后断言。
-HOST_SIDE = ("ui-check", "chan-scan", "chan-off", "chan-on")
+HOST_SIDE = ("ui-check", "chan-scan", "chan-off", "chan-on", "score")   # score 另起 chan_fast.py 子进程
 
 # 用法说明（`print(__doc__)`）同理不进基线：Python 3.13 起编译器会去掉文档字符串的公共缩进，
 # 3.12 不会，同一份源码在两版解释器下逐字不同。改在进程内与 `run.__doc__` 比。

@@ -8,7 +8,8 @@
   fast.py -s SERIAL off [保留词,…]      当前列表里开着的开关全关（保留词命中的不动），一路翻到底
   fast.py -s SERIAL scan                 只读：翻到底列出所有开关
   fast.py -s SERIAL only 词,词…         只关标题含这些词的开关
-  fast.py -s SERIAL run 机型脚本.py         跑一个品牌机型脚本
+  fast.py -s SERIAL dry                  预览当前页 off() 将关哪些开关，不点击
+  fast.py -s SERIAL run 机型脚本.py         跑一个品牌机型脚本（--dry 只预览将改动的开关）
 在脚本里：from fast import Phone
 """
 # 文档承诺 Python 3.9 可跑（docs/01-准备工作.md）：签名里的 `Reader | None` 要 3.10 才能求值，
@@ -207,6 +208,8 @@ class Phone:
         self.log = log
         self.pause_at_lock_check = True     # 机型脚本每段开头都查锁屏：这里就是段与段之间，可以暂停
         self.safe_mode = False              # 安全模式（参考脚本 / 录制版本不符）：off() 只关点名的开关，不做整页全关
+        self.dry = False                    # 预览（2.0）：按页面算拨动计划、只报将要改动的开关，不点击
+        self.dry_plan = []                  # 预览收集到的 (页面, 标题, 是否打开保护类)
         self.systemui_text = False          # 读屏时是否算上 com.android.systemui 的文字（vivo OriginOS Ocean 的通知页就挂在那里）
         self.vivo_seen = False              # 见过 vivo 的通知页：渠道页与应用通知页是同一个 Activity，只从应用列表进
         self.changed = []          # (页面, 标题) 记录本次关掉的
@@ -857,6 +860,36 @@ class Phone:
                         return c, ((l + r) // 2, (t + b) // 2)
         return None
 
+    def _preview(self, plan_page, page, max_screens):
+        """执行前预览（2.0）：逐屏算拨动计划，只报不动手。不点击、不回读，翻页照常；
+        plan_switches 的 targets / disabled 语义与正式执行相同，预览列出的就是会点的开关。
+        翻页后同一行可能仍留在视野里：按标题去重，同一开关只报一次。"""
+        planned, seen, checked, greyed = [], set(), set(), set()
+        for _ in range(max_screens):
+            plan, _rows = plan_page(self.tree())
+            checked |= plan.checked
+            greyed |= plan.disabled
+            for t, _xy, w in plan.targets:
+                if t not in seen:
+                    seen.add(t)
+                    planned.append((t, w))
+            if not self.scroll_more():
+                break
+        self.dry_plan.extend((page, t, w) for t, w in planned)
+        closing = [t for t, w in planned if not w]
+        opening = [t for t, w in planned if w]
+        bits = []
+        if closing:
+            bits.append(f"将关 {len(closing)} 项：" + "、".join(closing))
+        if opening:
+            bits.append(f"将打开（保护类）{len(opening)} 项：" + "、".join(opening))
+        if greyed:
+            bits.append(f"{len(greyed)} 个被上级开关禁用（执行时同样不点）")
+        if page:
+            self.say("  · " + (f"{page}：预览：" + "；".join(bits) if bits
+                              else f"{page}：预览：本页无需改动（核对 {len(checked)} 项）"))
+        return len(planned)
+
     def off(self, keep=(), only=None, page="", max_screens=40):
         """当前列表：关掉开着的开关。keep=标题含这些词的不动；only=只关含这些词的。
         每屏第一下单独点、看有没有弹窗/跳页；没有就把这一屏剩下的连着点完，最后统一核对。
@@ -864,18 +897,21 @@ class Phone:
         首击后剩下的目标若已不在原坐标，这一屏剩下的改成每点一项前重读坐标（#480）。
         点过的普通开关行在回读里消失、回读仍见到本屏计划时的非目标行且没跳走，按已关记账；
         整页读空、换到别的页（含同 Activity 的子页）或保护类开关消失，仍报失败（#486）。
-        开关是灰的（被上级开关禁用）的行不点、也不算失败：点了也不会变，以前报成「关不掉」（#333）。"""
+        开关是灰的（被上级开关禁用）的行不点、也不算失败：点了也不会变，以前报成「关不掉」（#333）。
+        dry（2.0）：不点击，把将要改动的开关逐页报出来，给执行前预览用。"""
         # 页面刚打开还没画完：等开关出现，最多试 10 次（本段已走丢就不等）
         wait.until(self.switches, tries=2 if self.miss else 10, poll=0.2,
                    now=time.time, sleep=time.sleep)
-        start = self.focus()
-        done, slow, checked, kept, greyed = 0, False, set(), set(), set()
 
         def plan_page(root):
             rows = self.switches(root)
             return (plan_switches(rows, keep, only, self.safe_mode, screen_h=self.H,
                                   disabled=lambda xy: disabled_at(root, xy)), rows)
 
+        if self.dry:
+            return self._preview(plan_page, page, max_screens)
+        start = self.focus()
+        done, slow, checked, kept, greyed = 0, False, set(), set(), set()
         for _ in range(max_screens):
             root = self.tree()
             plan, planned = plan_page(root)
@@ -1316,9 +1352,17 @@ def execute(p, cmd, rest):
     elif cmd == "only":
         t = time.time(); n = p.off(only=rest[0].split(","))
         print(f"关了 {n} 个，{time.time()-t:.1f} 秒")
+    elif cmd == "dry":
+        p.dry = True
+        n = p.off()
+        print(f"预览：本页将改动 {n} 项，未点击任何开关。确认后用 off / only 执行")
     elif cmd == "run":
         p.safe_mode = p.safe_mode or "--ref" in rest    # 参考脚本：off() 不做整页全关，由 run.py 传下来
         rest = [x for x in rest if x != "--ref"]
+        p.dry = "--dry" in rest                         # 预览（2.0）：只列将要改动的开关，不点击
+        rest = [x for x in rest if x != "--dry"]
+        if p.dry:
+            print("预览模式：按机型脚本把页面走一遍，只列出将要改动的开关，不点击任何开关。")
         if not p.wait_unlocked():
             print("✗ 手机一直锁屏，本步骤没有执行。请解锁手机、保持亮屏后重试"); sys.exit(2)
         g = {"p": p, "__name__": "__recipe__", "ONLY": rest[1:]}
@@ -1336,17 +1380,22 @@ def execute(p, cmd, rest):
         except adb_link.DeviceLost as e:
             print(f"\n✗ {e}\n已停止：关了 {len(p.changed)} 个，{time.time()-t:.0f} 秒", flush=True)
             sys.exit(1)
-        print(f"\n机型脚本跑完：关了 {len(p.changed)} 个，{time.time()-t:.0f} 秒")
-        import datetime
-        logdir = backups.root_from_env() or os.path.dirname(os.path.abspath(rest[0]))
-        try:
-            os.makedirs(logdir, exist_ok=True)
-            with open(os.path.join(logdir, "run-log.txt"), "a", encoding="utf-8") as f:
-                f.write(f"\n# {datetime.datetime.now():%Y-%m-%d %H:%M} {' '.join(rest[1:]) or '全跑'}  {time.time()-t:.0f}s\n")
-                for pg, tt in p.changed:
-                    f.write(f"{pg}\t{tt}\n")
-        except OSError:
-            pass
+        if p.dry:
+            opening = sum(1 for _, _, w in p.dry_plan if w)
+            print(f"\n预览完成：将改动 {len(p.dry_plan)} 项（关 {len(p.dry_plan) - opening}、"
+                  f"打开 {opening}），本次没有修改任何开关。确认后跑：run.py -s <序列号> recipe")
+        else:
+            print(f"\n机型脚本跑完：关了 {len(p.changed)} 个，{time.time()-t:.0f} 秒")
+            import datetime
+            logdir = backups.root_from_env() or os.path.dirname(os.path.abspath(rest[0]))
+            try:
+                os.makedirs(logdir, exist_ok=True)
+                with open(os.path.join(logdir, "run-log.txt"), "a", encoding="utf-8") as f:
+                    f.write(f"\n# {datetime.datetime.now():%Y-%m-%d %H:%M} {' '.join(rest[1:]) or '全跑'}  {time.time()-t:.0f}s\n")
+                    for pg, tt in p.changed:
+                        f.write(f"{pg}\t{tt}\n")
+            except OSError:
+                pass
         if g.get("FAILED_STEPS"):
             print("未完成步骤：" + "、".join(g["FAILED_STEPS"]), flush=True)
             sys.exit(1)

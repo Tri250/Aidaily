@@ -50,7 +50,7 @@ python3 tool/run.py devices
 |---|---|---|
 | 1 | `run.py -s S check` | 只读。看锁屏、机型脚本匹配、广告包状态 |
 | 2 | `run.py -s S backup` | 改动前快照，存到 `backups/` |
-| 3 | `run.py -s S recipe` | 有机型脚本时跑机型脚本。可以只跑某几段：`recipe 浏览器 主题`。只有同品牌参考脚本时，问过用户再加 `--ref` |
+| 3 | `run.py -s S recipe` | 有机型脚本时跑机型脚本。可以只跑某几段：`recipe 浏览器 主题`；拿不准先 `recipe --dry` 预览将要改动的开关（不修改）。只有同品牌参考脚本时，问过用户再加 `--ref` |
 | 4 | `run.py -s S chan-scan` | 只读。列出开着的营销通知渠道 |
 | 5 | 编辑 `channels.tsv` | 删掉服务类渠道（见 §5），给用户看清单。第四列是手机上显示的应用名（读不到时为空），给用户看时用它，不要只给包名 |
 | 6 | `run.py -s S chan-off <清单>` | 关掉清单里的渠道；结尾会复查，「仍开着: 0 个」为成功 |
@@ -87,6 +87,7 @@ python3 tool/run.py devices
 |---|---|
 | `python3 tool/fast.py -s S ls` | 列出当前屏幕的文字、开关状态、坐标 |
 | `python3 tool/fast.py -s S tap 隐私 广告` | 依次找到并点击这些文字，找不到会上下翻页 |
+| `python3 tool/fast.py -s S dry` | 预览当前页 `off` 将关哪些开关，不点击 |
 | `python3 tool/fast.py -s S scan` | 翻完整页，列出所有开关和状态 |
 | `python3 tool/fast.py -s S only 个性化推荐,开屏广告` | 当前页只关标题含这些词的开关 |
 | `python3 tool/fast.py -s S off 帮助,安全` | 当前页关掉所有开关，标题含这些词的保留 |

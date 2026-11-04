@@ -153,8 +153,9 @@
 pip3 install -r requirements.txt
 python3 tool/run.py devices                 # 看序列号、型号、有没有机型脚本
 python3 tool/run.py -s <序列号> check        # 只读检查
+python3 tool/run.py -s <序列号> score        # 只读：干净度估算分（0-100），执行前后对比
 python3 tool/run.py -s <序列号> backup       # 改动前快照
-python3 tool/run.py -s <序列号> recipe       # 跑机型脚本
+python3 tool/run.py -s <序列号> recipe       # 跑机型脚本（--dry 先预览将要改动的开关，不修改）
 python3 tool/run.py -s <序列号> chan-scan    # 列营销通知渠道
 python3 tool/run.py -s <序列号> chan-off backups/<型号>-<时间>/channels.tsv
 python3 tool/run.py -s <序列号> quickapp     # 检测快应用；quickapp off 关闭
