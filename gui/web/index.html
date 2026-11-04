@@ -111,7 +111,7 @@ pre.report{background:var(--log);color:var(--logtext);font-family:var(--mono);fo
       <button class="link" onclick="api.open_path('backups')">📁 打开备份文件夹</button>
       <button class="link" onclick="openSettings()">⚙ 设置</button>
       <button class="link" onclick="openFeedback()">💬 反馈问题</button>
-      <button class="link" onclick="api.open_url('https://github.com/rddmwmddr/android-ad-cleaner')">？使用说明</button>
+      <button class="link" onclick="api.open_url('https://github.com/Tri250/Aidaily')">？使用说明</button>
       <button class="link newver hide" id="newver"></button>
       <div class="ver" id="ver"></div>
     </div>
@@ -268,7 +268,7 @@ const CHECKLIST_NAME = {"OPPO-ColorOS.md": "OPPO / ColorOS ", "荣耀-MagicOS.md
 function checklistName(brand){ return CHECKLIST_NAME[CHECKLIST[(brand || "").toUpperCase()]] || ""; }
 function openChecklist(){
   const f = CHECKLIST[((S.status && S.status.info.brand) || "").toUpperCase()];
-  api.open_url("https://github.com/rddmwmddr/android-ad-cleaner/blob/main/docs/" + encodeURIComponent("清单") + "/" + (f ? encodeURIComponent(f) : "README.md"));
+  api.open_url("https://github.com/Tri250/Aidaily/blob/main/docs/" + encodeURIComponent("清单") + "/" + (f ? encodeURIComponent(f) : "README.md"));
 }
 
 /* ---------- 3 选择 ---------- */
@@ -441,7 +441,7 @@ function selfOff(){
 }
 
 /* ---------- 反馈 ---------- */
-const REPO = "https://github.com/rddmwmddr/android-ad-cleaner";
+const REPO = "https://github.com/Tri250/Aidaily";
 const FB = {bug: ["遇到问题", "bug_report.md", "[问题] "], idea: ["功能建议", "feature_request.md", "[建议] "], device: ["适配新机型", "new_device.md", "[新机型] "]};
 async function openFeedback(type){
   type = type || "bug";

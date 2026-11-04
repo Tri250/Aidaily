@@ -20,7 +20,7 @@ def rows(ver, guide):
     lines += [f"· {title}（{sub}）：{folder}/{file}。{note}" for _, folder, title, sub, file, note in items]
     lines += ["", "不知道 Mac 是哪种芯片：左上角苹果图标 → 关于本机，「芯片」写 Apple M 开头的选 Apple 芯片。",
               "SHA256SUMS.txt 是 4 个文件的 SHA256 校验值。",
-              "用法、常见问题、反馈：https://github.com/rddmwmddr/android-ad-cleaner"]
+              "用法、常见问题、反馈：https://github.com/Tri250/Aidaily"]
     with open(guide, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
     for item in items:
@@ -85,7 +85,7 @@ def legacy(ver, out, sums_path):
                     "4. 做完后关闭开发者模式，客户端完成页有按钮。\n\n"
                     "第一次打开时，电脑上没有 adb 的话，客户端会提示从 Google 官网下载（约 10 MB）。\n\n"
                     "更多\n----\n官网：https://ahuamiao.com/sites/other/android-ad-removal-intro.html\n"
-                    "源代码：https://github.com/rddmwmddr/android-ad-cleaner\n遇到问题：客户端左下角「反馈问题」或「上报错误日志」\n\n"
+                    "源代码：https://github.com/Tri250/Aidaily\n遇到问题：客户端左下角「反馈问题」或「上报错误日志」\n\n"
                     f"校验\n----\nSHA-256：{digest}\n验证方法：{CHECK[kind]}\n")
         with open(os.path.join(out, folder, "SHA256校验.txt"), "w", encoding="utf-8") as f:
             f.write(f"{digest}  {file}\n")

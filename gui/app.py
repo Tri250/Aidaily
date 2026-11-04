@@ -507,7 +507,7 @@ REPORT_URL = "https://supabase.ahuamiao.com/functions/v1/aac-report"
 REPORT_LIMIT = 3            # 每小时最多上报几次（服务器另有按 IP / 安装编号 / 全站的配额）
 # 新版本提示：先查官网的版本文件（国内能访问），再查 GitHub。只取版本号，请求里不带手机、电脑信息。
 LATEST_URLS = ("https://ahuamiao.com/sites/other/android-ad-cleaner-latest.json",
-               "https://api.github.com/repos/rddmwmddr/android-ad-cleaner/releases/latest")
+               "https://api.github.com/repos/Tri250/Aidaily/releases/latest")
 DOWNLOAD_PAGE = "https://ahuamiao.com/sites/other/android-ad-removal-intro.html"
 # 没执行过任何步骤时只有手机型号，看不出问题（错误日志 10-28：6 份空报告）
 EMPTY_REPORT = "还没有执行记录，这份报告只有手机型号，看不出问题。请先执行一次再上报；还没执行就遇到问题，请到 GitHub 反馈，写清楚卡在哪一步。"
@@ -1320,12 +1320,12 @@ def startup_advice(state, blocked, error):
                 "如果这是 Windows 10 且从没装过，先装一个再试：\n"
                 "https://developer.microsoft.com/microsoft-edge/webview2/\n\n"
                 "装过还这样，把括号里的原文发到 "
-                "https://github.com/rddmwmddr/android-ad-cleaner/issues/new 。\n\n"
+                "https://github.com/Tri250/Aidaily/issues/new 。\n\n"
                 f"（{error}）", False)
     return ("程序启动失败。WebView2 运行时在，程序文件也没有被 Windows 锁定，"
             "是按别的原因退出的。\n\n"
             "把下面括号里的原文发到 "
-            "https://github.com/rddmwmddr/android-ad-cleaner/issues/new ，我们按它定位。\n\n"
+            "https://github.com/Tri250/Aidaily/issues/new ，我们按它定位。\n\n"
             f"（{error}）", False)
 
 

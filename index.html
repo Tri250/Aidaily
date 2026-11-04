@@ -233,7 +233,7 @@ footer a:hover { color: var(--ink); }
       <a href="#devices">机型</a>
       <a href="#faq">常见问题</a>
     </nav>
-    <a class="gh" href="https://github.com/rddmwmddr/android-ad-cleaner" target="_blank" rel="noopener">
+    <a class="gh" href="https://github.com/Tri250/Aidaily" target="_blank" rel="noopener">
       <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
       GitHub
     </a>
@@ -402,12 +402,12 @@ footer a:hover { color: var(--ink); }
   <div class="wrap">
     <span>安卓去广告 · MIT 开源</span>
     <nav aria-label="页脚链接">
-      <a href="https://github.com/rddmwmddr/android-ad-cleaner" target="_blank" rel="noopener">源代码</a>
-      <a href="https://github.com/rddmwmddr/android-ad-cleaner/releases" target="_blank" rel="noopener">更新说明</a>
-      <a href="https://github.com/rddmwmddr/android-ad-cleaner/tree/main/docs/%E6%B8%85%E5%8D%95" target="_blank" rel="noopener">手动清单</a>
-      <a href="https://github.com/rddmwmddr/android-ad-cleaner/blob/main/docs/12-%E9%94%99%E8%AF%AF%E6%97%A5%E5%BF%97%E4%B8%8A%E6%8A%A5.md" target="_blank" rel="noopener">错误日志上报说明</a>
-      <a href="https://github.com/rddmwmddr/android-ad-cleaner/issues" target="_blank" rel="noopener">反馈问题</a>
-      <a href="https://github.com/rddmwmddr/android-ad-cleaner/releases" target="_blank" rel="noopener">全部版本</a>
+      <a href="https://github.com/Tri250/Aidaily" target="_blank" rel="noopener">源代码</a>
+      <a href="https://github.com/Tri250/Aidaily/releases" target="_blank" rel="noopener">更新说明</a>
+      <a href="https://github.com/Tri250/Aidaily/tree/main/docs/%E6%B8%85%E5%8D%95" target="_blank" rel="noopener">手动清单</a>
+      <a href="https://github.com/Tri250/Aidaily/blob/main/docs/12-%E9%94%99%E8%AF%AF%E6%97%A5%E5%BF%97%E4%B8%8A%E6%8A%A5.md" target="_blank" rel="noopener">错误日志上报说明</a>
+      <a href="https://github.com/Tri250/Aidaily/issues" target="_blank" rel="noopener">反馈问题</a>
+      <a href="https://github.com/Tri250/Aidaily/releases" target="_blank" rel="noopener">全部版本</a>
     </nav>
   </div>
 </footer>
@@ -416,7 +416,7 @@ footer a:hover { color: var(--ink); }
 /* ===== 发布信息：发新版或填网盘链接时只改这里（gui/upload_baidu.sh 按这个格式自动写入网盘链接） ===== */
 const REL = {
   version: "0.3.1",
-  github: "https://github.com/rddmwmddr/android-ad-cleaner/releases/download/v0.3.1/",
+  github: "https://github.com/Tri250/Aidaily/releases/download/v0.3.1/",
   // 百度网盘：每个版本可以单独填链接（files 里的 baidu）；没填的用这里的总链接（整个大文件夹的分享）
   baidu: { url: "https://pan.baidu.com/s/18slO2hS6PsZcVmWgdQZdUA", code: "wj4m" },
   files: [
@@ -431,20 +431,20 @@ const REL = {
   ],
 };
 const RELEASED = "2026-11-03";
-const REPO = "https://github.com/rddmwmddr/android-ad-cleaner";
+const REPO = "https://github.com/Tri250/Aidaily";
 
 const PROMPTS = {
   agent: {
     hint: "发给能在你电脑上执行命令的 AI",
-    text: "请克隆 https://github.com/rddmwmddr/android-ad-cleaner ，读仓库里的 AGENTS.md，\n然后帮我给连着电脑的这台手机去广告。每一步改之前告诉我要改什么。",
+    text: "请克隆 https://github.com/Tri250/Aidaily ，读仓库里的 AGENTS.md，\n然后帮我给连着电脑的这台手机去广告。每一步改之前告诉我要改什么。",
   },
   chat: {
     hint: "发给聊天 AI；DeepSeek 打开「联网搜索」",
     text: `你是我的手机设置向导。目标：关掉我手机里的广告、热搜、资讯推荐和营销推送。
 
 参考资料（请联网打开）：
-- 总说明：https://github.com/rddmwmddr/android-ad-cleaner
-- 各品牌清单：https://github.com/rddmwmddr/android-ad-cleaner/tree/main/docs/清单
+- 总说明：https://github.com/Tri250/Aidaily
+- 各品牌清单：https://github.com/Tri250/Aidaily/tree/main/docs/清单
 打不开链接时告诉我，我把清单内容粘贴给你。
 
 规则：

@@ -29,7 +29,7 @@ DATA="$PWD/gui/build/$ARCH/data"
 $PY gui/bundle_data.py "$DATA"
 $RUN $PY -m PyInstaller --noconfirm --windowed --name "$NAME" \
   --distpath $OUT --workpath gui/build/$ARCH --specpath gui/build/$ARCH \
-  --osx-bundle-identifier com.rddmwmddr.androidadcleaner \
+  --osx-bundle-identifier com.tri250.androidadcleaner \
   --icon "$PWD/gui/icon.icns" \
   --add-data "$DATA/tool:tool" --add-data "$DATA/recipes:recipes" \
   --add-data "$DATA/images:images" --add-data "$DATA/gui/web:gui/web" \
