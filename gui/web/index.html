@@ -541,6 +541,7 @@ async function openSettings(){
     <label class="lead" for="adbpath" style="display:block;margin:0 0 6px">adb 路径</label>
     <div class="row"><input type="text" id="adbpath" class="mono" placeholder="例如 /Users/你/Software/AndroidSDK/platform-tools/adb"><button class="btn ghost" onclick="browseAdb()">浏览…</button></div>
     <div id="adbmsg" class="note hide" style="margin-top:12px"></div>
+    <p class="lead" style="margin:12px 0 0">开发者：某厂大牛马【带娃的小陈工】</p>
     <div class="actions"><button class="btn plain" onclick="clearAdb()">恢复自动查找</button><button class="btn plain" onclick="closeModal()">关闭</button><button class="btn" onclick="saveAdb()">保存</button></div>`);
   renderAdbInfo(await api.adb_info());
 }

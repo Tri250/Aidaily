@@ -58,12 +58,21 @@ jobs:
         run: |
           $tag = "${{ github.ref_name }}"
           $release = gh release view $tag --json isDraft,assets | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0) { throw "请先创建对应的 Release 草稿" }
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "没有对应的 Release：自动创建草稿（检查说明后手动发布）。"
+            gh release create $tag --draft --generate-notes --title $tag
+            if ($LASTEXITCODE -ne 0) { throw "创建 Release 草稿失败" }
+            $release = gh release view $tag --json isDraft,assets | ConvertFrom-Json
+          }
           if (-not $release.isDraft) {
             Write-Host "Release 已公开，保留已验证文件及 SHA256，不用重建产物覆盖。"
             exit 0
           }
-          foreach ($file in Get-ChildItem gui/dist/*.zip, gui/dist/*-setup.exe) {
+          $files = Get-ChildItem gui/dist/*.zip, gui/dist/*-setup.exe
+          # SHA256 校验值：安装引导文案让用户核对 SHA256SUMS.txt（baidu_rows / 官网下载页）
+          $files | ForEach-Object { "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name } |
+            Set-Content gui/dist/SHA256SUMS.txt -Encoding ascii
+          foreach ($file in ($files + @(Get-Item gui/dist/SHA256SUMS.txt))) {
             if ($release.assets.name -contains $file.Name) {
               Write-Host "已存在，保留：$($file.Name)"
               continue
