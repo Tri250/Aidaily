@@ -213,6 +213,20 @@ def adb_source(adb, manual, platform_tools):
     return "system"
 
 
+def device_lines(out):
+    """`adb devices -l` 输出里的设备行 (序列号, 状态)。
+
+    adb server 没起时输出最前面是两行 `* daemon …`，表头行夹在设备行之前；
+    旧解析只跳过第一行，把 `*` 和 `List` 当成两台设备显示给用户（首次下载 adb 后第一次连接必现）。
+    """
+    for line in out.splitlines():
+        if not line.strip() or line.startswith("*") or line.startswith("List of devices attached"):
+            continue
+        parts = line.split()
+        if len(parts) >= 2:
+            yield parts[0], parts[1]
+
+
 def client_api():
     """入口（窗口与截图脚本）共用的构造：数据目录建好，adb 按既定顺序找，手填的那份排第一。"""
     data = ClientData(data_dir()).ensure()
@@ -1061,11 +1075,7 @@ class Api:
             return {"error": str(e), "list": []}
         res = []
         self.last_devices = out
-        for line in out.splitlines()[1:]:
-            if not line.strip():
-                continue
-            parts = line.split()
-            ser, st = parts[0], parts[1]
+        for ser, st in device_lines(out):
             if ser.startswith("emulator-"):
                 continue
             d = {"serial": ser, "state": st, "model": "", "name": "", "brand": ""}
@@ -1166,7 +1176,7 @@ class Api:
     # ----- 收尾 / 还原 -----
     def dev_off(self, serial):
         out, err, rc = self._run("run.py", "-s", serial, "dev-off", "--yes", timeout=30)
-        return out + err
+        return {"ok": rc == 0, "text": out + err}
 
     def restore(self, serial, what):
         if what == "suspend":
@@ -1195,7 +1205,7 @@ class Api:
             v = f"adb 出错：{e}"
         lines.append(f"- adb：{v}")
         st, serial = self.last_status, (self.job.serial if self.job else None)
-        rows = [l.split()[1] for l in self.last_devices.splitlines()[1:] if len(l.split()) > 1]
+        rows = [state for _, state in device_lines(self.last_devices)]
         lines.append(f"- adb 设备：{len(rows)} 台" + (f"（{'、'.join(rows)}）" if rows else ""))
         others = [o for o in other_adb() if not self.adb or os.path.normcase(o) != os.path.normcase(self.adb)]
         if others:

@@ -197,6 +197,7 @@ async function dlAdb(){
   $("#dlbtn").disabled = true; $("#dlbar").classList.remove("hide");
   await api.download_adb();
   const t = setInterval(async () => {
+    if (!$("#dlmsg")){ clearInterval(t); return; }    // 页面已经离开：不再刷新，别让定时器一直报错
     const d = await api.download_state();
     $("#dlmsg").textContent = d.msg; $("#dlbar i").style.width = d.pct + "%";
     if (d.state === "done"){ clearInterval(t); ENV = await api.env(); showConnect(); }
@@ -235,7 +236,7 @@ async function showDetect(){
   main().innerHTML = `<h1>检测</h1><p class="lead">读取这台手机的型号、系统版本和广告组件状态。只读，不改任何东西。</p>
     <div class="card"><div class="row"><span class="spin"></span>正在检测……</div></div>`;
   const st = await api.status(S.serial);
-  if (st.error){ main().innerHTML += `<div class="note bad">检测失败：${esc(st.error)}</div><div class="actions"><button class="btn plain" onclick="showConnect()">返回</button></div>`; return; }
+  if (st.error){ main().innerHTML = `<h1>检测</h1><div class="note bad">检测失败：${esc(st.error)}</div><div class="actions"><button class="btn plain" onclick="showDetect()">重新检测</button><button class="btn plain" onclick="showConnect()">返回</button></div>`; return; }
   S.status = st;
   const i = st.info, name = i.name || (i.brand + " " + i.model);
   const qa = st.quickapps, qaKeep = qa.filter(q => q.keep).length;
@@ -427,7 +428,12 @@ function askDevOff(){
     <div class="actions"><button class="btn plain" onclick="closeModal()">取消</button><button class="btn" onclick="devOff()">关闭</button></div>`);
 }
 async function devOff(){
-  closeModal(); await api.dev_off(S.serial);
+  closeModal();
+  const r = await api.dev_off(S.serial);
+  if (r && r.ok === false){
+    modal(`<h3>没有关掉</h3><p class="lead">${esc(r.text || "命令没有跑成。请确认手机还连着、屏幕解锁，稍后再试。")}</p><div class="actions"><button class="btn" onclick="closeModal()">好</button></div>`);
+    return;
+  }
   modal(`<h3>已关闭</h3><p class="lead">请在手机上打开 设置 → 搜索「开发者选项」，确认总开关是关着的。</p><div class="actions"><button class="btn" onclick="closeModal();showConnect()">好</button></div>`);
 }
 function selfOff(){
