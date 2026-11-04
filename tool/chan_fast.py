@@ -8,6 +8,9 @@
   chan_fast.py -s SERIAL on  清单.tsv      还原
 清单.tsv：包名<TAB>渠道id<TAB>说明[<TAB>应用名]，一行一个；# 开头是注释。
 """
+# 文档承诺 Python 3.9 可跑（docs/01-准备工作.md）：dataclass 字段注解 `str | None` 要 3.10 才能求值，
+# 延迟注解让 3.9 导入不炸。
+from __future__ import annotations
 import hashlib, re, shlex, sys, time, os
 from dataclasses import dataclass
 for _st in (sys.stdout, sys.stderr):

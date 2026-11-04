@@ -11,6 +11,9 @@
   fast.py -s SERIAL run 机型脚本.py         跑一个品牌机型脚本
 在脚本里：from fast import Phone
 """
+# 文档承诺 Python 3.9 可跑（docs/01-准备工作.md）：签名里的 `Reader | None` 要 3.10 才能求值，
+# 延迟注解让 3.9 导入不炸（同类注释 chan_fast.py 的 dataclass 字段）。
+from __future__ import annotations
 import os, re, sys, time, xml.etree.ElementTree as ET
 from dataclasses import dataclass
 for _st in (sys.stdout, sys.stderr):
