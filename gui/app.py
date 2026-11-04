@@ -1179,13 +1179,17 @@ class Api:
         return {"ok": rc == 0, "text": out + err}
 
     def restore(self, serial, what):
+        if self._job_running():
+            return "任务正在执行，请结束后再还原"
         if what == "suspend":
             out, err, rc = self._run("run.py", "-s", serial, "unsuspend")
         elif what == "quickapp":
             out, err, rc = self._run("run.py", "-s", serial, "quickapp", "on")
         elif what == "channels":
             st = self.status(serial)
-            d = self.backups.latest(st.get("info", {}).get("model", ""))
+            model = st.get("info", {}).get("model", "")
+            # 手机断开时拿不到型号：latest("") 会匹配任意型号的备份目录，不能拿别的手机的清单来还原
+            d = self.backups.latest(model) if model else None
             fn = d and os.path.join(d, "channels.tsv")
             if not fn or not os.path.exists(fn):
                 return "没有找到上次关掉的营销通知清单"

@@ -421,7 +421,12 @@ function showDone(r){
       <p class="lead" style="margin:0 0 12px">${failed ? "有步骤未成功；若还要排查或重试，请先保留 USB 调试。结束排查后再关闭。" : "核对结果后，若不再使用电脑调试，建议关闭开发者模式和 USB 调试。"}部分银行、支付、游戏 App 检测到它开着会提醒或拒绝运行。<br>关掉<b>不会撤销</b>已经成功的改动。</p>
       <div class="row"><button class="btn" onclick="askDevOff()">帮我关闭</button><button class="btn plain" onclick="selfOff()">我在手机上自己关</button></div></div>
     ${failed ? `<div class="note bad">有步骤没成功。<a href="#" onclick="openReport();return false">上报错误日志</a>（不需要账号，发送前可以看到全部内容），或<a href="#" onclick="openFeedback('bug');return false">到 GitHub 反馈</a>。</div>` : ""}
+    <div class="actions"><button class="btn plain" onclick="retry()">重新检测这台手机</button></div>
     <details class="card"><summary>查看完整日志</summary><div class="log" style="height:260px">${esc(document.querySelector("#log")?.textContent || "")}</div></details>`;
+}
+function retry(){
+  S.chans = null; S.chanNotes = [];    // 上次扫描结果已过期：执行可能已把这些渠道关掉
+  showDetect();
 }
 function askDevOff(){
   modal(`<h3>关闭开发者模式？</h3><p class="lead">关闭后电脑会和手机断开，这是正常的。以后要还原改动，在手机上重新打开开发者模式即可。</p>
