@@ -106,11 +106,16 @@ class Ledger:
 
     def write(self, record):
         os.makedirs(self.root, exist_ok=True)
+        if os.name == "posix":            # 账本含应用与渠道名：文件 0600、目录 0700（M-12）
+            try:
+                os.chmod(self.root, 0o700)
+            except OSError:
+                pass
         fn = self.path(record)
         with open(fn, "w", encoding="utf-8") as f:
             json.dump(record, f, ensure_ascii=False, indent=1)
         if os.name == "posix":
-            os.chmod(fn, 0o600)           # 账本含应用与渠道名，目录收紧到本人可读
+            os.chmod(fn, 0o600)
         return fn
 
     def read(self, fn):

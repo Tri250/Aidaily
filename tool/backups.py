@@ -35,6 +35,8 @@ class Backups:
         return os.path.join(self.root, hits[-1]) if hits else None
 
     def create(self, model, when=None):
+        os.makedirs(self.root, exist_ok=True)
+        _restrict(self.root)
         d = os.path.join(self.root, f"{model}-{(when or datetime.datetime.now()):%Y%m%d-%H%M}")
         os.makedirs(d, exist_ok=True)
         _restrict(d)
@@ -42,6 +44,8 @@ class Backups:
 
     def gui(self, model):
         """客户端勾选营销通知时用：没跑过备份也要有地方放 channels.tsv。"""
+        os.makedirs(self.root, exist_ok=True)
+        _restrict(self.root)
         d = os.path.join(self.root, f"{model}-gui")
         os.makedirs(d, exist_ok=True)
         _restrict(d)

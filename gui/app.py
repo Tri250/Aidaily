@@ -14,7 +14,7 @@ except ImportError:
     import winpreflight
 
 APP_NAME = "安卓去广告"
-VERSION = "0.3.2"
+VERSION = "0.3.3"
 FROZEN = getattr(sys, "frozen", False)
 BASE = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TOOL = os.path.join(BASE, "tool")
@@ -1250,18 +1250,26 @@ class Api:
             return f"还原清单有问题：{e}"
         if not plan["chan_rows"] and not plan["pkgs"]:
             return "没有可以还原的条目"
-        outputs = []
+        outputs, failed = [], []
         if plan["chan_rows"]:
             self.data.ensure()
             with open(self.data.undo, "w", encoding="utf-8") as f:
                 for row in plan["chan_rows"]:
                     f.write("\t".join(row) + "\n")
             out, err, rc = self._run("chan_fast.py", "-s", serial, "on", self.data.undo, timeout=600)
-            outputs.append(out + err)
+            outputs.append((out + err).strip())
+            if rc != 0:
+                failed.append("营销通知渠道")
         if plan["pkgs"]:
             out, err, rc = self._run("run.py", "-s", serial, "unsuspend", *plan["pkgs"])
-            outputs.append(out + err)
-        return "\n".join(s.strip() for s in outputs if s and s.strip()) or "已执行，没有输出"
+            outputs.append((out + err).strip())
+            if rc != 0:
+                failed.append("广告组件")
+        joined = "\n".join(s for s in outputs if s) or "已执行，没有输出"
+        if failed:
+            # rc≠0 时 chan_fast / run.py 的输出里有每一步的明细；如实标注有动作没成，不写成还原完成
+            return joined + f"\n\n有动作没有成功（{'、'.join(failed)}）：可对照上面的输出逐项排查，或重试一次。"
+        return joined
 
     # ----- 反馈 -----
     def diagnostics(self):

@@ -188,3 +188,22 @@ class GuiLedgerTests(unittest.TestCase):
             self.assertIn("还原清单有问题", api.restore_items("S1", [{"undo": {"method": "x"}}]))
             self.assertEqual(api.restore_items("S1", []), "没有可以还原的条目")
             self.assertEqual(api.runner.run_calls, [])
+
+    def test_restore_items_marks_failure_instead_of_claiming_success(self):
+        with tempfile.TemporaryDirectory() as d:
+            api = app.Api(d, runner=FakeRunner(runs=("", "找不到设备\n", 1)))
+            api.job = job_stub(serial="S1", model="M1", running=False)
+            out = api.restore_items("S1", [{"undo": {"method": "chan_on",
+                                                    "row": ["com.a", "promo", "活动优惠", "A"]}}])
+            self.assertIn("没有成功", out)             # rc≠0 不能写成还原完成
+            self.assertIn("找不到设备", out)           # 明细照常给出
+
+    def test_ledger_dir_is_restricted_to_the_owner(self):
+        if os.name != "posix":
+            self.skipTest("POSIX 权限")
+        with tempfile.TemporaryDirectory() as d:
+            rec = {"t0": "20261105-000000", "batch": "ab12cd34", "serial": "S1", "model": "M1",
+                   "version": "0", "elapsed": 0, "tasks": [], "items": []}
+            fn = ledger.Ledger(os.path.join(d, "ledgers")).write(rec)
+            self.assertEqual(oct(os.stat(os.path.dirname(fn)).st_mode)[-3:], "700")
+            self.assertEqual(oct(os.stat(fn).st_mode)[-3:], "600")

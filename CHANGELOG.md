@@ -2,7 +2,9 @@
 
 每一版一条一行，面向维护者与本仓库 agent。用户看的更新说明在 [GitHub Releases](https://github.com/rddmwmddr/android-ad-cleaner/releases)；0.3.0 及更早的逐次详细记录（基线 SHA、对拍组数、逐字不变清单）见[归档记录](docs/归档/CHANGELOG-0.3.0及更早.md)。
 
-## 未发布
+## 0.3.3 · 2026-11-05
+
+1205 项设备无关回归通过；沙箱环境无真机，本轮未做真机复测（新增能力为本地账本与前端流程，测试覆盖见 ADR-0014）。
 
 ### 新增
 
