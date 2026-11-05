@@ -58,6 +58,15 @@ class ClientData:
         return os.path.join(self.root, "pause")
 
     @property
+    def ledger(self):
+        return os.path.join(self.root, "ledgers")
+
+    @property
+    def undo(self):
+        """单条还原时临时拼的渠道清单（chan_fast.py on <文件>）。"""
+        return os.path.join(self.root, "undo.tsv")
+
+    @property
     def install_id(self):
         return os.path.join(self.root, "install-id")
 
@@ -859,7 +868,7 @@ class Dispatcher:
                 if "link_lost" in j.step_events and not adb_present(self.adb_of(), j.serial):
                     # 手机已断开：后面每一步都会报同一段排查说明（错误日志 10-27），不再执行
                     self.on_error(task.title, j.serial, detail)
-                    reason = "手机和电脑已断开，这一步没有执行。重新连接手机后点「重试」。"
+                    reason = "手机和电脑已断开，这一步没有执行。重新连接手机后，在完成页点「继续未完成的步骤」，或单独点失败项旁的「重试」。"
                     for later in tasks[i + 1:]:
                         self._log(f"\n▶ {later.title}\n{reason}", j)
                         j.add_result({"title": later.title, "rc": 3, "skipped": True, "sec": 0, "tail": [reason]})
@@ -868,6 +877,10 @@ class Dispatcher:
                 if recovery:
                     with j.lock:
                         j.recovery = recovery
+        try:
+            self._write_ledger(tasks, j)
+        except Exception as e:          # 账本只是留痕，故障不能挡收尾（ADR-0014）
+            self._log(f"（变更账本写入失败：{e}）", j)
         self.resume()
         if not j.cancel:
             chime()                     # 执行结束（成功或有步骤没成功都响，提醒回来看结果）
@@ -878,6 +891,13 @@ class Dispatcher:
             self._log(final, j)
             j.running = False
             j.proc = None
+
+    def _write_ledger(self, tasks, j):
+        """执行结束把改动按条目写进账本（ADR-0014）：账本条目自带单条还原的数据，
+        完成页的「变更清单」与还原中心的勾选还原都读它。"""
+        ledger = _tool("ledger")
+        rec = ledger.build(tasks, j.results, j.serial, j.model, VERSION, j.t0, time.time() - j.t0)
+        ledger.Ledger(self.data.ledger).write(rec)
 
     def poll(self, since=0):
         j = self.job
@@ -1124,8 +1144,20 @@ class Api:
                 judgement = policy.classify(name, cid, package=pkg, app=app)
                 if judgement.protected:
                     continue  # 旧扫描结果也不能经「全选」把功能通知勾回去
+                # 判定理由跟着行走（FR-07 计划可解释）：勾/不勾都要说得出依据
+                reasons = []
+                if judgement.vivo_marketing_id:
+                    reasons.append("厂商营销分类号")
+                if judgement.ad_network_id:
+                    reasons.append("广告网络渠道 ID")
+                # 广告网络 ID 命中时 marketing_candidate 也是 True，那不算关键词命中
+                if judgement.marketing_candidate and not judgement.ad_network_id:
+                    reasons.append("营销关键词")
+                if judgement.default_unchecked:
+                    reasons.append("服务类 / 含糊类别，默认不勾")
                 rows.append({"pkg": pkg, "id": cid, "name": name, "app": app,
-                             "checked": not judgement.default_unchecked})
+                             "checked": not judgement.default_unchecked,
+                             "reason": "；".join(reasons) or "名称与分类号都没命中已知特征，默认勾选"})
         return {"chans": rows, "notes": self.last_scan_notes}
 
     def _remember_error(self, operation, serial, detail):
@@ -1197,6 +1229,39 @@ class Api:
         else:
             return "未知的还原项"
         return out + err
+
+    def ledger(self, serial=""):
+        """最近一次执行的变更账本（ADR-0014）。串号精确匹配；执行中不给。"""
+        if self._job_running():
+            return {"error": "任务正在执行，请结束后再查看"}
+        rec = _tool("ledger").Ledger(self.data.ledger).latest(serial=serial)
+        if not rec:
+            return {}
+        return {"ok": True, "record": _tool("ledger").scrub(rec)}
+
+    def restore_items(self, serial, items):
+        """单条还原（FR-12）：勾选哪些条目就还原哪些。只认账本白名单方法。"""
+        if self._job_running():
+            return "任务正在执行，请结束后再还原"
+        ledger = _tool("ledger")
+        try:
+            plan = ledger.undo_plan(items)
+        except ledger.LedgerError as e:
+            return f"还原清单有问题：{e}"
+        if not plan["chan_rows"] and not plan["pkgs"]:
+            return "没有可以还原的条目"
+        outputs = []
+        if plan["chan_rows"]:
+            self.data.ensure()
+            with open(self.data.undo, "w", encoding="utf-8") as f:
+                for row in plan["chan_rows"]:
+                    f.write("\t".join(row) + "\n")
+            out, err, rc = self._run("chan_fast.py", "-s", serial, "on", self.data.undo, timeout=600)
+            outputs.append(out + err)
+        if plan["pkgs"]:
+            out, err, rc = self._run("run.py", "-s", serial, "unsuspend", *plan["pkgs"])
+            outputs.append(out + err)
+        return "\n".join(s.strip() for s in outputs if s and s.strip()) or "已执行，没有输出"
 
     # ----- 反馈 -----
     def diagnostics(self):

@@ -12,6 +12,16 @@ def root_from_env():
     return os.environ.get("AAC_BACKUPS")
 
 
+def _restrict(d):
+    """备份里有应用清单和通知渠道记录（channels.tsv）：目录收紧到本人可读（M-12）。
+    Windows 的 FAT/exFAT 不支持 POSIX 权限，忽略即可。"""
+    if os.name == "posix":
+        try:
+            os.chmod(d, 0o700)
+        except OSError:
+            pass
+
+
 class Backups:
     def __init__(self, root):
         self.root = os.fspath(root)
@@ -27,10 +37,12 @@ class Backups:
     def create(self, model, when=None):
         d = os.path.join(self.root, f"{model}-{(when or datetime.datetime.now()):%Y%m%d-%H%M}")
         os.makedirs(d, exist_ok=True)
+        _restrict(d)
         return d
 
     def gui(self, model):
         """客户端勾选营销通知时用：没跑过备份也要有地方放 channels.tsv。"""
         d = os.path.join(self.root, f"{model}-gui")
         os.makedirs(d, exist_ok=True)
+        _restrict(d)
         return d

@@ -72,6 +72,7 @@ label.chk small{color:var(--sub);display:block}
 .chan table{width:100%;border-collapse:collapse;font-size:13px}
 .chan td{padding:6px 10px;border-bottom:1px solid var(--line)}
 .chan td.pkg{color:var(--sub);font-family:var(--mono);font-size:12px}
+.chan td .why{color:var(--sub);font-size:12px}
 .chan td.appname{font-weight:500}
 .chan th{position:sticky;top:0;background:var(--panel);text-align:left;font-weight:500;color:var(--sub);font-size:12px;padding:6px 10px;border-bottom:1px solid var(--line)}
 .bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
@@ -318,7 +319,7 @@ function renderChans(){
   const notes = S.chanNotes.length ? `<div class="note info">${S.chanNotes.map(n => `<div>${esc(n)}</div>`).join("")}</div>` : "";
   if (!S.chans.length){ box.innerHTML = notes + `<p class="lead" style="margin:10px 0 0">未发现已创建且开启的营销候选渠道。新设备或刚重置的设备上，App 可能尚未创建渠道，正常使用后可再次扫描。</p>`; $("#chancount").textContent = ""; return; }
   box.innerHTML = notes + `<div class="row" style="margin-top:10px"><button class="btn plain" onclick="chAll(true)">全选</button><button class="btn plain" onclick="chAll(false)">全不选</button></div>
-    <div class="chan"><table><tr><th></th><th>软件</th><th>通知类别</th></tr>${S.chans.map((c, k) => `<tr><td style="width:28px"><input type="checkbox" class="ch" data-k="${k}" ${c.checked ? "checked" : ""} onchange="S.chans[${k}].checked=this.checked;chCount()"></td><td class="${c.app ? "appname" : "pkg"}" title="${esc(c.pkg)}">${esc(c.app || c.pkg)}</td><td>${esc(c.name)}</td></tr>`).join("")}</table></div>`;
+    <div class="chan"><table><tr><th></th><th>软件</th><th>通知类别</th><th style="width:34%">判定</th></tr>${S.chans.map((c, k) => `<tr><td style="width:28px"><input type="checkbox" class="ch" data-k="${k}" ${c.checked ? "checked" : ""} onchange="S.chans[${k}].checked=this.checked;chCount()"></td><td class="${c.app ? "appname" : "pkg"}" title="${esc(c.pkg)}">${esc(c.app || c.pkg)}</td><td>${esc(c.name)}</td><td><span class="why">${esc(c.reason || "")}</span></td></tr>`).join("")}</table></div>`;
   chCount();
 }
 function chAll(v){ S.chans.forEach(c => c.checked = v); renderChans(); }
@@ -357,6 +358,17 @@ async function go(){
       <div class="actions"><button class="btn plain" onclick="closeModal()">返回勾选</button><button class="btn" onclick="closeModal();showDone({sec:0,cancel:false,results:[]})">去完成页</button></div>`);
     return;
   }
+  if (plan.ads.length){
+    /* FR-08 高风险项二次确认：挂起系统组件前先看清单，知道一条命令能还原。 */
+    S.pendingPlan = plan;
+    modal(`<h3>挂起这些系统广告组件？</h3><p class="lead" style="margin:0">挂起只是暂停运行，一条命令就能还原（左下角「还原改动」→ 恢复挂起的广告组件），不影响系统更新。要挂起的是：</p>
+      <div class="note info" style="margin-top:10px;font-family:var(--mono);font-size:12px;word-break:break-all">${plan.ads.map(a => esc(a)).join("<br>")}</div>
+      <div class="actions"><button class="btn plain" onclick="closeModal()">取消</button><button class="btn" onclick="closeModal();beginRun(S.pendingPlan)">确认挂起并开始</button></div>`);
+    return;
+  }
+  beginRun(plan);
+}
+async function beginRun(plan){
   const r = await api.start(S.serial, plan);
   if (r.error){ modal(`<h3>没法开始</h3><p>${esc(r.error)}</p><div class="actions"><button class="btn" onclick="closeModal()">好</button></div>`); return; }
   S.plan = plan; S.logNext = 0; showRun();
@@ -414,15 +426,70 @@ function showDone(r){
   const ok = r.results.every(x => x.rc === 0) && !r.cancel;
   const failed = r.results.some(x => x.rc !== 0 && !x.stopped);   // 点了停止不算出错，不提示上报
   if (!r.results.length){ r.results = []; }
+  S.lastResults = r.results;            // 「继续未完成的步骤」按它算还差哪几步
+  const undone = r.results.filter(x => x.rc !== 0 && !x.stopped);
+  const canResume = undone.length > 0 && !!S.plan && !!retryPlan(undone.map(x => x.title));
   main().innerHTML = `<h1>${ok ? "完成" : failed ? "已结束（有步骤没成功）" : "已停止"}</h1><p class="lead">用时 ${r.sec} 秒。去下拉搜索、负一屏、应用商店、浏览器看一眼，确认功能正常。</p>
-    <div class="card ${r.results.length ? "" : "hide"}">${r.results.map(x => `<div class="res"><span class="tag ${x.rc === 0 ? "ok" : x.stopped ? "warn" : "bad"}">${x.skipped ? "跳过" : x.stopped ? "已停止" : x.rc === 0 ? "成功" : "失败"}</span><span class="t">${esc(x.title)}</span><span class="d">${esc(summarize(x))} · ${x.sec} 秒</span></div>`).join("")}</div>
+    <div class="card ${r.results.length ? "" : "hide"}">${r.results.map(x => `<div class="res"><span class="tag ${x.rc === 0 ? "ok" : x.stopped ? "warn" : "bad"}">${x.skipped ? "跳过" : x.stopped ? "已停止" : x.rc === 0 ? "成功" : "失败"}</span><span class="t">${esc(x.title)}</span><span class="d">${esc(summarize(x))} · ${x.sec} 秒</span>${x.rc !== 0 && !x.stopped && retryPlan([x.title]) ? `<button class="btn plain" onclick="retryOne('${esc(x.title)}')">重试这项</button>` : ""}</div>`).join("")}</div>
+    <div class="card hide" id="ledgerbox"></div>
     ${r.recovery ? `<div class="card" id="ui-recovery"><h3>排查读屏连接</h3><p class="lead">${esc(r.recovery)}</p><div class="actions"><button class="btn plain" onclick="checkUi()">检查读屏连接</button><button class="btn plain" onclick="copyDiagnostics()">复制完整诊断</button></div></div>` : ""}
     <div class="card"><h3>最后一步：关闭开发者模式</h3>
       <p class="lead" style="margin:0 0 12px">${failed ? "有步骤未成功；若还要排查或重试，请先保留 USB 调试。结束排查后再关闭。" : "核对结果后，若不再使用电脑调试，建议关闭开发者模式和 USB 调试。"}部分银行、支付、游戏 App 检测到它开着会提醒或拒绝运行。<br>关掉<b>不会撤销</b>已经成功的改动。</p>
       <div class="row"><button class="btn" onclick="askDevOff()">帮我关闭</button><button class="btn plain" onclick="selfOff()">我在手机上自己关</button></div></div>
     ${failed ? `<div class="note bad">有步骤没成功。<a href="#" onclick="openReport();return false">上报错误日志</a>（不需要账号，发送前可以看到全部内容），或<a href="#" onclick="openFeedback('bug');return false">到 GitHub 反馈</a>。</div>` : ""}
-    <div class="actions"><button class="btn plain" onclick="retry()">重新检测这台手机</button></div>
+    <div class="actions"><button class="btn plain" onclick="retry()">重新检测这台手机</button>${canResume ? `<button class="btn" onclick="resumeUndone()">继续未完成的步骤</button>` : ""}</div>
     <details class="card"><summary>查看完整日志</summary><div class="log" style="height:260px">${esc(document.querySelector("#log")?.textContent || "")}</div></details>`;
+  loadLedger();
+}
+/* ---------- 断点续跑 / 失败项重试（FR-09 / FR-10） ----------
+   已成功的步骤不会重跑：按标题把上次没做成的项映射回计划，只重建那几步。
+   「收尾」由后端永远追加，不在计划里。 */
+function retryPlan(titles){
+  const p = S.plan; if (!p) return null;
+  const want = t => titles.includes(t);
+  const plan = {
+    backup: want("存改动前的快照"), model: p.model,
+    steps: want("关闭各 App 里的广告开关") ? p.steps : [], ref: p.ref,
+    channels: want("关闭营销通知") ? p.channels : [],
+    quickapp: want("关闭快应用"), ads: want("挂起广告组件") ? p.ads : [],
+  };
+  if (!plan.backup && !plan.steps.length && !plan.channels.length && !plan.quickapp && !plan.ads.length) return null;
+  return plan;
+}
+function retryOne(title){
+  const plan = retryPlan([title]);
+  if (!plan){ modal(`<h3>没法重试</h3><p class="lead">这项不在本次计划里（可能是客户端重启后回到完成页）。请「重新检测这台手机」后重做。</p><div class="actions"><button class="btn" onclick="closeModal()">好</button></div>`); return; }
+  S.chans = null; S.chanNotes = [];    // 上次扫描结果已过期
+  beginRun(plan);
+}
+function resumeUndone(){
+  const titles = (S.lastResults || []).filter(x => x.rc !== 0 && !x.stopped).map(x => x.title);
+  const plan = retryPlan(titles);
+  if (!plan){ modal(`<h3>没有要继续的步骤</h3><p class="lead">失败或跳过的步骤找不到对应计划（可能是客户端重启后回到完成页）。请「重新检测这台手机」后重做。</p><div class="actions"><button class="btn" onclick="closeModal()">好</button></div>`); return; }
+  S.chans = null; S.chanNotes = [];
+  beginRun(plan);
+}
+/* ---------- 变更清单（ADR-0014）：这次到底改了什么，每条都能单独还原 ---------- */
+async function loadLedger(){
+  const box = $("#ledgerbox"); if (!box) return;
+  let rec = null;
+  try { const r = await api.ledger(S.serial || ""); rec = r && r.record; } catch(e){}
+  if (!rec){ box.classList.add("hide"); return; }
+  const items = rec.items || [];
+  const cnt = (arr, s) => arr.filter(i => i.after === s).length;
+  const chans = items.filter(i => i.kind === "channel"), pkgs = items.filter(i => i.kind === "package");
+  box.innerHTML = `<h3>这次改了什么</h3>
+    <p class="lead" style="margin:0 0 8px">共 ${items.length} 条改动${chans.length ? `：营销通知 ${cnt(chans, "已关")}/${chans.length} 条已关（${cnt(chans, "未确认")} 条未确认）` : ""}${pkgs.length ? `；广告组件 ${cnt(pkgs, "已挂起")}/${pkgs.length} 个已挂起` : ""}。每一条都能在「还原改动」里单独恢复${items.some(i => i.after !== "已关" && i.after !== "已挂起") ? "；标「未确认」的条目要先在手机上核实" : ""}。</p>
+    ${items.length ? `<details><summary>逐条查看</summary><div class="chan" style="margin-top:8px"><table><tr><th>类别</th><th>条目</th><th>改成了</th></tr>${items.map(i => `<tr><td>${i.kind === "channel" ? "营销通知" : "广告组件"}</td><td title="${esc(i.pkg)}">${esc(i.app || i.name || i.pkg)}${i.id ? ` · ${esc(i.id)}` : ""}</td><td>${esc(i.after)}</td></tr>`).join("")}</table></div></details>` : `<p class="lead" style="margin:0">这次没有可逐条记录的改动。</p>`}
+    <div class="row" style="margin-top:10px"><button class="btn plain" onclick="openRestore()">还原改动</button><button class="btn plain" onclick="exportLedger()">导出脱敏清单</button></div>`;
+  box.classList.remove("hide");
+}
+async function exportLedger(){
+  let rec = null;
+  try { const r = await api.ledger(S.serial || ""); rec = r && r.record; } catch(e){}
+  if (!rec) return;
+  const ok = await api.copy_text(JSON.stringify(rec, null, 2));
+  modal(`<h3>${ok ? "变更清单已复制" : "复制失败"}</h3><p class="lead">${ok ? "手机序列号已替换成 &lt;序列号&gt;，应用与渠道名称保留（还原要用）。可以粘贴给维护者，或自己留档。" : "请稍后再试。"}</p><div class="actions"><button class="btn" onclick="closeModal()">好</button></div>`);
 }
 function retry(){
   S.chans = null; S.chanNotes = [];    // 上次扫描结果已过期：执行可能已把这些渠道关掉
@@ -520,17 +587,33 @@ async function sendFeedback(){
 }
 
 /* ---------- 还原 ---------- */
-function openRestore(){
+async function openRestore(){
   if (!S.serial){ modal(`<h3>先连接手机</h3><p class="lead">还原要连着手机操作。请先在「连接手机」里选中要还原的手机。</p><div class="actions"><button class="btn" onclick="closeModal()">好</button></div>`); return; }
-  modal(`<h3>还原改动</h3><p class="lead">选一项恢复。App 内的开关要按清单路径手动打开。</p>
+  let rec = null;
+  try { const r = await api.ledger(S.serial); rec = r && r.record; } catch(e){}
+  S.ledgerItems = (rec && rec.items || []).filter(i => i.undo);   // 只有带还原数据的条目能勾选
+  modal(`<h3>还原改动</h3>
+    <p class="lead" style="margin:0">最近一次执行改了 ${S.ledgerItems.length} 条${rec && rec.model ? `（${esc(rec.model)}）` : ""}。勾选要恢复的条目单独还原，或用下面的大按钮按类别恢复。App 内的开关要按清单路径手动打开。</p>
+    ${S.ledgerItems.length ? `<div class="chan" style="margin-top:10px;max-height:200px"><table><tr><th>恢复</th><th>条目</th><th>改成了</th></tr>${S.ledgerItems.map((i, k) => `<tr><td style="width:28px"><input type="checkbox" class="r-it" data-k="${k}"></td><td title="${esc(i.pkg)}">${esc(i.app || i.name || i.pkg)}${i.id ? ` · ${esc(i.id)}` : ""}</td><td>${esc(i.after)}</td></tr>`).join("")}</table></div>
+      <div class="actions" style="margin-top:8px;justify-content:flex-start"><button class="btn" onclick="restoreItems()">恢复勾选的条目</button></div>` : rec ? `<p class="lead" style="margin:10px 0 0">最近一次执行没有可逐条还原的条目。</p>` : `<p class="lead" style="margin:10px 0 0">还没有执行记录。</p>`}
     <div style="display:flex;flex-direction:column;gap:10px;margin:14px 0">
       <button class="btn ghost" onclick="restore('quickapp')">恢复快应用</button>
       <button class="btn ghost" onclick="restore('suspend')">恢复挂起的广告组件</button>
       <button class="btn ghost" onclick="restore('channels')">重新打开关掉的营销通知</button></div>
     <div id="rmsg" class="lead" style="white-space:pre-wrap;font-size:12px"></div>
-    <div class="actions"><button class="btn plain" onclick="closeModal()">关闭</button></div>`);
+    <div class="actions"><button class="btn plain" onclick="closeModal()">关闭</button></div>`, true);
 }
 async function restore(w){ $("#rmsg").textContent = "处理中……"; $("#rmsg").textContent = await api.restore(S.serial, w); }
+async function restoreItems(){
+  const items = [];
+  document.querySelectorAll(".r-it:checked").forEach(cb => {
+    const i = (S.ledgerItems || [])[+cb.dataset.k];
+    if (i) items.push(i);
+  });
+  if (!items.length){ $("#rmsg").textContent = "先勾选要恢复的条目。"; return; }
+  $("#rmsg").textContent = "处理中……";
+  $("#rmsg").textContent = await api.restore_items(S.serial, items);
+}
 
 /* ---------- 设置：手动指定 adb（#311） ---------- */
 const ADB_SRC = {manual: "手动指定", downloaded: "客户端下载", system: "系统已安装", none: ""};
@@ -541,9 +624,18 @@ async function openSettings(){
     <label class="lead" for="adbpath" style="display:block;margin:0 0 6px">adb 路径</label>
     <div class="row"><input type="text" id="adbpath" class="mono" placeholder="例如 /Users/你/Software/AndroidSDK/platform-tools/adb"><button class="btn ghost" onclick="browseAdb()">浏览…</button></div>
     <div id="adbmsg" class="note hide" style="margin-top:12px"></div>
+    <div id="ledstat" style="margin-top:12px"></div>
     <p class="lead" style="margin:12px 0 0">开发者：某厂大牛马【带娃的小陈工】</p>
     <div class="actions"><button class="btn plain" onclick="clearAdb()">恢复自动查找</button><button class="btn plain" onclick="closeModal()">关闭</button><button class="btn" onclick="saveAdb()">保存</button></div>`);
   renderAdbInfo(await api.adb_info());
+  loadLedgerStat();
+}
+function loadLedgerStat(){
+  api.ledger("").then(r => {                 // 最近一次执行，不限手机：本地的执行留痕，不上传
+    const el = $("#ledstat"); if (!el || !r || !r.record) return;
+    const rec = r.record, items = rec.items || [];
+    el.innerHTML = `<div class="note info">执行记录：最近一次是 ${esc(rec.model || "未识别型号")}，${esc(rec.t0)}，共 ${items.length} 条改动，用时 ${rec.elapsed} 秒。明细在左下角「还原改动」。</div>`;
+  }).catch(() => {});
 }
 function renderAdbInfo(info){
   const where = info.path ? `${esc(info.path)}${info.version ? `（版本 ${esc(info.version)}）` : ""}` : "还没有找到 adb";
