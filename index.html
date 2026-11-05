@@ -421,19 +421,19 @@ const REL = {
   baidu: { url: "https://pan.baidu.com/s/18slO2hS6PsZcVmWgdQZdUA", code: "wj4m" },
   // published: false = 本 Release 没有这个产物（v0.3.2 只发了 Windows），官网不渲染下载按钮、
   // 不进校验值清单。等 CI 真产出了对应文件再翻回 true，别只改文件名（v0.3.2 的一致性缺陷）。
-  // v0.3.3 处于「CI 尚未产出产物」的发布中间态：全部条目 false，CI 出货后在发布步骤翻回 true。
+  // v0.3.3：CI 已产出 Windows 双件（SHA 取自 Release 资产 SHA256SUMS.txt），Mac 仍无产物。
   files: [
     { id: "mac-arm64", published: false, folder: "Mac-Apple芯片", baidu: { url: "https://pan.baidu.com/s/1NW6st5DZTxyubBAIVbU69g", code: "bft0" }, title: "Mac · Apple 芯片", sub: "M1 / M2 / M3 / M4 及以后", file: "AndroidAdCleaner-0.3.1-mac-arm64.dmg", size: "35.3 MB",
       note: "苹果公证通过，双击打开", sha: "62b1410431b81965599468d1bd80905863a4c56a45f1fcee07b8bd308c998662" },
     { id: "mac-intel", published: false, folder: "Mac-Intel芯片", baidu: { url: "https://pan.baidu.com/s/1tFrq_NhbzbjznxBmgFliQw", code: "8oos" }, title: "Mac · Intel 芯片", sub: "2020 年及以前的 Intel Mac，macOS 11 及以上", file: "AndroidAdCleaner-0.3.1-mac-intel.dmg", size: "40.5 MB",
       note: "苹果公证通过，双击打开", sha: "973e9c9f85588448e763567c8e4cb35d157e43e5734ad1525d9218997a42bdf0" },
-    { id: "win-setup", published: false, folder: "Windows-安装版", baidu: { url: "https://pan.baidu.com/s/1l5vtm0m0bzrktIRFdo4iRQ", code: "clqm" }, title: "Windows · 安装版", sub: "Windows 10 / 11（64 位）", file: "AndroidAdCleaner-0.3.2-windows-setup.exe", size: "30.3 MB",
-      note: "弹出安全提示时点「更多信息」→「仍要运行」", sha: "383ec5e3d410f805173212f7a6328ca2a0bfc632f48d612b3a397ff74d2fd968" },
-    { id: "win-zip", published: false, folder: "Windows-免安装版", baidu: { url: "https://pan.baidu.com/s/1j0LcMPBU1SFmPjOElaTo5w", code: "uemm" }, title: "Windows · 免安装", sub: "Windows 10 / 11（64 位）", file: "AndroidAdCleaner-0.3.2-windows-portable.zip", size: "45.2 MB",
-      note: "解压后双击 AndroidAdCleaner.exe", sha: "9dae62bafefdb64d032c4ecb5675306bb83aab5fa8f105579974cbcfbc4970f9" },
+    { id: "win-setup", published: true, folder: "Windows-安装版", baidu: { url: "https://pan.baidu.com/s/1l5vtm0m0bzrktIRFdo4iRQ", code: "clqm" }, title: "Windows · 安装版", sub: "Windows 10 / 11（64 位）", file: "AndroidAdCleaner-0.3.3-windows-setup.exe", size: "30.3 MB",
+      note: "弹出安全提示时点「更多信息」→「仍要运行」", sha: "c58421c96c17b33492f6c34aea0980db9f2f70cf1bcf807abcc61fe5a0d5e22f" },
+    { id: "win-zip", published: true, folder: "Windows-免安装版", baidu: { url: "https://pan.baidu.com/s/1j0LcMPBU1SFmPjOElaTo5w", code: "uemm" }, title: "Windows · 免安装", sub: "Windows 10 / 11（64 位）", file: "AndroidAdCleaner-0.3.3-windows-portable.zip", size: "45.2 MB",
+      note: "解压后双击 AndroidAdCleaner.exe", sha: "40dbf8e392c132dd6b6afda77e6e03eb2f51198e9a5f558cfa7913cb0d2cf5b6" },
   ],
 };
-const RELEASED = "2026-11-04";
+const RELEASED = "2026-11-05";
 const REPO = "https://github.com/Tri250/Aidaily";
 
 const PROMPTS = {

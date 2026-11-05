@@ -59,20 +59,17 @@ class ReleasePageConsistencyTests(unittest.TestCase):
         self.assertEqual(bad, [], f"published 条目文件名版本不对：{bad}")
 
     def test_release_shape_matches_reality(self):
-        """现状固化：发布中间态（v0.3.3，CI 尚未产出产物）全部条目 false。
-        CI 出货后在发布提交里把 Windows 条目翻回 true 并换成真实产物名 / SHA；
-        翻回 true 的前提是 Release 资产里真的有对应文件，别只改文件名。"""
+        """现状固化：v0.3.3 已由 CI 产出 Windows 双件（安装版 / 免安装），Mac 无产物。
+        翻 published 回 true 的前提是 Release 资产里真的有对应文件，别只改文件名。"""
         flags = {i: pub for i, pub, _ in self.entries()}
         self.assertEqual(flags, {"mac-arm64": "false", "mac-intel": "false",
-                                 "win-setup": "false", "win-zip": "false"})
+                                 "win-setup": "true", "win-zip": "true"})
 
     def test_stale_names_are_not_silently_rebranded(self):
-        """未发布条目保留旧产物名（0.3.1 Mac / 0.3.2 Windows 占位），而不是改成新版本号装作已发。"""
+        """未发布条目保留旧产物名（0.3.1 Mac 占位），而不是改成新版本号装作已发。"""
         files = {i: f for i, _, f in self.entries()}
         self.assertIn("-0.3.1-", files["mac-arm64"])
         self.assertIn("-0.3.1-", files["mac-intel"])
-        self.assertIn("-0.3.2-", files["win-setup"])
-        self.assertIn("-0.3.2-", files["win-zip"])
 
 
 if __name__ == "__main__":
