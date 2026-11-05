@@ -116,7 +116,11 @@ def verify_manifest(manifest_path, root):
             raise _bad(f"清单行不合法：{line!r}")
         expected, rel = parts
         rel = rel.strip().lstrip("*")
-        if os.path.isabs(rel) or ".." in rel.split(os.sep) or rel.startswith("/"):
+        # 清单一律写正斜杠（write_manifest 归一化过），但 Windows 上 os.sep 是反斜杠，
+        # 直接按 os.sep 切会把 "../x" 当成一个片段放走——统一归一成 / 再判越界。
+        norm = rel.replace("\\", "/")
+        if (os.path.isabs(norm) or norm.startswith(("/", "\\"))
+                or ".." in norm.split("/") or (len(norm) >= 2 and norm[1] == ":")):
             raise _bad(f"清单里出现越界路径：{rel!r}")
         fn = os.path.join(root, rel)
         digest = _sha256(fn)

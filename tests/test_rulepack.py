@@ -98,6 +98,14 @@ class ManifestTests(unittest.TestCase):
         with self.assertRaisesRegex(rulepack.RulePackError, "越界路径"):
             rulepack.verify_manifest(self.dir / "MANIFEST.sha256", self.dir)
 
+    def test_path_escape_is_refused_in_windows_forms(self):
+        """v0.3.3 CI 实测：按 os.sep 切会把反斜杠/盘符写法放走。两种形式都要拦。"""
+        for rel in ("..\\elsewhere\\pack.json", "..\\../elsewhere/pack.json",
+                    "C:/elsewhere/pack.json"):
+            (self.dir / "MANIFEST.sha256").write_text(f"{'0' * 64}  {rel}\n", encoding="utf-8")
+            with self.assertRaisesRegex(rulepack.RulePackError, "越界路径"):
+                rulepack.verify_manifest(self.dir / "MANIFEST.sha256", self.dir)
+
     def test_missing_pack_file_is_refused(self):
         (self.dir / "MANIFEST.sha256").write_text(f"{'0' * 64}  gone.json\n", encoding="utf-8")
         with self.assertRaisesRegex(rulepack.RulePackError, "读不到"):
